@@ -1,0 +1,51 @@
+name: FarmDash Agent Hub
+description: >-
+  Zero-custody intelligence and control layer for DeFi agents and airdrop farmers, combining Trail Heat intelligence,
+  Signal Architect swap routing, Hyperliquid research, and agent-ready APIs. Exposes a unified OpenAPI REST API, an MCP
+  server, llms.txt, and OpenClaw agent skills with tiered API-key auth (Scout/Pioneer/Syndicate) and x402
+  machine-payment fallback.
+url: https://raw.githubusercontent.com/api-evangelist/farmdash-agent-hub/refs/heads/main/apis.yml
+created: '2026-08-26'
+modified: '2026-08-26'
+specificationVersion: '0.21'
+tags:
+  - DeFi
+  - DeFAI
+  - AI agents
+  - MCP
+  - OpenAPI
+  - x402
+  - blockchain
+  - crypto
+  - airdrop tracking
+  - developer tools
+apis:
+  - name: FarmDash Agent Hub API
+    description: >-
+      Unified zero-custody DeFi agent API providing Trail Heat intelligence, protocol discovery, swap quotes with
+      simulation-gated user-signed execution, and Hyperliquid research. Advertises OpenAPI spec, an MCP server (84
+      tools), llms.txt machine-readable context, and OpenClaw agent skills.
+    humanURL: https://www.farmdash.one/agents
+    baseURL: https://www.farmdash.one
+    tags:
+      - DeFi
+      - DeFAI
+      - AI agents
+      - MCP
+      - OpenAPI
+      - x402
+      - blockchain
+      - crypto
+      - airdrop tracking
+      - developer tools
+    properties:
+      - type: Documentation
+        url: https://www.farmdash.one/docs
+maintainers:
+  - FN: FarmDash Agent Hub
+    url: https://www.farmdash.one
+generated:
+  by: apis.io/add
+  model: claude-opus-4-8
+  confidence: 72
+  at: '2026-08-26T16:05:34.303Z'
