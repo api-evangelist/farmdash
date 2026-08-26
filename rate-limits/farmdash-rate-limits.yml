@@ -1,0 +1,99 @@
+generated: '2026-08-26'
+method: probed
+source: https://www.farmdash.one/api/v1/agent/sybil-audit (live 402 body, 2026-08-26)
+secondary_sources:
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/.well-known/agent.json
+- https://www.farmdash.one/api/v1/agent/status
+limit_count: 3
+limits:
+- scope: per-ip
+  tier: Scout
+  limit: 5
+  window: 24h
+  burst: null
+  auth: none (anonymous, or Bearer fd_scout_free)
+  note: Free keyless discovery tier. Exhaustion returns 402 with an x402 challenge, not 429.
+- scope: per-key
+  tier: Pioneer
+  limit: 1500
+  window: 24h
+  burst: null
+  auth: 'Authorization: Bearer <key>'
+- scope: per-key
+  tier: Syndicate
+  limit: 50000
+  window: 24h
+  burst: null
+  auth: 'Authorization: Bearer <key>'
+response_headers:
+- name: X-RateLimit-Limit
+  description: Max requests for the current window.
+  documented: true
+  observed: false
+- name: X-RateLimit-Remaining
+  description: Requests remaining in the current window.
+  documented: true
+  observed: false
+- name: X-RateLimit-Reset
+  description: >-
+    UTC epoch seconds when the window resets. The agent card describes this as "seconds
+    until rate limit resets (UTC midnight)"; the OpenAPI describes it as absolute UTC epoch
+    seconds. The value observed inside the live 402 body (rate_limit.reset_epoch_seconds =
+    1787788801) is an absolute epoch, matching the OpenAPI.
+  documented: true
+  observed: false
+- name: X-Request-ID
+  description: Unique request correlation ID (UUID v4).
+  documented: true
+  observed: true
+  observed_evidence: 'x-request-id: b3cd9816-9185-4a52-8bc4-ecfa82ba6690 on GET /api/v1/agent/protocols?mock=true (200)'
+- name: Retry-After
+  description: Referenced once in the OpenAPI for throttled responses.
+  documented: true
+  observed: false
+- name: X-Payment-Proof
+  description: Request header a client sends after paying, carrying 0x<txHash>.
+  direction: request
+  documented: true
+- name: PAYMENT-REQUIRED
+  description: x402 challenge header accompanying a 402.
+  documented: true
+  observed: false
+header_gap:
+  finding: >-
+    DOCUMENTED BUT NOT SERVED ON THE PATHS PROBED. The OpenAPI states "All responses include
+    X-RateLimit-Limit / X-RateLimit-Remaining / X-RateLimit-Reset", and the agent card
+    repeats the same contract. A live GET /api/v1/agent/protocols?mock=true returned HTTP 200
+    with x-request-id and strict-transport-security but NO X-RateLimit-* header of any kind.
+    An agent that relies on the documented runtime signal to pace itself will not find it on
+    this route.
+  mitigation: >-
+    The equivalent data IS returned in the BODY of a 402: rate_limit{tier, used, limit,
+    remaining, reset_epoch_seconds}. So the signal exists, but only after exhaustion and only
+    in-band, which is strictly worse for an agent than headers on every response.
+  checked: '2026-08-26'
+exhaustion:
+  status_code: 402
+  status_note: >-
+    FarmDash returns 402 Payment Required rather than 429 when the Scout quota is exhausted —
+    the quota wall and the paywall are the same wall. 429 is declared in the OpenAPI for
+    several operations (getSwapQuote, simulateSwapExecution, executeSwap, getSwapHistory,
+    getProtocolCatalog, getLiveTrailHeat, getTokenPrices, getChainBreakdown,
+    scanFundingRates, analyzeRiskSentinel) but the observed exhaustion response was 402.
+  body_fields:
+  - ok
+  - error
+  - code
+  - message
+  - retryable
+  - request_id
+  - tier
+  - rate_limit
+  - x402
+  - developer_sandbox
+  - upgrade_url
+  recovery_paths:
+  - Pay the stated x402 amount in USDC on Base and retry with X-Payment-Proof or PAYMENT-SIGNATURE.
+  - Upgrade a tier at https://www.farmdash.one/pricing.
+  - 'Fall back to the unmetered deterministic sandbox: ?mock=true on /v1/agent/protocols or /v1/trail-heat.'

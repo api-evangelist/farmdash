@@ -1,0 +1,68 @@
+generated: '2026-08-26'
+method: searched
+source: >-
+  registry.npmjs.org probes + https://www.farmdash.one/.well-known/agent.json (sdk block)
+  + https://www.farmdash.one/.well-known/mcp.json (installation block)
+note: >-
+  FarmDash advertises two first-party TypeScript packages — @farmdash/agent-kit (the SDK)
+  and @farmdash/mcp-server — in its own discovery documents. NEITHER IS PUBLISHED. Both
+  return 404 from the npm registry, and the single GitHub repository both point at for a
+  source build (Parmasanandgarlic/farmdashbeta) also returns 404 while the owner account
+  itself returns 200. The provider is partly candid about this: mcp.json carries
+  installation.status "source_only_registry_unpublished_verified_2026-08-23". But the
+  fallback it offers — clone the repo — does not work either. There is currently no way for
+  a third party to obtain a FarmDash client library or MCP server. Recorded as an honest
+  zero rather than as SDK coverage.
+package_count: 0
+official_package_count: 0
+packages:
+- name: '@farmdash/agent-kit'
+  registry: npm
+  official: true
+  language: TypeScript
+  version: null
+  published: null
+  status: unpublished
+  url: https://registry.npmjs.org/@farmdash%2Fagent-kit
+  http_status: 404
+  checked: '2026-08-26'
+  source: https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/agent-kit
+  source_http_status: 404
+  advertised_features:
+  - TypeScript client
+  - Zod runtime validation schemas
+  - automatic retry
+  - LRU cache with ETag
+  - Dust Storm fallback
+  note: >-
+    Named as `sdk.package` in the provider's own A2A agent card. Checked, absent from npm —
+    version null means "checked, nothing to record", not "not checked".
+- name: '@farmdash/mcp-server'
+  registry: npm
+  official: true
+  language: TypeScript
+  version: null
+  published: null
+  status: unpublished
+  url: https://registry.npmjs.org/@farmdash%2Fmcp-server
+  http_status: 404
+  checked: '2026-08-26'
+  source: https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/mcp-server
+  source_http_status: 404
+  note: >-
+    The provider states the package is intentionally unpublished and directs consumers to
+    build from source; the source repository is not reachable either (404 on 2026-08-26).
+registries_checked:
+- registry: npm
+  queries:
+  - '@farmdash/agent-kit'
+  - '@farmdash/mcp-server'
+  - farmdash
+  - '@farmdash/sdk'
+  result: all 404
+  checked: '2026-08-26'
+- registry: github
+  queries:
+  - Parmasanandgarlic/farmdashbeta
+  result: 404 (owner account 200)
+  checked: '2026-08-26'

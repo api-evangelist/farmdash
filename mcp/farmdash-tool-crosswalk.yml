@@ -1,0 +1,353 @@
+generated: '2026-08-26'
+method: derived
+source: well-known/farmdash-mcp.json + openapi/farmdash-agent-api-openapi.yaml
+note: 'Bound each of the 84 MCP tools published in FarmDash''s own mcp.json to the operationIds in its
+  published OpenAPI 3.1.0. The MCP surface is roughly 3x the REST surface: only 27 tools have a backing
+  published REST operation, and 57 are MCP-only. That gap is not sloppiness — several MCP-only tools call
+  endpoints FarmDash documents in llms.txt, the agent card and the live status contract (/v1/agent/balances,
+  /v1/agent/sybil-audit, /v1/agent/optimize-portfolio, /v1/agent/performance, /v1/agent/ledger, /v1/agent/receipts)
+  that were simply never added to the OpenAPI. The rest are genuinely composite or belong to preview subsystems
+  (MEE cross-chain, Virtuals ACP) that the live status contract reports as preparation_only or prerequisite-dependent.'
+surfaces:
+  openapi:
+    file: openapi/farmdash-agent-api-openapi.yaml
+    url: https://www.farmdash.one/agents/openapi.yaml
+    operations: 27
+    gated: false
+    status: 200
+  mcp:
+    manifest: https://www.farmdash.one/.well-known/mcp.json
+    transport: stdio
+    endpoint: null
+    tools: 84
+    gated: false
+    status: 200
+    note: Manifest is public and carries full inputSchema per tool, so no authenticated tools/list introspection
+      was required. There is no remote endpoint to introspect.
+  graphql: null
+  runtime_authority:
+    url: https://www.farmdash.one/api/v1/agent/status
+    status: 200
+    note: Per-feature availability contract. Overrides tool presence by the provider’s own rule.
+crosswalk:
+- tool: get_trail_heat
+  category: trail_intelligence
+  rest:
+  - getLiveTrailHeat
+  binding: direct
+  confidence: high
+- tool: get_protocol_metadata
+  category: trail_intelligence
+  rest:
+  - getProtocolCatalog
+  binding: direct
+  confidence: high
+- tool: get_chain_breakdown
+  category: trail_intelligence
+  rest:
+  - getChainBreakdown
+  binding: direct
+  confidence: high
+- tool: get_token_prices
+  category: wallet_intelligence
+  rest:
+  - getTokenPrices
+  binding: direct
+  confidence: high
+- tool: list_workflows
+  category: workflows
+  rest:
+  - listAgentWorkflows
+  binding: direct
+  confidence: high
+- tool: get_swap_quote
+  category: swap
+  rest:
+  - getSwapQuote
+  binding: direct
+  confidence: high
+- tool: simulate_swap_execution
+  category: swap
+  rest:
+  - simulateSwapExecution
+  binding: direct
+  confidence: high
+- tool: execute_swap
+  category: swap
+  rest:
+  - executeSwap
+  binding: direct
+  confidence: high
+- tool: confirm_swap
+  category: swap
+  rest:
+  - confirmSwap
+  binding: direct
+  confidence: high
+- tool: run_risk_sentinel
+  category: risk
+  rest:
+  - analyzeRiskSentinel
+  binding: direct
+  confidence: high
+- tool: scan_funding_rates
+  category: futures
+  rest:
+  - scanFundingRates
+  binding: direct
+  confidence: high
+- tool: scan_market_conditions
+  category: futures
+  rest:
+  - getMarketConditions
+  binding: direct
+  confidence: high
+- tool: get_futures_account
+  category: futures
+  rest:
+  - getAccountState
+  binding: direct
+  confidence: high
+- tool: analyze_futures_strategy
+  category: futures
+  rest:
+  - analyzeStrategy
+  binding: direct
+  confidence: high
+- tool: calculate_position_size
+  category: futures
+  rest:
+  - calculatePositionSize
+  binding: direct
+  confidence: high
+- tool: execute_perp_order
+  category: futures
+  rest:
+  - executeOrder
+  binding: direct
+  confidence: high
+- tool: cancel_perp_order
+  category: futures
+  rest:
+  - cancelOrder
+  binding: direct
+  confidence: high
+- tool: agent_onboard
+  category: session
+  rest:
+  - getOnboardingGuide
+  binding: direct
+  confidence: high
+- tool: create_session
+  category: session
+  rest:
+  - manageSession
+  binding: action-of
+  confidence: high
+  note: manageSession is a multiplexed POST; this tool is the create action.
+- tool: session_heartbeat
+  category: session
+  rest:
+  - manageSession
+  binding: action-of
+  confidence: high
+  note: heartbeat action on the same multiplexed POST.
+- tool: verify_delegation
+  category: session
+  rest:
+  - verifyDelegation
+  - getDelegationStatus
+  binding: direct
+  confidence: high
+- tool: configure_autopilot
+  category: autopilot
+  rest:
+  - manageAutopilot
+  - getRecommendedAutopilotConfig
+  binding: action-of
+  confidence: high
+  note: configure action on the multiplexed autopilot POST.
+- tool: autopilot_cycle
+  category: autopilot
+  rest:
+  - manageAutopilot
+  binding: action-of
+  confidence: high
+  note: run-cycle action.
+- tool: pause_autopilot
+  category: autopilot
+  rest:
+  - manageAutopilot
+  binding: action-of
+  confidence: high
+  note: pause action.
+- tool: resume_autopilot
+  category: autopilot
+  rest:
+  - manageAutopilot
+  binding: action-of
+  confidence: high
+  note: resume action.
+- tool: get_cycle_status
+  category: autopilot
+  rest:
+  - manageAutopilot
+  binding: action-of
+  confidence: medium
+  note: Status read on the autopilot surface; not separately specified in the OpenAPI.
+- tool: query_trail_heat
+  category: trail_intelligence
+  rest:
+  - getLiveTrailHeat
+  - getProtocolCatalog
+  binding: composite
+  confidence: medium
+  note: Filtered query over the same two datasets; no dedicated REST operation.
+mcp_only:
+- tool: create_intent
+  reason: Typed FarmDashIntent lifecycle; /api/v1/agent/intents/create is named by the live status contract
+    but is absent from the published OpenAPI.
+- tool: policy_check_intent
+  reason: Intent policy gate; intent lifecycle is not modelled in the OpenAPI.
+- tool: simulate_intent
+  reason: Intent-scoped simulation, distinct from the spec-modelled swap simulateSwapExecution.
+- tool: request_approval_payload
+  reason: EIP-712 IntentApproval payload builder; no REST operation published.
+- tool: request_human_approval
+  reason: Signed human approval submission; no REST operation published.
+- tool: submit_signed_approval
+  reason: Signed approval submission; no REST operation published.
+- tool: get_approval_status
+  reason: Approval state read; no REST operation published.
+- tool: prepare_intent
+  reason: Intent preparation step; no REST operation published.
+- tool: execute_approved_intent
+  reason: Gated intent execution. Live status reports generic_intent_execution "disabled" (execution_verifier_unconfigured).
+- tool: confirm_execution
+  reason: Intent receipt confirmation; the OpenAPI only models swap-scoped confirmSwap.
+- tool: get_receipt
+  reason: /api/v1/agent/receipts is named by the status contract but absent from the OpenAPI.
+- tool: get_agent_activity
+  reason: Activity ledger read; no REST operation published.
+- tool: get_protocol_risk_factors
+  reason: Protocol risk decomposition; not a published REST operation.
+- tool: find_capital_route
+  reason: Capital routing planner; composite over catalog + quote data.
+- tool: get_agent_events
+  reason: Pioneer+ agent event stream; no REST operation published.
+- tool: audit_sybil_risk
+  reason: /api/v1/agent/sybil-audit is documented in llms.txt and the agent card and returns a live 402
+    x402 challenge, but is NOT in the published OpenAPI.
+- tool: simulate_points
+  reason: /api/v1/agent/simulate-points documented in llms.txt; absent from the OpenAPI.
+- tool: get_historical_trailheat
+  reason: 365-day historical Trail Heat (Pioneer+); no REST operation published.
+- tool: get_wallet_balances
+  reason: /api/v1/agent/balances documented in llms.txt and the agent card; absent from the OpenAPI.
+- tool: get_portfolio_summary
+  reason: Portfolio rollup; no REST operation published.
+- tool: get_position_health
+  reason: Position health read; no REST operation published.
+- tool: get_idle_capital
+  reason: Idle capital detection; no REST operation published.
+- tool: plan_workflow
+  reason: Workflow planning over the /v1/agent/orchestrator surface; only the catalog read (listAgentWorkflows)
+    is in the OpenAPI.
+- tool: run_workflow
+  reason: Workflow execution over /v1/agent/orchestrator; absent from the OpenAPI.
+- tool: get_workflow_status
+  reason: Workflow run status; absent from the OpenAPI.
+- tool: optimize_portfolio
+  reason: /api/v1/agent/optimize-portfolio documented in llms.txt and the agent card; absent from the
+    OpenAPI.
+- tool: resolve_defi_intent
+  reason: Natural-language DeFi intent resolver; composite planner with no REST equivalent.
+- tool: get_agent_performance
+  reason: /api/v1/agent/performance documented in llms.txt and the agent card; absent from the OpenAPI.
+- tool: audit_allowance_risk
+  reason: ERC-20 allowance risk audit; no REST operation published.
+- tool: simulate_transaction_risk
+  reason: Pre-flight transaction risk simulation; no REST operation published.
+- tool: compare_yields
+  reason: Cross-protocol yield comparison; composite, no REST operation.
+- tool: recommend_delta_hedge
+  reason: Delta hedge recommendation; composite over futures + wallet data.
+- tool: ledger_realized_pnl
+  reason: /api/v1/agent/ledger is named by the status contract; absent from the OpenAPI.
+- tool: ledger_tax_export
+  reason: Tax export over the same ledger surface; absent from the OpenAPI.
+- tool: get_farming_context
+  reason: Session farming context read; absent from the OpenAPI.
+- tool: patch_farming_context
+  reason: Session farming context write; absent from the OpenAPI.
+- tool: get_event_stream_snapshot
+  reason: Event stream snapshot; absent from the OpenAPI.
+- tool: grant_session_key
+  reason: Session key grant; absent from the OpenAPI.
+- tool: revoke_session_key
+  reason: Session key revocation; absent from the OpenAPI.
+- tool: session_key_status
+  reason: Session key state read; absent from the OpenAPI.
+- tool: execute_cycle_actions
+  reason: Autopilot cycle action execution; absent from the OpenAPI.
+- tool: create_mee_intent
+  reason: 'Biconomy MEE cross-chain intent. Live status: preparation_only (Syndicate).'
+- tool: simulate_mee_intent
+  reason: 'MEE intent simulation. Live status: preparation_only.'
+- tool: submit_mee_intent
+  reason: 'MEE submission. Live status: preparation_only — submission and settlement disabled.'
+- tool: get_mee_intent_status
+  reason: MEE intent status read; absent from the OpenAPI.
+- tool: analyze_protocol_risk
+  reason: Protocol risk analysis; no REST operation published.
+- tool: simulate_yield_strategy
+  reason: Yield strategy simulation; no REST operation published.
+- tool: select_virtuals_provider_plan_v2
+  reason: 'Virtuals ACP tender flow. Live status: deployment prerequisites required.'
+- tool: prepare_virtuals_tender_v2
+  reason: Virtuals ACP tender preparation; absent from the OpenAPI.
+- tool: authorize_virtuals_tender_v2
+  reason: Virtuals ACP tender authorization; absent from the OpenAPI.
+- tool: get_virtuals_tender
+  reason: Virtuals ACP tender read; absent from the OpenAPI.
+- tool: cancel_virtuals_tender
+  reason: Virtuals ACP tender cancellation; absent from the OpenAPI.
+- tool: bind_virtuals_tender_job
+  reason: Virtuals ACP job binding; absent from the OpenAPI.
+- tool: reserve_virtuals_tender_funding_v2
+  reason: Virtuals ACP funding reservation; absent from the OpenAPI.
+- tool: record_virtuals_tender_funding_v2
+  reason: Virtuals ACP funding record; absent from the OpenAPI.
+- tool: evaluate_virtuals_tender
+  reason: Virtuals ACP tender evaluation; absent from the OpenAPI.
+- tool: hire_virtuals_specialist
+  reason: Virtuals ACP specialist hire; absent from the OpenAPI.
+rest_only:
+- operationId: getAgentStatus
+  method: GET
+  path: /v1/agent/status
+  reason: Runtime capability status contract. Read directly over HTTPS; the MCP server treats it as authority
+    rather than exposing it as a tool.
+- operationId: getSwapHistory
+  method: GET
+  path: /agents/history
+  reason: Fee event history (GET /agents/history). No MCP tool maps to it; get_agent_activity covers a
+    different ledger surface.
+- operationId: findSession
+  method: GET
+  path: /v1/agent/session
+  reason: GET /v1/agent/session lookup. The MCP surface exposes create/heartbeat but no dedicated session-find
+    tool.
+- operationId: getRiskSentinelInfo
+  method: GET
+  path: /v1/agent/risk-sentinel
+  reason: Self-describing GET on the Risk Sentinel surface; documentation-only, no tool needed.
+coverage:
+  mcp_tools: 84
+  rest_operations: 27
+  tools_bound_to_rest: 27
+  mcp_only_tools: 57
+  rest_only_operations: 4
+  rest_operations_covered: 23
+  rest_coverage_pct: 85.2
+  tool_coverage_pct: 32.1

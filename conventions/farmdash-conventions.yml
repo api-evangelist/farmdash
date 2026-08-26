@@ -1,0 +1,276 @@
+generated: '2026-08-26'
+method: derived
+source: openapi/farmdash-agent-api-openapi.yaml
+searched_sources:
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/api/v1/agent/status
+- https://www.farmdash.one/agent-report.md
+- https://www.farmdash.one/llms.txt
+- https://www.farmdash.one/.well-known/agent.json
+cross_links:
+  errors: errors/farmdash-problem-types.yml
+  lifecycle: lifecycle/farmdash-lifecycle.yml
+  authentication: authentication/farmdash-authentication.yml
+  rate_limits: rate-limits/farmdash-rate-limits.yml
+  sandbox: sandbox/farmdash-sandbox.yml
+
+auth_style:
+  primary: 'HTTP bearer token (Authorization: Bearer <key>)'
+  anonymous_tier: true
+  anonymous_detail: >-
+    Scout works with no Authorization header at all, or with the public literal
+    fd_scout_free. 12 of 27 operations declare `security: [{bearerAuth: []}, {}]` — the
+    empty scheme makes anonymous access explicit in the contract.
+  additional_schemes:
+  - scheme: eip191
+    usage: >-
+      personal_sign over v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}
+      — required for zero-custody swap execution.
+  - scheme: eip712
+    usage: Typed-data signature required for Hyperliquid perp order execution and for IntentApproval payloads.
+  - scheme: x402
+    usage: One-off USDC payment over HTTP 402; retry with PAYMENT-SIGNATURE or X-Payment-Proof.
+  - scheme: session-capability-token
+    usage: >-
+      Bounded session tokens (32-256 chars) required by manageSession, manageAutopilot and
+      every MCP intent-lifecycle tool. 401/403 distinguish missing-token from wrong-owner.
+  note: >-
+    Only bearerAuth is declared in components.securitySchemes; the four other schemes are
+    documented in prose and in the agent card but are NOT machine-readable from the spec.
+
+idempotency:
+  supported: false
+  header: null
+  scope: null
+  retention: null
+  finding: >-
+    NO IDEMPOTENCY KEY. There is no Idempotency-Key header anywhere in the OpenAPI (zero
+    occurrences of the string), none in the MCP tool input schemas, and none in the agent
+    card's response-header contract. For an API whose write surface moves real money on
+    Base and places real perpetual futures orders on Hyperliquid, this is the single
+    largest agent-safety gap in the contract.
+  compensating_controls:
+  - control: mandatory-simulation-gate
+    detail: >-
+      executeSwap returns 428 unless a fresh successful simulateSwapExecution exists within
+      60 seconds. A duplicate execute without a fresh simulation is refused rather than
+      re-executed.
+  - control: wallet-bound intent IDs
+    detail: >-
+      Quotes return wallet-bound intent IDs and simulateSwapExecution returns 409 on
+      intent/wallet mismatch, so an intent cannot be replayed against a different wallet.
+  - control: user-held signature
+    detail: >-
+      FarmDash never broadcasts. executeSwap returns calldata the user's own wallet signs and
+      submits, so chain-level nonce semantics — not the API — are the final duplicate defence
+      for swaps.
+  - control: research gate
+    detail: >-
+      analyze_strategy required within 5 minutes before perps execution; simulate_swap_execution
+      required within 60 seconds before swap execution.
+  residual_risk: >-
+    The compensating controls narrow the window but do not close it. Two executeSwap calls
+    against the SAME fresh simulation inside the 60-second window have no declared
+    deduplication, and confirmSwap has no replay guard in the spec.
+
+pagination:
+  style: limit-offset
+  supported_operations:
+  - getSwapHistory
+  params:
+  - name: limit
+    in: query
+  - name: offset
+    in: query
+  response_fields: not declared in the spec
+  coverage: >-
+    Only 1 of 27 operations paginates. Collection reads such as getProtocolCatalog and
+    getLiveTrailHeat return whole datasets with no page controls — workable at the current
+    catalogue size (81 protocols) but with no declared ceiling.
+
+field_expansion:
+  supported: false
+  note: No expand/fields/include sparse-fieldset parameters in the spec.
+
+metadata:
+  supported: false
+  note: No customer-supplied metadata object on any resource.
+
+request_id_tracing:
+  supported: true
+  response_header: X-Request-ID
+  format: UUID v4
+  body_field: request_id
+  observed: true
+  observed_evidence: 'x-request-id: b3cd9816-9185-4a52-8bc4-ecfa82ba6690 on a live 200 (2026-08-26)'
+  note: >-
+    Present on both success and error responses, in the header AND in the error body. This is
+    the best-implemented convention in the API.
+
+versioning:
+  style: path-prefix
+  detail: >-
+    Mixed. Most operations sit under /v1/ (/v1/agent/*, /v1/simulate, /v1/trail-heat) but the
+    swap family is unversioned (/agents/quote, /agents/swap, /agents/confirm, /agents/history).
+    The base URL https://www.farmdash.one/api therefore serves two versioning regimes at once.
+  spec_version: 2.0.0 (info.version)
+  header_versioning: false
+  no_declared_policy: true
+
+error_envelope:
+  shape: bespoke JSON (ok/error/code/message/retryable/request_id)
+  rfc9457: false
+  detail: See errors/farmdash-problem-types.yml.
+
+rate_limit_signaling:
+  documented_headers:
+  - X-RateLimit-Limit
+  - X-RateLimit-Remaining
+  - X-RateLimit-Reset
+  observed_on_200: false
+  exhaustion_status: 402
+  detail: See rate-limits/farmdash-rate-limits.yml — documented on every response, not observed on the probed 200.
+
+dry_run_mode:
+  supported: true
+  grade: verified
+  mechanisms:
+  - name: mandatory pre-execution simulation
+    operation: simulateSwapExecution
+    path: POST /v1/simulate
+    detail: >-
+      Not optional. It is a hard precondition — executeSwap returns 428 without a fresh
+      successful result. FarmDash makes rehearsal mandatory rather than available.
+    window: 60 seconds
+  - name: deterministic mock mode
+    detail: 'Query ?mock=true, header X-FarmDash-Mock: true, or Authorization: Bearer fd_sandbox_mock.'
+    scope: Only /v1/agent/protocols and /v1/trail-heat. Quote requests with mock=true return typed mock_not_supported.
+  - name: position sizing calculator
+    operation: calculatePositionSize
+    detail: Guardrail-enforced sizing preview before any futures order.
+  - name: strategy analysis gate
+    operation: analyzeStrategy
+    detail: Required within 5 minutes before perps execution.
+
+reversibility:
+  grade: documented
+  grade_basis: >-
+    A real reversal operation exists and is fully specified (cancelOrder), so this clears the
+    `documented` bar. It does NOT reach `verified`: FarmDash publishes no time window inside
+    which any reversal is guaranteed to work, and the dominant write path — swaps settled on
+    Base — is irreversible by construction. No window is asserted here that the provider does
+    not state.
+  read_only: false
+  write_surfaces:
+  - surface: perpetual futures order
+    operation: executeOrder
+    operationId: executeOrder
+    path: POST /v1/agent/futures/execute-order
+    reversal:
+      exists: true
+      operation: cancelOrder
+      operationId: cancelOrder
+      path: POST /v1/agent/futures/cancel-order
+      kind: cancel
+      docs: https://www.farmdash.one/agents/openapi.yaml
+      window_stated: false
+      window: null
+      note: >-
+        Cancels OPEN orders only. An order that has already filled cannot be cancelled — it can
+        only be offset by an opposing trade at market, which is a new position with its own
+        cost, not a reversal. FarmDash does not state a window because the boundary is fill
+        state, not elapsed time. The spec's own info.description leads with the warning that
+        executions and cancellations "place real perpetual futures trades and alter active
+        market exposure" and demands explicit manual end-user confirmation immediately before
+        either.
+  - surface: token swap
+    operation: executeSwap
+    operationId: executeSwap
+    path: POST /agents/swap
+    reversal:
+      exists: false
+      kind: none
+      window: null
+      note: >-
+        IRREVERSIBLE. executeSwap returns calldata; the user's own wallet signs and broadcasts
+        it to Base or the target chain. Once mined there is no cancel, refund, void or reverse
+        operation in this API and none is possible at the protocol level. The pre-commit
+        controls (mandatory 60s simulation, EIP-191 signature, Risk Sentinel 409 halt) exist
+        precisely BECAUSE nothing downstream can undo it. An agent must treat the moment of
+        signature as the point of no return.
+  - surface: x402 one-off payment
+    operation: null
+    path: any 402-gated route
+    reversal:
+      exists: false
+      kind: none
+      window: null
+      note: >-
+        A USDC transfer on Base to the FarmDash treasury (0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377).
+        No refund endpoint, no refund policy published. Amounts observed range from 0.99 to
+        7.99 USDC per call.
+  - surface: autopilot
+    operation: manageAutopilot
+    operationId: manageAutopilot
+    path: POST /v1/agent/autopilot
+    reversal:
+      exists: true
+      operation: manageAutopilot
+      kind: pause/resume
+      window_stated: false
+      window: null
+      note: >-
+        pause and resume are actions on the same multiplexed POST (MCP: pause_autopilot,
+        resume_autopilot). Pausing stops future cycles; it does not unwind actions already
+        taken by a prior cycle.
+  - surface: agent session / session key
+    operation: manageSession
+    operationId: manageSession
+    path: POST /v1/agent/session
+    reversal:
+      exists: true
+      kind: close/revoke
+      window_stated: false
+      window: null
+      note: >-
+        Sessions can be closed and session keys revoked (MCP: revoke_session_key). A 60-second
+        dead-man's switch auto-cancels on agent disconnect, per the agent card's security block.
+  - surface: intent lifecycle (MCP-only)
+    operation: null
+    path: /v1/agent/intents/create
+    reversal:
+      exists: true
+      kind: cancel
+      window_stated: false
+      window: null
+      note: >-
+        cancel_virtuals_tender exists for ACP tenders. Generic intent execution is reported
+        `disabled` by the live status contract, so most of this lifecycle cannot currently fire
+        at all.
+  caveat: >-
+    CONTROL ROOM PAUSE/REVOKE IS NOT AUTHORITATIVE. FarmDash states plainly in its own ai.txt
+    and ai-plugin.json that Control Room is a Pioneer+ preview: "local pause/revoke controls do
+    not pause or revoke live execution until backend control endpoints are connected." An
+    operator who believes they hit a kill switch may not have stopped anything. This is
+    disclosed by the provider, not discovered — but it is the most consequential reversibility
+    fact about this API and it belongs in this block.
+
+consent_and_escalation:
+  human_in_the_loop: required for execution
+  detail: >-
+    The OpenAPI description opens with an all-caps warning that autonomous agents must NOT
+    auto-run trade execution or cancellation without manual user approval. The MCP surface
+    enforces the same shape structurally: request_approval_payload builds an EIP-712
+    IntentApproval that a human signs, and submit_signed_approval is required before
+    execute_approved_intent.
+  capability_contract_rule: >-
+    "Tool discovery is not enablement. Read status first and preserve typed feature_not_ready
+    responses." — https://www.farmdash.one/api/v1/agent/status is the runtime authority.
+  zero_custody: true
+  bounds:
+    max_leverage: 5
+    max_risk_per_trade: 2%
+    daily_loss_limit: -3%
+    circuit_breaker: -15%
+    dead_mans_switch: 60s auto-cancel on agent disconnect
+    source: https://www.farmdash.one/.well-known/agent.json

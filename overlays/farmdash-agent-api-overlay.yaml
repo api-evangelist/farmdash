@@ -1,0 +1,123 @@
+overlay: 1.0.0
+info:
+  title: API Evangelist enhancements for the FarmDash Agent API
+  version: 1.0.0
+extends: openapi/farmdash-agent-api-openapi.yaml
+x-generated: '2026-08-26'
+x-method: generated
+x-source: >-
+  Derived from artifacts in this repo: conventions/farmdash-conventions.yml,
+  errors/farmdash-problem-types.yml, rate-limits/farmdash-rate-limits.yml,
+  plans/farmdash-plans-pricing.yml, mcp/farmdash-tool-crosswalk.yml. Records the enhancements
+  API Evangelist would apply; the original spec at https://www.farmdash.one/agents/openapi.yaml
+  is never mutated.
+actions:
+- target: $.info
+  description: Record the machine-readable discovery surfaces the spec does not reference.
+  update:
+    x-discovery:
+      llms_txt: https://www.farmdash.one/llms.txt
+      ai_txt: https://www.farmdash.one/ai.txt
+      agent_report: https://www.farmdash.one/agent-report.md
+      mcp_manifest: https://www.farmdash.one/.well-known/mcp.json
+      a2a_agent_card: https://www.farmdash.one/.well-known/agent.json
+      ai_plugin: https://www.farmdash.one/.well-known/ai-plugin.json
+      runtime_status: https://www.farmdash.one/api/v1/agent/status
+- target: $.info
+  description: >-
+    Flag the absence of an idempotency mechanism on a money-moving write surface. This is the
+    highest-value gap in the contract.
+  update:
+    x-idempotency:
+      supported: false
+      note: >-
+        No Idempotency-Key header on any of the 27 operations. Duplicate-suppression relies on
+        the 60-second simulation gate, wallet-bound intent IDs and user-held signatures. Two
+        executeSwap calls against the same fresh simulation have no declared deduplication.
+- target: $.info
+  description: Record reversibility per write surface (0.12.0 agent-readiness dimension).
+  update:
+    x-reversibility:
+      grade: documented
+      irreversible:
+      - executeSwap
+      - x402 payment
+      reversible:
+      - operation: cancelOrder
+        bounded_by: fill state, not elapsed time
+      - operation: manageAutopilot
+        bounded_by: pause stops future cycles only
+      caveat: >-
+        Control Room pause/revoke is preview-only and not backend-authoritative, per FarmDash's
+        own ai.txt.
+- target: $.info
+  description: Add the licence and terms links the info block omits.
+  update:
+    termsOfService: https://www.farmdash.one/terms
+    x-privacy-policy: https://www.farmdash.one/privacy
+    x-security: https://www.farmdash.one/security
+    x-fees: https://www.farmdash.one/fees
+    x-methodology: https://www.farmdash.one/methodology
+- target: $.components.securitySchemes
+  description: >-
+    Declare the four authentication schemes documented only in prose and in the agent card, so
+    they become machine-readable alongside bearerAuth.
+  update:
+    x-eip191Signature:
+      type: apiKey
+      in: header
+      name: X-Agent-Signature
+      description: >-
+        EIP-191 personal_sign over v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}.
+        Required by executeSwap. Documented in the agent card authentication.schemes[]; the exact
+        header name is NOT published, so this entry records the scheme, not a verified header.
+    x-x402Payment:
+      type: apiKey
+      in: header
+      name: PAYMENT-SIGNATURE
+      description: >-
+        x402 one-off USDC payment on Base. Retry a 402-challenged request with PAYMENT-SIGNATURE,
+        or with the legacy X-Payment-Proof: 0x<txHash>.
+    x-sessionCapabilityToken:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: >-
+        Bounded session capability token (32-256 chars) required by manageSession and
+        manageAutopilot. Header name not published by the provider; recorded as a scheme.
+- target: $.paths['/agents/swap'].post
+  description: Make the 428 precondition and its 60-second window explicit and machine-readable.
+  update:
+    x-preconditions:
+    - operation: simulateSwapExecution
+      max_age_seconds: 60
+      failure_status: 428
+    x-consequence: irreversible
+    x-requires-human-approval: true
+- target: $.paths['/v1/agent/futures/execute-order'].post
+  description: Record the research gate and the reversal path for perp execution.
+  update:
+    x-preconditions:
+    - operation: analyzeStrategy
+      max_age_seconds: 300
+    x-reversal:
+      operation: cancelOrder
+      applies_to: open orders only
+      note: A filled order cannot be cancelled, only offset by a new opposing trade.
+    x-consequence: high
+    x-requires-human-approval: true
+- target: $.paths['/v1/trail-heat'].get
+  description: Record the deterministic sandbox available on this operation.
+  update:
+    x-sandbox:
+      enable_with: ['?mock=true', 'X-FarmDash-Mock: true', 'Authorization: Bearer fd_sandbox_mock']
+      live_data: false
+- target: $.paths['/v1/agent/protocols'].get
+  description: Record the deterministic sandbox and the score-naming caveat.
+  update:
+    x-sandbox:
+      enable_with: ['?mock=true', 'X-FarmDash-Mock: true', 'Authorization: Bearer fd_sandbox_mock']
+      live_data: false
+    x-caveat: >-
+      Returns discovery_heuristic_score, which the provider states is an editorial ranking aid
+      and explicitly NOT Trail Heat. Canonical quantitative Trail Heat is getLiveTrailHeat.

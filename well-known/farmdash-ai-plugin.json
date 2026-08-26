@@ -1,0 +1,153 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "FarmDash_Signal_Architect",
+  "name_for_human": "FarmDash",
+  "description_for_model": "FarmDash v4.4 is the intelligence and control layer for DeFi agents and serious airdrop farmers. It provides Trail Heat scoring for the live 81-protocol opportunity dataset, wallet intelligence, Sybil-risk audits, points simulation, portfolio optimization context, swap quotes, mandatory pre-execution simulation, user-signed swap transaction payloads, Hyperliquid research and guarded order workflows, x402 one-off payments, MCP discovery, A2A discovery, OpenAPI specs, OpenClaw skills, and the agent-kit SDK. FarmDash does not request seed phrases or raw wallet private keys. State-changing flows require local wallet signatures or explicit bounded delegation where supported; provider-backed delegations remain subject to their configured bounds. Control Room is a Pioneer+ preview surface: demo rows are fixtures, authenticated session rows can load receipts, and local pause/revoke controls do not pause or revoke live execution until backend control endpoints are connected. API tiers: Scout is free with 5 req/24h; Pioneer is $39.99/mo USDC with 1,500 req/day and full Trail Heat data; Syndicate is $199/mo USDC with 50K req/day, unrestricted CORS, webhooks, high-volume agent workflows, and advanced control/session tooling for teams and serious agents. Responses include rate-limit and request-correlation headers where supported. Dust Storm handling returns typed errors or previously validated stale data with warnings, never fabricated certainty or synthetic zeroes.",
+  "description_for_human": "FarmDash is a zero-custody DeFi intelligence and control layer for agents and serious airdrop farmers: Trail Heat, wallet intelligence, swap routing, x402 payments, OpenAPI, MCP, OpenClaw skills, and Syndicate operator tooling.",
+  "api": {
+    "type": "openapi",
+    "url": "https://www.farmdash.one/agents/openapi.yaml"
+  },
+  "endpoints": {
+    "_comment": "Signal Architect — Core Swap & Intelligence",
+    "trail_heat": "https://www.farmdash.one/api/v1/agent/protocols",
+    "chain_breakdown": "https://www.farmdash.one/api/v1/agent/chain-breakdown",
+    "swap_quote": "https://www.farmdash.one/api/agents/quote",
+    "swap_simulate": "https://www.farmdash.one/api/v1/simulate",
+    "swap_execute": "https://www.farmdash.one/api/agents/swap",
+    "swap_confirm": "https://www.farmdash.one/api/agents/confirm",
+    "swap_history": "https://www.farmdash.one/api/agents/history",
+    "_comment2": "Agent Intelligence — Balances, Prices, Performance, Reputation",
+    "agent_balances": "https://www.farmdash.one/api/v1/agent/balances",
+    "agent_prices": "https://www.farmdash.one/api/v1/agent/prices",
+    "agent_performance": "https://www.farmdash.one/api/v1/agent/performance",
+    "agent_reputation": "https://www.farmdash.one/api/agents/reputation",
+    "agent_vouch": "https://www.farmdash.one/api/agents/vouch",
+    "sybil_audit": "https://www.farmdash.one/api/v1/agent/sybil-audit",
+    "simulate_points": "https://www.farmdash.one/api/v1/agent/simulate-points",
+    "optimize_portfolio": "https://www.farmdash.one/api/v1/agent/optimize-portfolio",
+    "historical_trailheat": "https://www.farmdash.one/api/v1/agent/historical-trailheat",
+    "agent_events": "https://www.farmdash.one/api/v1/agent/events",
+    "webhooks": "https://www.farmdash.one/api/v1/agent/webhooks",
+    "_comment_reports": "x402 one-time research products",
+    "report_trail_heat_full": "https://www.farmdash.one/api/v1/reports/trail-heat-full",
+    "report_wallet_sybil": "https://www.farmdash.one/api/v1/reports/wallet-sybil",
+    "report_farming_plan": "https://www.farmdash.one/api/v1/reports/farming-plan",
+    "report_hyperliquid_strategy": "https://www.farmdash.one/api/v1/reports/hyperliquid-strategy",
+    "report_portfolio_rebalance": "https://www.farmdash.one/api/v1/reports/portfolio-rebalance",
+    "_comment3": "Futures Strategist — Hyperliquid Perpetuals",
+    "futures_scan_funding": "https://www.farmdash.one/api/v1/agent/futures/scan-funding",
+    "futures_market_conditions": "https://www.farmdash.one/api/v1/agent/futures/market-conditions",
+    "futures_account_state": "https://www.farmdash.one/api/v1/agent/futures/account-state",
+    "futures_analyze_strategy": "https://www.farmdash.one/api/v1/agent/futures/analyze-strategy",
+    "futures_position_sizing": "https://www.farmdash.one/api/v1/agent/futures/position-sizing",
+    "futures_execute_order": "https://www.farmdash.one/api/v1/agent/futures/execute-order",
+    "futures_cancel_order": "https://www.farmdash.one/api/v1/agent/futures/cancel-order",
+    "_comment4": "Intent Engine — Omni-Chain Transaction Builder",
+    "intent": "https://www.farmdash.one/api/v1/agent/intent",
+    "_comment4b": "Autonomous Operator — Sessions, Delegation, Autopilot",
+    "agent_onboard": "https://www.farmdash.one/api/v1/agent/onboard",
+    "api_key": "https://www.farmdash.one/api/v1/agent/api-key",
+    "agent_session": "https://www.farmdash.one/api/v1/agent/session",
+    "agent_delegation": "https://www.farmdash.one/api/v1/agent/delegation",
+    "agent_autopilot": "https://www.farmdash.one/api/v1/agent/autopilot",
+    "_comment5": "Discovery & Documentation",
+    "a2a_manifest": "https://www.farmdash.one/.well-known/agent.json",
+    "mcp_config": "https://www.farmdash.one/.well-known/mcp.json",
+    "openapi_spec": "https://www.farmdash.one/agents/openapi.yaml",
+    "llms_txt": "https://www.farmdash.one/llms.txt",
+    "agent_report": "https://www.farmdash.one/agent-report.md",
+    "ai_txt": "https://www.farmdash.one/ai.txt",
+    "sitemap": "https://www.farmdash.one/sitemap.xml"
+  },
+  "auth": {
+    "swap_execution": {
+      "type": "EIP-191 personal_sign",
+      "requires_simulation": true,
+      "simulation_endpoint": "https://www.farmdash.one/api/v1/simulate",
+      "message_format": "v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}",
+      "nonce_window": "60 seconds"
+    },
+    "vouch": {
+      "type": "EIP-191 personal_sign",
+      "message_format": "FARMDASH_VOUCH:{targetAddress}:{nonce}",
+      "nonce_window": "60 seconds"
+    },
+    "futures_orders": {
+      "type": "EIP-712 typed signing",
+      "domain": "Hyperliquid"
+    },
+    "api_key": {
+      "type": "Bearer token",
+      "header": "Authorization: Bearer <key>",
+      "tiers": [
+        "Pioneer",
+        "Syndicate"
+      ]
+    }
+  },
+  "response_headers": {
+    "X-RateLimit-Limit": "Requests allowed per window",
+    "X-RateLimit-Remaining": "Requests remaining in current window",
+    "X-RateLimit-Reset": "Seconds until rate limit resets (UTC midnight)",
+    "X-Request-ID": "Unique request correlation ID (UUID v4, echoes client-supplied if valid)",
+    "X-Payment-Required": "true when a one-off x402 payment can unlock the request",
+    "X-Payment-Amount": "USDC base units required for the one-off request",
+    "X-Payment-Policy": "FarmDash x402 policy key for the request",
+    "X-Payment-Reason": "Human-readable reason for the payment request",
+    "PAYMENT-REQUIRED": "Base64-encoded x402 v2 payment requirements",
+    "PAYMENT-RESPONSE": "Base64-encoded x402 settlement or accepted-proof response"
+  },
+  "x402": {
+    "network": "Base",
+    "currency": "USDC",
+    "chain_id": "8453",
+    "treasury": "0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377",
+    "proof_header": "X-Payment-Proof",
+    "payment_required_header": "PAYMENT-REQUIRED",
+    "signature_header": "PAYMENT-SIGNATURE",
+    "response_header": "PAYMENT-RESPONSE",
+    "agent_flow": "When FarmDash returns 402, inspect PAYMENT-REQUIRED or x402.price/x402.policy_key, pay USDC on Base, then retry the exact request with PAYMENT-SIGNATURE or X-Payment-Proof. For repeated usage, recommend Pioneer or Syndicate.",
+    "one_off_prices_usdc": {
+      "default_overage": "0.01",
+      "market_data": "0.99",
+      "full_trail_heat": "1.99",
+      "wallet_portfolio": "3.99",
+      "sybil_audit": "4.99",
+      "points_simulation": "2.99",
+      "portfolio_optimization": "6.99",
+      "historical_trail_heat": "2.99",
+      "futures_strategy": "7.99",
+      "session_control": "2.49",
+      "swap_execution": "0.99",
+      "report_trail_heat_full": "2.99",
+      "report_wallet_sybil": "7.99",
+      "report_farming_plan": "9.99",
+      "report_hyperliquid_strategy": "12.99",
+      "report_portfolio_rebalance": "9.99"
+    },
+    "locked_paths": [
+      "futures_execute_order",
+      "futures_cancel_order",
+      "agent_delegation",
+      "agent_autopilot",
+      "webhooks"
+    ]
+  },
+  "sdk": {
+    "package": "@farmdash/agent-kit",
+    "source": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/agent-kit",
+    "features": [
+      "TypeScript client",
+      "60+ Zod runtime validation schemas",
+      "automatic retry",
+      "LRU cache with ETag",
+      "Dust Storm fallback"
+    ]
+  },
+  "contact": {
+    "email": "farmdashone@proton.me",
+    "twitter": "@FarmDashone",
+    "discord": "https://discord.gg/AR6hVaDj"
+  }
+}

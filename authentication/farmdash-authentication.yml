@@ -1,0 +1,92 @@
+generated: '2026-08-26'
+method: searched
+source: https://www.farmdash.one/agents/openapi.yaml
+docs: https://www.farmdash.one/agents
+secondary_sources:
+- https://www.farmdash.one/.well-known/agent.json
+- https://www.farmdash.one/api/v1/agent/status
+- https://www.farmdash.one/llms.txt
+summary:
+  types:
+  - http
+  - apiKey-literal
+  - wallet-signature
+  - http-payment
+  oauth2: false
+  openid_connect: false
+  mutual_tls: false
+  scopes: false
+  scopes_note: >-
+    No OAuth. Authorization is by TIER, not by scope — a key is Scout, Pioneer or Syndicate and
+    that determines which routes answer. No scopes/ artifact is emitted; there is no scope
+    surface to record.
+schemes:
+- name: bearerAuth
+  type: http
+  scheme: bearer
+  spec_declared: true
+  description: Pioneer or Syndicate API key.
+  header: 'Authorization: Bearer <key>'
+  issuance: https://www.farmdash.one/api/v1/agent/api-key
+  sources:
+  - openapi/farmdash-agent-api-openapi.yaml
+- name: anonymous (Scout)
+  type: none
+  spec_declared: true
+  description: >-
+    12 of 27 operations declare `security: [{bearerAuth: []}, {}]` — the empty scheme makes
+    keyless access an explicit part of the contract. Omit the header entirely, or send the
+    published literal `fd_scout_free`.
+  limit: 5 requests / 24h per IP
+  public_literal: fd_scout_free
+- name: sandbox literal
+  type: apiKey-literal
+  spec_declared: true
+  description: 'Deterministic unmetered mock. Authorization: Bearer fd_sandbox_mock, or ?mock=true, or X-FarmDash-Mock: true.'
+  scope: /v1/agent/protocols and /v1/trail-heat only
+  live_data: false
+- name: eip191
+  type: wallet-signature
+  spec_declared: false
+  description: >-
+    EIP-191 personal_sign required for zero-custody swap execution (executeSwap). Message
+    template: v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}
+  failure_status: 401 (invalid signature or expired nonce)
+  source: https://www.farmdash.one/.well-known/agent.json
+- name: eip712
+  type: wallet-signature
+  spec_declared: false
+  description: >-
+    EIP-712 typed-data signature required for Hyperliquid perp order execution (executeOrder)
+    and for the MCP IntentApproval flow (request_approval_payload -> submit_signed_approval).
+  source: https://www.farmdash.one/agents/openapi.yaml (info.description)
+- name: x402
+  type: http-payment
+  spec_declared: true
+  description: >-
+    One-off USDC payment over HTTP 402. Retry a challenged request with PAYMENT-SIGNATURE, or
+    with the legacy X-Payment-Proof: 0x<txHash>. Declared in the contract via the
+    PaymentRequiredError schema on 24 of 27 operations and verified live (402 observed
+    2026-08-26).
+- name: session capability token
+  type: bearer-scoped
+  spec_declared: false
+  description: >-
+    Bounded session token (32-256 chars per the MCP tool input schemas) required by
+    manageSession, manageAutopilot and the MCP intent-lifecycle tools. 401 = missing/invalid
+    token; 403 = session owner verification failed.
+gaps:
+- finding: >-
+    Only 1 of 7 authentication schemes is machine-readable. components.securitySchemes declares
+    bearerAuth alone; the four wallet/payment/session schemes that actually gate every
+    money-moving operation are documented in prose and in the agent card only.
+- finding: >-
+    The header names for the EIP-191 signature and the session capability token are not
+    published anywhere probed. An integrator can learn that a signature is required but not
+    which header carries it without reading unavailable SDK source.
+zero_custody:
+  private_keys_accepted: false
+  statement: >-
+    "FarmDash does not request seed phrases or raw wallet private keys." State-changing flows
+    require local wallet signatures or explicit bounded delegation. Posture string published at
+    /api/v1/agent/status: customer_keys_never_received_customer_controls_signing_and_submission.

@@ -1,0 +1,2969 @@
+openapi: 3.1.0
+info:
+  title: FarmDash Agent API
+  version: 2.0.0
+  description: |
+    WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+    swap routes do not custody funds; separately configured venue or MPC delegations
+    remain subject to their provider controls and explicit policy bounds.
+
+    ## Authentication
+    | Tier | Price | Auth | Rate Limit | Best for |
+    |------|-------|------|------------|----------|
+    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+    For SDK development without live data, use the deterministic sandbox on
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+    `/v1/trail-heat`):
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+    ## Dust Storm Protocol
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+    ## x402 Payment Wall
+    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
+    route-specific USDC transfer on Base to the treasury to unlock one additional request.
+    The configured default overage is 0.01 USDC; premium routes return their own amount.
+
+    ## Data Confidence
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+    allocation, or airdrop outcome.
+
+    ## Rate Limit Headers
+    All responses include:
+    - `X-RateLimit-Limit` — max requests for the current window
+    - `X-RateLimit-Remaining` — remaining requests
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+    ## Versioned Signature Payload (v1)
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+    ## Mandatory Swap Simulation Gate
+    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
+    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+
+servers:
+  - url: https://www.farmdash.one/api
+    description: Production
+
+tags:
+  - name: Swap
+    description: Token swap quotes, execution, and confirmation
+  - name: Intelligence
+    description: Trail Heat protocol data and chain analytics
+  - name: History
+    description: Fee event history and revenue metrics
+  - name: Research
+    description: Futures market research — funding rates, technical indicators
+  - name: Strategy
+    description: Strategy analysis and position sizing
+  - name: Execution
+    description: Futures order execution and cancellation
+  - name: Account
+    description: Hyperliquid account state and risk management
+  - name: Session
+    description: Bounded session management
+  - name: Delegation
+    description: Hyperliquid wallet delegation
+  - name: Risk
+    description: Pre-trade risk analysis, alerts, and execution guardrails
+  - name: Autopilot
+    description: Policy-bounded loop configuration and execution
+
+x-agent-use-cases:
+  - id: bounded-autopilot
+    name: Bounded Autopilot
+    tier: Syndicate
+    cadence: Every 5 minutes
+    purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+    primaryTools: [agent_onboard, create_session, configure_autopilot, autopilot_cycle, session_heartbeat]
+    stopConditions:
+      - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+      - Required local EIP-191 or EIP-712 signature is missing.
+      - Realized performance degrades enough to require analysis_only mode.
+  - id: airdrop-rotation
+    name: Airdrop Rotation Desk
+    tier: Pioneer
+    cadence: Daily or event-driven
+    purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+    primaryTools: [get_trail_heat, get_historical_trailheat, get_agent_events, simulate_points, get_swap_quote, simulate_swap_execution]
+    stopConditions:
+      - Expected point edge is unclear or negative after fees and gas.
+      - Sybil risk exceeds the configured threshold.
+      - User constraints do not allow the target chain or protocol.
+  - id: cross-chain-roi
+    name: Cross-Chain ROI Gate
+    tier: Pioneer
+    cadence: Before any bridge
+    purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+    primaryTools: [get_chain_breakdown, get_wallet_balances, get_token_prices, get_swap_quote, simulate_swap_execution, optimize_portfolio]
+    stopConditions:
+      - netEdgeUsd is not positive.
+      - Quote age exceeds the configured freshness limit.
+      - Target chain is not allowlisted.
+  - id: perps-hedge
+    name: Perps Hedge Co-Pilot
+    tier: Syndicate
+    cadence: Before exposure changes
+    purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+    primaryTools: [scan_funding_rates, scan_market_conditions, get_futures_account, analyze_futures_strategy, calculate_position_size]
+    stopConditions:
+      - Research gate expires.
+      - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+      - Daily loss or drawdown limit is reached.
+
+# ═══════════════════════════════════════════════════════════════════
+# PATHS
+# ═══════════════════════════════════════════════════════════════════
+
+paths:
+
+  /v1/agent/status:
+    get:
+      operationId: getAgentStatus
+      summary: Get agent feature status and contracts
+      description: |
+        Public status endpoint for agent builders. Returns feature readiness,
+        tier gates, data-confidence contract, structured-error contract, and
+        deterministic sandbox instructions. This endpoint is not a trading or
+        portfolio-data surface.
+      tags: [Intelligence]
+      responses:
+        '200':
+          description: Agent status contract
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '405':
+          $ref: '#/components/responses/BadRequest'
+
+  # ── Swap ────────────────────────────────────────────────────────
+
+  /agents/quote:
+    get:
+      operationId: getSwapQuote
+      summary: Get a token swap quote
+      description: |
+        Returns an unsigned preview quote showing expected output, fee breakdown,
+        protocol selection, and FarmDash execution guardrails. No authentication required.
+        When wallet and risk inputs are supplied, the response also includes
+        allowance checks, depeg/health warnings, quote-decay diagnostics, and
+        positive-net-edge guidance.
+        Include `walletAddress` to receive a wallet-bound `intent_id` for the
+        mandatory `/v1/simulate` preflight.
+        Compatible live providers are compared by route, output, gas, and risk.
+        Callers may force Li.Fi, 0x, or x402; automatic selection may also choose OKX.
+        `mock=true` is not supported and returns a typed 400 without contacting a provider.
+      tags: [Swap]
+      parameters:
+        - $ref: '#/components/parameters/FromChainId'
+        - $ref: '#/components/parameters/ToChainId'
+        - $ref: '#/components/parameters/FromToken'
+        - $ref: '#/components/parameters/ToToken'
+        - $ref: '#/components/parameters/FromAmount'
+        - name: protocol
+          in: query
+          schema:
+            type: string
+            enum: [lifi, zerox, x402]
+          description: Force a specific routing protocol (auto-selected if omitted)
+        - name: mock
+          in: query
+          schema:
+            type: string
+            enum: ['true']
+          description: Unsupported for quotes. Returns HTTP 400 mock_not_supported and never contacts a live quote provider.
+        - name: walletAddress
+          in: query
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Optional wallet used for approval and allowance checks
+        - name: toAddress
+          in: query
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Optional destination wallet override for previewing the signed route
+        - name: slippage
+          in: query
+          schema:
+            type: number
+            minimum: 0.01
+            maximum: 5
+          description: Optional slippage tolerance in percent
+        - name: expectedUpsideUsd
+          in: query
+          schema:
+            type: number
+          description: Optional upside estimate used to enforce positive net edge
+        - name: riskBufferUsd
+          in: query
+          schema:
+            type: number
+          description: Optional execution-risk haircut added to total route cost
+        - name: healthFactor
+          in: query
+          schema:
+            type: number
+          description: Optional health factor used for halt checks
+        - name: liquidationBufferPct
+          in: query
+          schema:
+            type: number
+          description: Optional liquidation buffer percentage used for halt checks
+        - name: safetyMode
+          in: query
+          schema:
+            $ref: '#/components/schemas/SwapSafetyMode'
+          description: "`strict` halts on severe quote decay, `balanced` downgrades that condition to a warning"
+      responses:
+        '200':
+          description: Swap quote
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed live quote provider degradation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /v1/simulate:
+    post:
+      operationId: simulateSwapExecution
+      summary: Simulate a wallet-bound swap intent
+      description: |
+        Mandatory pre-execution simulation gate for Signal Architect. The caller
+        submits the `intent_id` returned by `/agents/quote` plus the signing wallet.
+        FarmDash simulates the quote intent, caches the result for 60 seconds, and
+        returns a `simulation_id` that `/agents/swap` requires.
+      tags: [Swap, Risk]
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapSimulationRequest'
+      responses:
+        '200':
+          description: Simulation report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapSimulationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '409':
+          description: Intent and wallet mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /agents/swap:
+    post:
+      operationId: executeSwap
+      summary: Execute a signed token swap
+      description: |
+        Main swap router. Requires a fresh successful `simulationId`, authenticates
+        the agent via EIP-191 signature, reuses the simulated quote intent, applies
+        Execution Alpha route selection, and enforces Risk Sentinel guardrails before
+        returning ready-to-broadcast transaction calldata.
+
+        FarmDash NEVER touches funds. The protocol (Li.Fi / 0x / x402)
+        executes the swap. Treasury receives the fee haircut directly.
+
+        **Fee schedule**: 45 bps default, ≥$10k → 35 bps, ≥$100k → 25 bps.
+      tags: [Swap]
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapRequest'
+      responses:
+        '200':
+          description: Executable swap with transaction calldata
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid signature or expired nonce
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Swap halted by Risk Sentinel guardrails
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapHaltResponse'
+        '428':
+          description: Missing, expired, failed, or mismatched preflight simulation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /agents/confirm:
+    post:
+      operationId: confirmSwap
+      summary: Confirm swap execution with on-chain tx hash
+      description: |
+        After broadcasting the swap transaction, confirm it here with the tx hash.
+        FarmDash verifies the transaction on-chain (10s timeout with LRU cache)
+        and marks the fee event as settled. Idempotent — safe to retry.
+      tags: [Swap]
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmRequest'
+      responses:
+        '200':
+          description: Confirmation result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  # ── History ─────────────────────────────────────────────────────
+
+  /agents/history:
+    get:
+      operationId: getSwapHistory
+      summary: Get fee event history
+      description: |
+        Returns paginated swap fee events. Optionally filter by agent address.
+        Use `?metrics=true` for aggregate revenue metrics.
+      tags: [History]
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: agentAddress
+          in: query
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Filter by agent wallet
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            maximum: 10000
+          description: Pagination offset (capped at 10,000 for DoS protection)
+        - name: metrics
+          in: query
+          schema:
+            type: string
+            enum: ['true']
+          description: Return aggregate revenue metrics instead of events
+      responses:
+        '200':
+          description: History events or aggregate metrics
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/HistoryResponse'
+                  - $ref: '#/components/schemas/RevenueMetrics'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  # ── Intelligence ────────────────────────────────────────────────
+
+  /v1/agent/protocols:
+    get:
+      operationId: getProtocolCatalog
+      summary: Get catalog protocol directory (discovery heuristic scores)
+      description: |
+        Returns the curated FarmDash protocol catalog with EDITORIAL discovery
+        heuristic scores. These are NOT live Trail Heat: values derive from
+        static catalog TVL strings, status labels and hand-curated flags
+        (methodology catalog-editorial-v1). The canonical quantitative Trail
+        Heat lives at /v1/trail-heat.
+        Scout tier: top 3 with encrypted numeric values.
+        Pioneer/Syndicate: full dataset for the current FarmDash protocol registry (81 protocols at this build).
+      tags: [Intelligence]
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Protocol dataset
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProtocolsResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /v1/trail-heat:
+    get:
+      operationId: getLiveTrailHeat
+      summary: Get live or deterministic mock Trail Heat scores
+      description: |
+        Returns DeFiLlama-backed Trail Heat scores with source, confidence, and
+        methodology metadata. `?mock=true` returns deterministic demo fixtures
+        that are explicitly marked mock and not for trading.
+      tags: [Intelligence]
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: mock
+          in: query
+          schema: { type: string, enum: ['true'] }
+          description: Return deterministic, explicitly non-live demo data.
+      responses:
+        '200':
+          description: Live or deterministic mock Trail Heat response
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          description: Typed Trail Heat service degradation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /v1/agent/prices:
+    get:
+      operationId: getTokenPrices
+      summary: Get live token price context
+      description: Returns live Alchemy USD prices. Provider failure is a typed ok:false degraded response, never a successful empty or zero price set.
+      tags: [Intelligence]
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: symbols
+          in: query
+          schema: { type: string, example: 'ETH,USDC' }
+          description: Comma-separated token symbols; provide symbols or tokens.
+        - name: tokens
+          in: query
+          schema: { type: string, example: 'base-mainnet:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' }
+          description: Comma-separated network:address pairs; provide symbols or tokens.
+      responses:
+        '200':
+          description: Live token prices with explicit data quality
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed upstream price degradation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '503':
+          description: Price provider is not configured
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /v1/agent/workflows:
+    get:
+      operationId: listAgentWorkflows
+      summary: List supervised workflow templates
+      description: Public catalog of planning and supervised workflow templates. Catalog registration does not enable the execution capabilities used by a workflow.
+      tags: [Intelligence]
+      parameters:
+        - name: filter
+          in: query
+          schema: { type: string }
+          description: Optional case-insensitive catalog filter.
+      responses:
+        '200':
+          description: Workflow catalog
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+  /v1/agent/chain-breakdown:
+    get:
+      operationId: getChainBreakdown
+      summary: Get protocol distribution by chain
+      description: |
+        Aggregates the protocol directory by blockchain network.
+        Returns per-chain protocol counts, confirmed airdrops, points programs,
+        and category coverage.
+      tags: [Intelligence]
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Chain breakdown
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainBreakdownResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  # ── Futures Research ────────────────────────────────────────────
+
+  /v1/agent/futures/scan-funding:
+    get:
+      operationId: scanFundingRates
+      summary: Scan Hyperliquid funding rates for arb opportunities
+      description: |
+        Returns current and predicted funding rates across all Hyperliquid perp
+        markets. Cross-references with Binance and Bybit to identify arbitrage.
+        Scout: top 3 with encrypted rates. Pioneer/Syndicate: full data.
+      tags: [Research]
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Funding rate scan
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanFundingResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed Hyperliquid funding provider degradation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /v1/agent/futures/market-conditions:
+    get:
+      operationId: getMarketConditions
+      summary: Get technical indicators for an asset
+      description: |
+        Returns EMA-8/34, RSI-14, MACD(12,26,9), ATR-14, Bollinger Bands(20,2),
+        ADX-14, volume ratio, and Z-score using 4h candles.
+        Includes a strategy hint based on indicator confluence.
+      tags: [Research]
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: coin
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Asset symbol (ETH, BTC, SOL, HYPE)
+      responses:
+        '200':
+          description: Technical indicators
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketConditionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '502':
+          description: Typed Hyperliquid candle provider degradation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /v1/agent/futures/account-state:
+    get:
+      operationId: getAccountState
+      summary: Get Hyperliquid positions and risk state
+      description: |
+        Returns the agent's current positions, margin summary, equity,
+        liquidation prices, and risk management state. Daily/weekly values are
+        conservative loss-pressure metrics (rolling closed PnL minus absolute
+        fill fees plus funding and negative current unrealized PnL only), not
+        full period returns.
+        Read-only lookup — no private key required.
+      tags: [Account]
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: agentAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Agent's EVM address (Hyperliquid API wallet)
+      responses:
+        '200':
+          description: Account state with risk info
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountStateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  # ── Futures Strategy ────────────────────────────────────────────
+
+  /v1/agent/futures/analyze-strategy:
+    post:
+      operationId: analyzeStrategy
+      summary: Full research pipeline with adaptive strategy recommendation
+      description: |
+        Runs funding rates + technicals + order book liquidity + Trail Heat cross-ref.
+        Returns a structured strategy object, confidence score, market regime,
+        adaptive risk, portfolio context, pre-trade simulation, and explicit
+        no-trade outcomes when no setup is valid. Pioneer+ required and
+        registers analysis for a 60-second execution window that binds side, maximum size, entry drift, leverage metadata, and stop-derived risk.
+      tags: [Strategy]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [coin, agentAddress]
+              properties:
+                coin:
+                  type: string
+                  description: Asset symbol (ETH, BTC, SOL)
+                agentAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                riskMultiplier:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1.0
+                  description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+      responses:
+        '200':
+          description: Strategy recommendation
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeStrategyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  /v1/agent/futures/position-sizing:
+    post:
+      operationId: calculatePositionSize
+      summary: Position size calculator with guardrail enforcement
+      description: |
+        Given entry price, stop price, equity, and risk, returns exact position
+        size, leverage, and margin. All guardrails enforced server-side.
+        Pioneer+ required.
+      tags: [Strategy]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionSizingRequest'
+      responses:
+        '200':
+          description: Position sizing result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSizingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  # ── Futures Execution ───────────────────────────────────────────
+
+  /v1/agent/futures/execute-order:
+    post:
+      operationId: executeOrder
+      summary: Execute a pre-signed order on Hyperliquid
+      description: |
+        Forwards a pre-signed EIP-712 order to Hyperliquid. Requires prior
+        execution-ready analyze-strategy call within 60 seconds (parameter-bound research gate). Syndicate only.
+        FarmDash may receive routing compensation from supported venues. Risk guardrails enforced server-side.
+        `nonce`, `expiresAt`, and `intentHash` are required for request-scoped
+        expiry and auditability. `expiresAt` is forwarded as venue `expiresAfter`.
+        The signed order action discloses FarmDash builder `f=1`, which means
+        0.1 bp (0.001%) of filled notional—not 1 bp. Resting/rejected/unfilled
+        notional is not fee-bearing volume.
+        WARNING: This endpoint initiates real perpetual futures trades on Hyperliquid which can lead to substantial financial loss. You must explicitly present all trade details, fees, and leverage levels to the user, and obtain their manual confirmation prior to calling this endpoint. Never automate or auto-run this endpoint.
+
+      tags: [Execution]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteOrderRequest'
+      responses:
+        '200':
+          description: Order execution result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteOrderResponse'
+        '400':
+          description: Risk check failed or research not performed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  /v1/agent/futures/cancel-order:
+    post:
+      operationId: cancelOrder
+      summary: Cancel open Hyperliquid orders
+      description: |
+        Cancels one or more open orders (max 50 per request).
+        Scout (5/day limit) or Pioneer/Syndicate (unlimited) access. EIP-712 signature on every request.
+        Required `expiresAt` is forwarded as venue `expiresAfter`; required
+        `intentHash` binds the FarmDash request for auditability.
+        WARNING: This endpoint alters active market state and cancels protective orders. Ensure the user has explicitly confirmed the action and understands the resulting exposure change before calling this endpoint. Never automate or auto-run this endpoint.
+
+      tags: [Execution]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+      responses:
+        '200':
+          description: Cancellation result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  # ── Autonomous Operator ─────────────────────────────────────────
+
+  /v1/agent/onboard:
+    get:
+      operationId: getOnboardingGuide
+      summary: Get bounded agent onboarding guide
+      description: |
+        Returns setup checklist, capability map, security model, and workflow loop.
+        No auth required — entry point for new agents.
+      tags: [Session]
+      responses:
+        '200':
+          description: Onboarding guide
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardResponse'
+
+  /v1/agent/session:
+    get:
+      operationId: findSession
+      summary: Find active session for an agent
+      tags: [Session]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: agentAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Session lookup result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  session:
+                    $ref: '#/components/schemas/AgentSession'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+    post:
+      operationId: manageSession
+      summary: Create, resume, heartbeat, or close a session
+      description: |
+        Multiplexed endpoint. Set `action` to one of:
+        `create`, `resume`, `heartbeat`, `close`.
+        `create` returns a one-time `sessionToken`. All mutating follow-up
+        actions require `sessionId`, owning `agentAddress`, and `sessionToken`
+        in the JSON body or the `X-FarmDash-Session-Token` header.
+        Pioneer+ required.
+      tags: [Session]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [create, resume, heartbeat, close]
+                agentAddress:
+                  type: string
+                  description: Required for `create`, `resume`, `heartbeat`, and `close`
+                sessionId:
+                  type: string
+                  description: Required for `resume`, `heartbeat`, `close`
+                sessionToken:
+                  type: string
+                  description: Required for `resume`, `heartbeat`, and `close`; returned only once by `create`
+                agentMeta:
+                  $ref: '#/components/schemas/AgentMeta'
+      responses:
+        '200':
+          description: Session action result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  session:
+                    $ref: '#/components/schemas/AgentSession'
+                  sessionToken:
+                    type: string
+                    description: One-time session capability returned only when action is `create`
+                  auth:
+                    type: object
+                    properties:
+                      scheme: { type: string, enum: [session_capability_v1] }
+                      header: { type: string, enum: [X-FarmDash-Session-Token] }
+                      bodyField: { type: string, enum: [sessionToken] }
+                      note: { type: string }
+        '401':
+          description: Missing or invalid session capability token
+        '403':
+          description: Session owner or token verification failed
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  /v1/agent/delegation:
+    get:
+      operationId: getDelegationStatus
+      summary: Check delegation status
+      tags: [Delegation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: agentAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Delegation status
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+    post:
+      operationId: verifyDelegation
+      summary: Verify wallet delegation for bounded execution
+      description: |
+        The API wallet can trade but CANNOT withdraw — zero-custody preserved.
+        When `sessionId` is supplied, `sessionToken` is required to attach the
+        delegation to that session.
+        Syndicate required.
+      tags: [Delegation]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agentAddress, apiWalletAddress, ownerAddress]
+              properties:
+                agentAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                apiWalletAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                ownerAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                sessionId:
+                  type: string
+                sessionToken:
+                  type: string
+                  description: Required when `sessionId` is supplied
+      responses:
+        '200':
+          description: Delegation verification result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+  /v1/agent/autopilot:
+    get:
+      operationId: getRecommendedAutopilotConfig
+      summary: Get recommended autopilot configuration
+      tags: [Autopilot]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: equity
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: riskPreference
+          in: query
+          schema:
+            type: string
+            enum: [conservative, balanced, aggressive]
+            default: balanced
+      responses:
+        '200':
+          description: Recommended config
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  recommendedConfig:
+                    type: object
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+    post:
+      operationId: manageAutopilot
+      summary: Configure, run cycle, pause, or resume autopilot
+      description: |
+        Multiplexed endpoint. Set `action` to one of:
+        `configure`, `cycle`, `pause`, `resume_autopilot`.
+        All POST actions require `sessionId`, owning `agentAddress`, and
+        `sessionToken` in the JSON body or `X-FarmDash-Session-Token` header.
+        Syndicate required for configure/cycle/pause/resume.
+      tags: [Autopilot]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, sessionId, agentAddress]
+              properties:
+                action:
+                  type: string
+                  enum: [configure, cycle, pause, resume_autopilot]
+                sessionId:
+                  type: string
+                agentAddress:
+                  type: string
+                  pattern: '^0x[a-fA-F0-9]{40}$'
+                sessionToken:
+                  type: string
+                  description: Session capability returned by `create`
+                config:
+                  $ref: '#/components/schemas/AutopilotConfig'
+                accountState:
+                  type: object
+                  description: Required for `cycle` action
+                  properties:
+                    equity:
+                      type: number
+                    dailyPnlPct:
+                      type: number
+                    weeklyPnlPct:
+                      type: number
+                    drawdownPct:
+                      type: number
+                    openPositionCount:
+                      type: integer
+                    aggregateLeverage:
+                      type: number
+                    markPrices:
+                      type: object
+                      additionalProperties:
+                        type: number
+                    healthFactor:
+                      type: number
+                    liquidationBufferPct:
+                      type: number
+                    stablecoinDepegPct:
+                      type: number
+                    quoteDecayBps:
+                      type: number
+                    gasPerActionUsd:
+                      type: number
+                    rebalanceContext:
+                      $ref: '#/components/schemas/RebalanceContext'
+      responses:
+        '200':
+          description: Autopilot action result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  session:
+                    $ref: '#/components/schemas/AgentSession'
+                  actions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AutopilotAction'
+                  riskStatus:
+                    $ref: '#/components/schemas/AutopilotRiskStatus'
+        '401':
+          description: Missing or invalid session capability token
+        '403':
+          description: Session owner or token verification failed
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+
+# ═══════════════════════════════════════════════════════════════════
+# COMPONENTS
+# ═══════════════════════════════════════════════════════════════════
+
+  /v1/agent/risk-sentinel:
+    get:
+      operationId: getRiskSentinelInfo
+      summary: Describe Risk Sentinel usage
+      description: |
+        Returns a lightweight usage guide for the standalone risk-analysis endpoint.
+        Use POST to inspect allowance state, token/bridge/contract risks, depeg checks,
+        health-factor alerts, quote decay, and positive-net-edge enforcement.
+      tags: [Risk]
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Usage guide
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  description:
+                    type: string
+                  usage:
+                    type: string
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+    post:
+      operationId: analyzeRiskSentinel
+      summary: Analyze a route or account with Risk Sentinel
+      description: |
+        Accepts either a full swap-shaped payload or manual health/net-edge inputs.
+        When swap fields are present, FarmDash auto-selects a route, computes
+        Execution Alpha diagnostics, and returns a full Risk Sentinel report.
+      tags: [Risk]
+      security:
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskSentinelRequest'
+      responses:
+        '200':
+          description: Risk analysis
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskSentinelResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+
+  # ── Shared Parameters ──────────────────────────────────────────
+
+  parameters:
+    FromChainId:
+      name: fromChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum: [1, 10, 137, 8453, 42161, 59144]
+      description: 'Source chain: 1=Ethereum, 10=Optimism, 137=Polygon, 8453=Base, 42161=Arbitrum, 59144=Linea'
+    ToChainId:
+      name: toChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum: [1, 10, 137, 8453, 42161, 59144]
+      description: Destination chain ID
+    FromToken:
+      name: fromToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^0x[a-fA-F0-9]{40}$'
+      description: Source token contract address
+    ToToken:
+      name: toToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^0x[a-fA-F0-9]{40}$'
+      description: Destination token contract address
+    FromAmount:
+      name: fromAmount
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^\d+$'
+      description: Amount in wei (no leading zeros)
+
+  # ── Shared Headers ─────────────────────────────────────────────
+
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+
+  # ── Shared Responses ───────────────────────────────────────────
+
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: '8453 (Base)'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Schemas ────────────────────────────────────────────────────
+
+  schemas:
+
+    # ── Common ──
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: '0.01 USDC'
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+
+    DustStormWarning:
+      type: object
+      required: [kind, message]
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+
+    SupportedProtocol:
+      type: string
+      enum: [lifi, zerox, x402, okx]
+
+    SwapSafetyMode:
+      type: string
+      enum: [strict, balanced]
+
+    RiskSeverity:
+      type: string
+      enum: [low, medium, high, critical]
+
+    QuoteDecaySeverity:
+      type: string
+      enum: [none, low, medium, high]
+
+    Tier:
+      type: string
+      enum: [scout, pioneer, syndicate]
+
+    SwapTxData:
+      type: object
+      required: [to, data, value, chainId]
+      properties:
+        to:
+          type: string
+          description: Protocol contract address (NOT FarmDash)
+        data:
+          type: string
+          description: Encoded calldata
+        value:
+          type: string
+          description: Native token value in wei
+        chainId:
+          type: integer
+
+    # ── Swap Schemas ──
+
+    SwapSimulationRequest:
+      type: object
+      required: [intent_id, wallet_address]
+      properties:
+        intent_id:
+          type: string
+          description: Wallet-bound quote intent returned by /agents/quote
+          example: fd_intent_7f3a
+        wallet_address:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Signing wallet for the simulated execution
+
+    SwapSimulationResponse:
+      type: object
+      required: [ok, simulation_id, intent_id, success, gas_used, gas_cost_usd, output_amount, mev_risk, valid_until, wallet_address, selected_protocol, required_for_execution]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        simulation_id:
+          type: string
+          example: sim_9b2e
+        intent_id:
+          type: string
+        success:
+          type: boolean
+        gas_used:
+          type: number
+        gas_cost_usd:
+          type: number
+        output_amount:
+          type: string
+        price_impact_pct:
+          type: number
+          nullable: true
+        mev_risk:
+          type: string
+          enum: [low, medium, high]
+        revert_reason:
+          type: string
+          nullable: true
+        valid_until:
+          type: string
+          format: date-time
+        wallet_address:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        selected_protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        tx_fingerprint:
+          type: string
+        request_fingerprint:
+          type: string
+        provider:
+          type: string
+        cached:
+          type: boolean
+        required_for_execution:
+          type: boolean
+          const: true
+
+    SwapRequest:
+      type: object
+      required: [fromChainId, toChainId, fromToken, toToken, fromAmount, agentAddress, toAddress, simulationId, nonce, signature]
+      properties:
+        fromChainId:
+          type: integer
+          enum: [1, 10, 137, 8453, 42161, 59144]
+        toChainId:
+          type: integer
+          enum: [1, 10, 137, 8453, 42161, 59144]
+        fromToken:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        toToken:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        fromAmount:
+          type: string
+          pattern: '^\d+$'
+          description: Amount in wei
+        agentAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Agent wallet address (signer)
+        toAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Destination wallet for swapped tokens
+        slippage:
+          type: number
+          minimum: 0.01
+          maximum: 5
+          default: 0.5
+          description: Slippage tolerance in percent (capped at 5%)
+        protocol:
+          type: string
+          enum: [lifi, zerox, x402]
+        volumeHintUSD:
+          type: number
+          description: USD volume estimate - unlocks fee discounts (>= $10k -> 35bps, >= $100k -> 25bps)
+        expectedUpsideUsd:
+          type: number
+          description: Optional upside estimate in USD for positive-net-edge checks
+        riskBufferUsd:
+          type: number
+          description: Optional extra execution-risk buffer in USD
+        healthFactor:
+          type: number
+          description: Optional lending health factor supplied by the caller
+        liquidationBufferPct:
+          type: number
+          description: Optional liquidation-buffer percentage supplied by the caller
+        walletAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Optional wallet address used for on-chain approval checks
+        safetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+          description: USD volume estimate — unlocks fee discounts (≥$10k → 35bps, ≥$100k → 25bps)
+        simulationId:
+          type: string
+          description: Fresh successful simulation_id from POST /v1/simulate
+        intentId:
+          type: string
+          description: Optional quote intent ID; must match the simulation when supplied
+        nonce:
+          type: string
+          description: Current timestamp in milliseconds (60s window)
+        signature:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{130}$'
+          description: EIP-191 personal_sign of the v1 versioned payload
+
+    AllowanceStatus:
+      type: object
+      properties:
+        spender:
+          type: string
+          nullable: true
+        allowance:
+          type: string
+          nullable: true
+        requiredAmount:
+          type: string
+        approvalNeeded:
+          type: boolean
+        overApproved:
+          type: boolean
+        source:
+          type: string
+          enum: [onchain, quote_fallback, unavailable]
+
+    RiskFlag:
+      type: object
+      required: [code, category, severity, title, message]
+      properties:
+        code:
+          type: string
+        category:
+          type: string
+          enum: [approval, bridge, contract, token, health, execution]
+        severity:
+          $ref: '#/components/schemas/RiskSeverity'
+        title:
+          type: string
+        message:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    PegCheck:
+      type: object
+      properties:
+        tokenAddress:
+          type: string
+        symbol:
+          type: string
+        reference:
+          type: string
+          enum: [USD, ETH]
+        priceUsd:
+          type: number
+          nullable: true
+        referencePriceUsd:
+          type: number
+          nullable: true
+        deviationPct:
+          type: number
+          nullable: true
+        alert:
+          type: boolean
+
+    HealthCheck:
+      type: object
+      properties:
+        healthFactor:
+          type: number
+          nullable: true
+        liquidationBufferPct:
+          type: number
+          nullable: true
+        alertLevel:
+          type: string
+          enum: [none, warning, critical]
+        shouldHalt:
+          type: boolean
+
+    NetEdgeAnalysis:
+      type: object
+      properties:
+        expectedUpsideUsd:
+          type: number
+          nullable: true
+        protocolFeeUsd:
+          type: number
+        gasUsd:
+          type: number
+        bridgeFeeUsd:
+          type: number
+        riskBufferUsd:
+          type: number
+        totalCostUsd:
+          type: number
+        netEdgeUsd:
+          type: number
+          nullable: true
+        positive:
+          type: boolean
+          nullable: true
+        enforced:
+          type: boolean
+
+    QuoteDecayMetrics:
+      type: object
+      properties:
+        previousObservedAt:
+          type: integer
+          nullable: true
+        quoteAgeMs:
+          type: integer
+          nullable: true
+        outputDecayBps:
+          type: number
+        gasIncreaseBps:
+          type: number
+        severity:
+          $ref: '#/components/schemas/QuoteDecaySeverity'
+
+    RouteCandidate:
+      type: object
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeAmountUsd:
+          type: number
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        routeRiskScore:
+          type: number
+        selected:
+          type: boolean
+
+    ExecutionAlphaReport:
+      type: object
+      properties:
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        routeReason:
+          type: string
+        mevProtection:
+          type: object
+          properties:
+            safetyMode:
+              $ref: '#/components/schemas/SwapSafetyMode'
+            actualSlippageBps:
+              type: integer
+            maxRecommendedSlippageBps:
+              type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteCandidate'
+        quoteDecay:
+          $ref: '#/components/schemas/QuoteDecayMetrics'
+        netEdge:
+          $ref: '#/components/schemas/NetEdgeAnalysis'
+
+    SwapRiskReport:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        approval:
+          allOf:
+            - $ref: '#/components/schemas/AllowanceStatus'
+          nullable: true
+        pegChecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PegCheck'
+        health:
+          allOf:
+            - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        shouldHalt:
+          type: boolean
+        haltReasons:
+          type: array
+          items:
+            type: string
+
+    QuoteResponse:
+      type: object
+      required: [protocol, estimatedOutput, feeBps, feeAmountUSD, gasEstimate, txData, expiresAt]
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+          description: Expected output in wei
+        feeBps:
+          type: integer
+          description: Fee in basis points (45 = 0.45% default; configured volume discounts may apply)
+        mode:
+          type: string
+          const: live
+        unsigned:
+          type: boolean
+          const: true
+        broadcast_by_farmdash:
+          type: boolean
+          const: false
+        feeAmountUSD:
+          type: string
+        gasEstimate:
+          type: string
+        txData:
+          $ref: '#/components/schemas/SwapTxData'
+        expiresAt:
+          type: integer
+          description: Unix timestamp — quotes valid 30s
+        simulation_required:
+          type: boolean
+          description: True when execute_swap requires a simulation for this route
+        simulation_available:
+          type: boolean
+          description: True when the quote was wallet-bound and returned an intent_id
+        intent_id:
+          type: string
+          nullable: true
+          description: Pass this to POST /v1/simulate before execution
+        intent_expires_at:
+          type: string
+          nullable: true
+          format: date-time
+        simulate_url:
+          type: string
+          example: /api/v1/simulate
+        allowanceTarget:
+          type: string
+          nullable: true
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+        note:
+          type: string
+
+    SwapResult:
+      type: object
+      required: [protocol, estimatedOutput, feeBps, feeAmountUSD, gasEstimate, txData, expiresAt]
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeBps:
+          type: integer
+        feeAmountUSD:
+          type: string
+        feeEventId:
+          type: string
+          format: uuid
+          description: Use with /agents/confirm to confirm settlement
+        gasEstimate:
+          type: string
+        txData:
+          $ref: '#/components/schemas/SwapTxData'
+        expiresAt:
+          type: integer
+        allowanceTarget:
+          type: string
+          nullable: true
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        simulation:
+          type: object
+          additionalProperties: true
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+        confirmUrl:
+          type: string
+          example: /api/agents/confirm
+
+    SwapHaltResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: swap_halted
+        code:
+          type: string
+          example: swap_halted
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+
+    RiskSentinelRequest:
+      type: object
+      description: Provide either manual health/net-edge inputs or a full swap-shaped request for route-aware analysis.
+      properties:
+        fromChainId:
+          type: integer
+          enum: [1, 10, 137, 8453, 42161, 59144]
+        toChainId:
+          type: integer
+          enum: [1, 10, 137, 8453, 42161, 59144]
+        fromToken:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        toToken:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        fromAmount:
+          type: string
+          pattern: '^\d+$'
+        walletAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        toAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        protocol:
+          type: string
+          enum: [lifi, zerox, x402]
+        slippage:
+          type: number
+        expectedUpsideUsd:
+          type: number
+        riskBufferUsd:
+          type: number
+        healthFactor:
+          type: number
+        liquidationBufferPct:
+          type: number
+        protocolFeeUsd:
+          type: number
+        gasUsd:
+          type: number
+        bridgeFeeUsd:
+          type: number
+        enforcePositive:
+          type: boolean
+        safetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+
+    RiskSentinelResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        mode:
+          type: string
+          enum: [manual, quoted]
+        selectedProtocol:
+          allOf:
+            - $ref: '#/components/schemas/SupportedProtocol'
+          nullable: true
+        executionAlpha:
+          allOf:
+            - $ref: '#/components/schemas/ExecutionAlphaReport'
+          nullable: true
+        riskReport:
+          allOf:
+            - $ref: '#/components/schemas/SwapRiskReport'
+          nullable: true
+        quotePreview:
+          allOf:
+            - $ref: '#/components/schemas/SwapResult'
+          nullable: true
+        health:
+          allOf:
+            - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        netEdge:
+          allOf:
+            - $ref: '#/components/schemas/NetEdgeAnalysis'
+          nullable: true
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        shouldHalt:
+          type: boolean
+
+    ConfirmRequest:
+      type: object
+      required: [feeEventId, txHash, agentAddress]
+      properties:
+        feeEventId:
+          type: string
+          format: uuid
+        txHash:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{64}$'
+        agentAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+
+    ConfirmResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        feeEventId:
+          type: string
+          format: uuid
+        settlementStatus:
+          type: string
+          enum: [confirmed, pending, expired]
+        idempotent:
+          type: boolean
+          description: True if this was a duplicate confirmation (safe to retry)
+
+    # ── History Schemas ──
+
+    FeeEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        from_token:
+          type: string
+        to_token:
+          type: string
+        volume_usd:
+          type: number
+        fee_bps:
+          type: integer
+        fee_usd:
+          type: number
+        agent_address:
+          type: string
+        tx_hash:
+          type: string
+          nullable: true
+        settlement_status:
+          type: string
+          enum: [pending, confirmed, expired, legacy]
+        chain_id:
+          type: integer
+
+    HistoryResponse:
+      type: object
+      required: [events, total, limit, offset]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeeEvent'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    RevenueMetrics:
+      type: object
+      required: [totalFeeUSD, totalVolumeUSD, totalSwaps, activeAgents]
+      properties:
+        totalFeeUSD:
+          type: number
+        totalVolumeUSD:
+          type: number
+        totalSwaps:
+          type: integer
+        activeAgents:
+          type: integer
+
+    # ── Intelligence Schemas ──
+
+    ProtocolItem:
+      type: object
+      properties:
+        protocol_name:
+          type: string
+        discovery_heuristic_score:
+          oneOf:
+            - type: number
+            - type: string
+              description: Encrypted for scout tier
+          description: Catalog editorial heuristic (methodology catalog-editorial-v1). NOT live Trail Heat — canonical quantitative scores live at /v1/trail-heat.
+        discovery_methodology:
+          type: string
+        sybil_risk:
+          type: string
+        tvl:
+          type: string
+        category:
+          type: string
+          enum: [Perps, Lending, Dex, L2, Bridge, Restaking, HyperEVM, Infra, Wallet, Testnet]
+        status:
+          type: string
+          enum: [Confirmed Airdrop, Points Program, Speculative]
+        chains:
+          type: array
+          items:
+            type: string
+        recommended_agent_deploy_link:
+          type: string
+          format: uri
+
+    ProtocolsResponse:
+      type: object
+      required: [tier, count, data]
+      properties:
+        tier:
+          $ref: '#/components/schemas/Tier'
+        count:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProtocolItem'
+        status:
+          type: string
+        message:
+          type: string
+        direct_upgrade_url:
+          type: string
+          format: uri
+        total_protocols_available:
+          type: integer
+
+    ChainBreakdownItem:
+      type: object
+      properties:
+        chain:
+          type: string
+        protocol_count:
+          oneOf: [{ type: integer }, { type: string }]
+        pct_of_total:
+          oneOf: [{ type: number }, { type: string }]
+        confirmed_airdrops:
+          oneOf: [{ type: integer }, { type: string }]
+        points_programs:
+          oneOf: [{ type: integer }, { type: string }]
+        categories:
+          type: array
+          items:
+            type: string
+
+    ChainBreakdownSummary:
+      type: object
+      properties:
+        total_chains:
+          type: integer
+        total_protocols:
+          oneOf: [{ type: integer }, { type: string }]
+        dominant_chain:
+          type: string
+          nullable: true
+        dominant_chain_pct:
+          oneOf: [{ type: number }, { type: string }]
+
+    ChainBreakdownResponse:
+      type: object
+      required: [tier, data]
+      properties:
+        tier:
+          $ref: '#/components/schemas/Tier'
+        status:
+          type: string
+        message:
+          type: string
+        direct_upgrade_url:
+          type: string
+          format: uri
+        data:
+          type: object
+          properties:
+            chains:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChainBreakdownItem'
+            summary:
+              $ref: '#/components/schemas/ChainBreakdownSummary'
+
+    # ── Futures Schemas ──
+
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum: [long_spot_short_perp, short_spot_long_perp, null]
+
+    TechnicalIndicators:
+      type: object
+      properties:
+        ema8: { type: number }
+        ema34: { type: number }
+        emaCross: { type: string, enum: [bullish, bearish, neutral] }
+        rsi: { type: number }
+        macd: { type: number }
+        macdSignal: { type: number }
+        macdHistogram: { type: number }
+        macdCross: { type: string, enum: [bullish_cross, bearish_cross, neutral] }
+        adx: { type: number }
+        atr: { type: number }
+        bbUpper: { type: number }
+        bbMiddle: { type: number }
+        bbLower: { type: number }
+        bbWidth: { type: number }
+        volumeRatio: { type: number }
+        zScore: { type: number }
+
+    ScanFundingResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/Tier'
+        arbOpportunities:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        highFunding:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        totalScanned:
+          type: integer
+        upgradeMessage:
+          type: string
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    MarketConditionsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        coin:
+          type: string
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+        strategyHint:
+          type: string
+          enum: [momentum_long, momentum_short, mean_reversion, no_trade]
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    FuturesPosition:
+      type: object
+      properties:
+        coin: { type: string }
+        size: { type: number }
+        side: { type: string, enum: [long, short] }
+        entryPrice: { type: number }
+        markPrice: { type: number }
+        unrealizedPnl: { type: number }
+        returnOnEquity: { type: number }
+        leverage: { type: number }
+        leverageType: { type: string }
+        liquidationPrice: { type: number, nullable: true }
+        marginUsed: { type: number }
+
+    AccountSummary:
+      type: object
+      properties:
+        equity: { type: string }
+        totalNotionalPosition: { type: string }
+        marginUsed: { type: string }
+        availableMargin: { type: string }
+        aggregateLeverage: { type: string }
+
+    RiskState:
+      type: object
+      properties:
+        dailyPnl: { type: string }
+        dailyPnlPct: { type: string }
+        weeklyPnl: { type: string }
+        realizedDailyPnl: { type: string }
+        realizedWeeklyPnl: { type: string }
+        unrealizedPnl: { type: string }
+        pnlSource: { type: string, enum: [hyperliquid_venue_loss_pressure] }
+        pnlAsOf: { type: integer, format: int64 }
+        pnlMethodology: { type: string }
+        drawdown: { type: string }
+        peakEquity: { type: string }
+        isTradingHalted: { type: boolean }
+        haltReason: { type: string, nullable: true }
+        isReducedSize: { type: boolean }
+        openPositionCount: { type: integer }
+
+    Guardrails:
+      type: object
+      properties:
+        maxLeverage: { type: integer, example: 5 }
+        maxRiskPerTrade: { type: string, example: '2%' }
+        maxPositions: { type: integer }
+        dailyLossLimit: { type: string, example: '-3%' }
+        weeklyLossLimit: { type: string, example: '-7%' }
+        maxDrawdown: { type: string, example: '-15%' }
+
+    AccountStateResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        account:
+          $ref: '#/components/schemas/AccountSummary'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuturesPosition'
+        risk:
+          $ref: '#/components/schemas/RiskState'
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp: { type: integer }
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    FuturesMarketRegime:
+      type: string
+      enum: [trending, ranging, high_volatility, low_liquidity]
+
+    FuturesTradeDirection:
+      type: string
+      enum: [long, short, neutral]
+
+    FuturesStrategyObject:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [futures] }
+        market: { type: string }
+        direction:
+          $ref: '#/components/schemas/FuturesTradeDirection'
+        regime:
+          $ref: '#/components/schemas/FuturesMarketRegime'
+        triggerConditions:
+          type: array
+          items: { type: string }
+        entryLogic: { type: string }
+        exitLogic: { type: string }
+        riskModel:
+          type: object
+          properties:
+            baseRiskPercent: { type: number }
+            appliedRiskPercent: { type: number }
+            riskMultiplier: { type: number }
+            leverageCap: { type: number }
+            stopModel: { type: string }
+        leverageModel:
+          type: object
+          properties:
+            mode: { type: string, enum: [adaptive] }
+            suggested: { type: number }
+            cap: { type: number }
+            drivers:
+              type: array
+              items: { type: string }
+        fallbackLogic:
+          type: array
+          items: { type: string }
+        telemetryTracking:
+          type: array
+          items: { type: string }
+
+    FuturesAdaptiveRisk:
+      type: object
+      properties:
+        baseRiskPercent: { type: number }
+        appliedRiskPercent: { type: number }
+        confidenceMultiplier: { type: number }
+        volatilityMultiplier: { type: number }
+        drawdownMultiplier: { type: number }
+        portfolioMultiplier: { type: number }
+        finalRiskMultiplier: { type: number }
+
+    FuturesTradeSimulation:
+      type: object
+      properties:
+        methodology: { type: string, enum: [heuristic_preflight] }
+        holdingWindowHours: { type: number }
+        entryValueUsd: { type: number }
+        marginRequiredUsd: { type: number }
+        marginImpactPct: { type: number }
+        liquidationPriceEstimate: { type: number, nullable: true }
+        stopScenarioPnlUsd: { type: number }
+        targetScenarioPnlUsd: { type: number }
+        oneAtrMovePnlUsd: { type: number }
+        estimatedFundingPnl24hUsd: { type: number }
+        estimatedFundingPnl72hUsd: { type: number }
+
+    FuturesPortfolioContext:
+      type: object
+      properties:
+        openPositionCount: { type: integer }
+        sameAssetExposureUsd: { type: number }
+        sameAssetExposurePct: { type: number }
+        directionalExposurePct: { type: number }
+        netDirectionalBias: { type: string, enum: [net_long, net_short, balanced] }
+        concentrationWarning: { type: string, nullable: true }
+
+    StrategyRecommendation:
+      type: object
+      properties:
+        recommendedStrategy:
+          type: string
+          enum: [funding_arb, momentum_long, momentum_short, trend_pullback_long, trend_pullback_short, mean_reversion, no_trade]
+        confidence: { type: number }
+        asset: { type: string }
+        marketRegime:
+          $ref: '#/components/schemas/FuturesMarketRegime'
+        entry: { type: number }
+        stopLoss: { type: number }
+        takeProfit: { type: number }
+        positionSize: { type: number }
+        leverage: { type: number, maximum: 5 }
+        riskPercent: { type: number, maximum: 0.02 }
+        reasoning:
+          type: array
+          items: { type: string }
+        noTradeReason: { type: string, nullable: true }
+        strategyObject:
+          $ref: '#/components/schemas/FuturesStrategyObject'
+        adaptiveRisk:
+          $ref: '#/components/schemas/FuturesAdaptiveRisk'
+        simulation:
+          $ref: '#/components/schemas/FuturesTradeSimulation'
+        portfolioContext:
+          $ref: '#/components/schemas/FuturesPortfolioContext'
+        trailHeatCrossRef:
+          type: object
+          properties:
+            protocolId: { type: string }
+            score: { type: number }
+            farmingOpportunity: { type: boolean }
+            referralLink: { type: string, format: uri }
+        fundingAnalysis:
+          $ref: '#/components/schemas/FundingAnalysis'
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+
+    AnalyzeStrategyResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        recommendation:
+          $ref: '#/components/schemas/StrategyRecommendation'
+        account:
+          type: object
+          properties:
+            equity: { type: string }
+            availableMargin: { type: string }
+            openPositions: { type: integer }
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp: { type: integer }
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    PositionSizingRequest:
+      type: object
+      required: [equity, entryPrice, stopPrice]
+      properties:
+        equity: { type: number, description: Account equity in USD }
+        entryPrice: { type: number }
+        stopPrice: { type: number }
+        riskPercent: { type: number, maximum: 0.02, description: 'Capped at 2%' }
+        targetPrice: { type: number, description: For R:R calculation }
+        riskMultiplier:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+          description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+
+    PositionSizing:
+      type: object
+      properties:
+        positionSize: { type: number }
+        positionValueUsd: { type: number }
+        leverage: { type: number }
+        marginRequired: { type: number }
+        riskAmount: { type: number }
+        riskPercent: { type: number }
+        stopDistance: { type: number }
+        rewardRiskRatio: { type: number }
+
+    PositionSizingResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        sizing:
+          $ref: '#/components/schemas/PositionSizing'
+        guardrails:
+          type: object
+          properties:
+            maxLeverage: { type: integer }
+            maxRiskPerTrade: { type: string }
+            maxPositionValue: { type: string }
+            note: { type: string }
+        timestamp: { type: integer }
+
+    EIP712Signature:
+      type: object
+      required: [r, s, v]
+      properties:
+        r: { type: string }
+        s: { type: string }
+        v: { type: integer }
+
+    ExecuteOrderRequest:
+      type: object
+      required: [agentAddress, coin, isBuy, size, price, orderType, nonce, expiresAt, intentHash, signature]
+      properties:
+        agentAddress: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+        coin: { type: string }
+        isBuy: { type: boolean }
+        size: { type: string }
+        price: { type: string }
+        orderType:
+          type: string
+          enum: [limit_gtc, limit_ioc, limit_alo, market, stop_loss, take_profit]
+        reduceOnly: { type: boolean, default: false }
+        leverage:
+          oneOf:
+            - type: number
+            - type: string
+        signedAction:
+          type: object
+          description: 'If supplied, must contain the signed FarmDash builder term `{ b: treasury, f: 1 }`; f is tenths of a basis point.'
+        nonce: { type: integer }
+        expiresAt: { type: integer }
+        intentHash: { type: string }
+        signature:
+          $ref: '#/components/schemas/EIP712Signature'
+
+    ExecuteOrderResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        state: { type: string, enum: [filled, resting_unfilled, rejected, unknown] }
+        result:
+          type: object
+          properties:
+            status: { type: string }
+            response: { type: object }
+        order:
+          type: object
+          properties:
+            coin: { type: string }
+            side: { type: string, enum: [buy, sell] }
+            size: { type: string }
+            price: { type: string }
+            type: { type: string }
+            reduceOnly: { type: boolean }
+            leverage: { type: number }
+            leverageStatus: { type: string, enum: [risk_check_metadata_only] }
+            builderFee:
+              type: object
+              properties:
+                recipient: { type: string }
+                venueUnitsTenthsBps: { type: number, example: 1 }
+                basisPoints: { type: number, example: 0.1 }
+                percent: { type: number, example: 0.001 }
+                appliesTo: { type: string, enum: [filled_notional_only] }
+                signedInsideOrderAction: { type: boolean }
+        intentHash: { type: string }
+        expiresAt: { type: integer }
+        timestamp: { type: integer }
+        error: { type: string }
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    CancelOrderRequest:
+      type: object
+      required: [agentAddress, coin, orderIds, nonce, expiresAt, intentHash, signature]
+      properties:
+        agentAddress: { type: string, pattern: '^0x[a-fA-F0-9]{40}$' }
+        coin: { type: string }
+        orderIds:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { type: integer }
+        signedAction: { type: object }
+        nonce: { type: integer }
+        expiresAt: { type: integer }
+        intentHash: { type: string }
+        signature:
+          $ref: '#/components/schemas/EIP712Signature'
+
+    CancelOrderResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        result:
+          type: object
+          properties:
+            status: { type: string }
+            response: { type: object }
+        cancelled:
+          type: object
+          properties:
+            coin: { type: string }
+            orderIds:
+              type: array
+              items: { type: integer }
+            count: { type: integer }
+        intentHash: { type: string }
+        expiresAt: { type: integer }
+        timestamp: { type: integer }
+        error: { type: string }
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+
+    # ── Autonomous Operator Schemas ──
+
+    AgentMeta:
+      type: object
+      properties:
+        name: { type: string }
+        version: { type: string }
+        framework: { type: string }
+        capabilities:
+          type: array
+          items: { type: string }
+
+    AutopilotConfig:
+      type: object
+      properties:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum: [funding_arb, momentum, mean_reversion, portfolio_rebalance, full_auto]
+        assets:
+          type: array
+          items: { type: string }
+        maxEquityPct: { type: number }
+        rebalanceIntervalMin: { type: integer }
+        autoCompound: { type: boolean }
+        riskPreference:
+          type: string
+          enum: [conservative, balanced, aggressive]
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
+
+    RiskSentinelConfig:
+      type: object
+      properties:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
+
+    ExecutionAlphaConfig:
+      type: object
+      properties:
+        mevSafetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        maxQuoteDecayBps:
+          type: number
+        maxGasUsdPerAction:
+          type: number
+        requirePositiveNetEdge:
+          type: boolean
+        minNetEdgeUsd:
+          type: number
+
+    RebalanceContext:
+      type: object
+      properties:
+        expectedUpsideUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        gasUsd:
+          type: number
+          nullable: true
+        riskBufferUsd:
+          type: number
+          nullable: true
+        currentChain:
+          type: string
+          nullable: true
+        targetChain:
+          type: string
+          nullable: true
+
+    AutopilotRiskStatus:
+      type: object
+      properties:
+        dailyPnlPct:
+          type: number
+        weeklyPnlPct:
+          type: number
+        drawdownPct:
+          type: number
+        openPositions:
+          type: integer
+        aggregateLeverage:
+          type: number
+        healthFactor:
+          type: number
+          nullable: true
+        liquidationBufferPct:
+          type: number
+          nullable: true
+        stablecoinDepegPct:
+          type: number
+          nullable: true
+        quoteDecayBps:
+          type: number
+          nullable: true
+        gasPerActionUsd:
+          type: number
+          nullable: true
+        alerts:
+          type: array
+          items:
+            type: string
+        isTradingAllowed:
+          type: boolean
+        haltReason:
+          type: string
+          nullable: true
+
+    TrackedPosition:
+      type: object
+      properties:
+        coin: { type: string }
+        side: { type: string, enum: [long, short] }
+        entryPrice: { type: number }
+        size: { type: number }
+        leverage: { type: number }
+        stopLoss: { type: number, nullable: true }
+        takeProfit: { type: number, nullable: true }
+        openedAt: { type: string, format: date-time }
+        strategy: { type: string }
+        unrealizedPnl: { type: number }
+
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress: { type: string }
+        apiWalletAddress: { type: string }
+        verified: { type: boolean }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+
+    AgentSession:
+      type: object
+      properties:
+        id: { type: string }
+        agentAddress: { type: string }
+        status: { type: string, enum: [active, paused, halted, expired] }
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        autopilot:
+          $ref: '#/components/schemas/AutopilotConfig'
+        activePositions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedPosition'
+        sessionPnl: { type: number }
+        peakEquity: { type: number }
+        tradeCount: { type: integer }
+        lastHeartbeat: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        agentMeta:
+          $ref: '#/components/schemas/AgentMeta'
+
+    DelegationResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        message: { type: string }
+        warning: { type: string }
+
+    AutopilotAction:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [analyze, execute, adjust_stop, close_position, rebalance, skip, halt]
+        asset: { type: string }
+        reason: { type: string }
+        details: { type: object }
+        priority: { type: string, enum: [high, medium, low] }
+
+    OnboardResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        welcome: { type: string }
+        version: { type: string }
+        quickStart:
+          type: object
+          properties:
+            summary: { type: string }
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  step: { type: integer }
+                  name: { type: string }
+                  description: { type: string }
+                  action: { type: string }
+                  endpoint: { type: string, nullable: true }
+                  required: { type: boolean }
+        capabilities: { type: object }
+        security: { type: object }
+        autonomousWorkflow: { type: object }
+        discovery: { type: object }
+        pricing: { type: object }
+

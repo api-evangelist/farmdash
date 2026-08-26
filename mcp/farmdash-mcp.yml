@@ -1,0 +1,175 @@
+generated: '2026-08-26'
+method: searched
+source: https://www.farmdash.one/.well-known/mcp.json
+manifest_file: well-known/farmdash-mcp.json
+server_name: farmdash-agent-os
+server_version: 5.0.0
+schema_version: 1.0.0
+description: >-
+  FarmDash MCP server for zero-custody DeFi agent intelligence and control: Trail Heat
+  discovery, wallet intelligence, typed adapter validation, policy checks, simulations,
+  EIP-712 approval queues and x402 payment flows.
+homepage: https://www.farmdash.one/agents
+deployment:
+  mode: local-stdio
+  endpoint: null
+  install: "git clone https://github.com/Parmasanandgarlic/farmdashbeta.git && cd farmdashbeta/mcp-server && npm ci && npm run build"
+  package: https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/mcp-server
+  auth: api-key
+  verified: probed
+  note: >-
+    NOT AN AGENT SURFACE TODAY. The manifest declares transport.type "stdio" with
+    command "node dist/index.js" — there is no https endpoint an MCP client can POST to,
+    and no /api/mcp or /mcp route exists (both probed 2026-08-26, 404). The provider is
+    candid that the npm package is unpublished (installation.status
+    "source_only_registry_unpublished_verified_2026-08-23"), and the ONLY documented install
+    path is building from source. That source repository is also gone: GitHub
+    Parmasanandgarlic/farmdashbeta returned 404 on 2026-08-26 while the owner account
+    Parmasanandgarlic returned 200 — so the repo is private, renamed or deleted. Net effect:
+    a fully specified 84-tool MCP server that no third party can currently install or reach.
+install_evidence:
+- url: https://registry.npmjs.org/@farmdash%2Fmcp-server
+  status: 404
+  checked: '2026-08-26'
+- url: https://registry.npmjs.org/@farmdash%2Fagent-kit
+  status: 404
+  checked: '2026-08-26'
+- url: https://github.com/Parmasanandgarlic/farmdashbeta
+  status: 404
+  checked: '2026-08-26'
+- url: https://github.com/Parmasanandgarlic
+  status: 200
+  checked: '2026-08-26'
+- url: https://www.farmdash.one/api/mcp
+  status: 404
+  checked: '2026-08-26'
+  note: 'Typed API 404: {"ok":false,"error":"not_found","code":"api_endpoint_not_found"}'
+- url: https://www.farmdash.one/mcp
+  status: 404
+  checked: '2026-08-26'
+env:
+  FARMDASH_API_KEY:
+    required: false
+    description: >-
+      Public Scout token (fd_scout_free) or a paid bearer token. May be omitted entirely
+      for free Scout access.
+  FARMDASH_BASE_URL:
+    required: false
+    default: https://www.farmdash.one/api
+tools_count: 84
+resources_count: 0
+tools_have_input_schemas: true
+tool_categories:
+  intent_lifecycle:
+  - create_intent
+  - policy_check_intent
+  - simulate_intent
+  - request_approval_payload
+  - request_human_approval
+  - submit_signed_approval
+  - get_approval_status
+  - prepare_intent
+  - execute_approved_intent
+  - confirm_execution
+  - get_receipt
+  - get_agent_activity
+  trail_intelligence:
+  - get_trail_heat
+  - get_protocol_metadata
+  - get_protocol_risk_factors
+  - find_capital_route
+  - get_chain_breakdown
+  - get_agent_events
+  - get_historical_trailheat
+  - query_trail_heat
+  - analyze_protocol_risk
+  - compare_yields
+  - simulate_yield_strategy
+  wallet_intelligence:
+  - audit_sybil_risk
+  - simulate_points
+  - get_wallet_balances
+  - get_portfolio_summary
+  - get_position_health
+  - get_idle_capital
+  - get_token_prices
+  - optimize_portfolio
+  - audit_allowance_risk
+  - simulate_transaction_risk
+  - get_agent_performance
+  - ledger_realized_pnl
+  - ledger_tax_export
+  swap:
+  - get_swap_quote
+  - simulate_swap_execution
+  - execute_swap
+  - confirm_swap
+  - resolve_defi_intent
+  - run_risk_sentinel
+  - recommend_delta_hedge
+  futures:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  - execute_perp_order
+  - cancel_perp_order
+  workflows:
+  - list_workflows
+  - plan_workflow
+  - run_workflow
+  - get_workflow_status
+  session_and_autopilot:
+  - agent_onboard
+  - create_session
+  - session_heartbeat
+  - get_farming_context
+  - patch_farming_context
+  - get_event_stream_snapshot
+  - verify_delegation
+  - configure_autopilot
+  - autopilot_cycle
+  - pause_autopilot
+  - resume_autopilot
+  - grant_session_key
+  - revoke_session_key
+  - session_key_status
+  - get_cycle_status
+  - execute_cycle_actions
+  mee_cross_chain:
+  - create_mee_intent
+  - simulate_mee_intent
+  - submit_mee_intent
+  - get_mee_intent_status
+  virtuals_acp:
+  - select_virtuals_provider_plan_v2
+  - prepare_virtuals_tender_v2
+  - authorize_virtuals_tender_v2
+  - get_virtuals_tender
+  - cancel_virtuals_tender
+  - bind_virtuals_tender_job
+  - reserve_virtuals_tender_funding_v2
+  - record_virtuals_tender_funding_v2
+  - evaluate_virtuals_tender
+  - hire_virtuals_specialist
+capability_contract:
+  status_endpoint: https://www.farmdash.one/api/v1/agent/status
+  rule: >-
+    "Tool discovery is not enablement. Read status first and preserve typed
+    feature_not_ready responses." — the provider's own words in the manifest.
+  generic_intent_execution: disabled
+  mee_submission: preparation_only
+  autonomous_erc4337_submission: preview_only
+  note: >-
+    An unusually honest design: the manifest advertises 84 tools but explicitly refuses to
+    let tool presence imply the tool works. /api/v1/agent/status is the runtime authority and
+    was live (HTTP 200) on 2026-08-26, returning per-feature availability states including
+    three `preparation_only` and two `deployment_prerequisites_required` features.
+discovery_documents:
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/llms.txt
+- https://www.farmdash.one/agent-report.md
+- https://www.farmdash.one/ai.txt
+- https://www.farmdash.one/.well-known/ai-plugin.json
+- https://www.farmdash.one/.well-known/agent.json

@@ -1,0 +1,88 @@
+generated: '2026-08-26'
+method: searched
+source: https://www.farmdash.one/api/v1/agent/status
+searched_sources:
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/updates
+- https://www.farmdash.one/agent-report.md
+versioning:
+  style: path-prefix
+  current_version: v1
+  spec_version: 2.0.0
+  detail: >-
+    Mixed regime on one base URL. /v1/agent/*, /v1/simulate and /v1/trail-heat are versioned;
+    the swap family (/agents/quote, /agents/swap, /agents/confirm, /agents/history) is not.
+  policy_published: false
+deprecation:
+  policy_published: false
+  sunset_header: false
+  deprecation_header: false
+  rfc8594: false
+  deprecated_operations: []
+  detail: >-
+    No deprecation policy page, no RFC 8594 Sunset/Deprecation header support documented, and
+    zero operations carry `deprecated: true` in the OpenAPI. Probed https://www.farmdash.one/roadmap
+    (404). What FarmDash publishes INSTEAD is unusual and arguably more useful to an agent: a
+    forward-looking capability contract rather than a backward-looking deprecation contract —
+    /api/v1/agent/status declares per-feature availability so a caller learns a feature is not
+    ready before calling it, rather than learning a feature is going away after depending on it.
+    The two are complements, and only one is present.
+status_page:
+  published: false
+  url: null
+  detail: >-
+    No conventional status page. https://www.farmdash.one/status returns 404 (probed
+    2026-08-26) and no status.farmdash.one / statuspage.io / instatus property was found.
+  runtime_substitute:
+    url: https://www.farmdash.one/api/v1/agent/status
+    http_status: 200
+    checked: '2026-08-26'
+    detail: >-
+      A machine-readable runtime capability contract, not an incident/uptime page. It reports
+      per-feature availability (available / paid_ready / available_with_tier_gate /
+      preparation_only / deployment_prerequisites_required / server_verified), the intent
+      contract, live operation gates, the error contract, the developer sandbox and the tier
+      summary. It answers "can I call this?" but NOT "is it up right now, and was it down
+      yesterday?" — there is no uptime history, no incident log and no subscription channel.
+feature_availability:
+  source: https://www.farmdash.one/api/v1/agent/status
+  as_of: '2026-08-26T19:00:41.833Z'
+  contract_version: agent-status-2026-07-29
+  available:
+  - agent_core.bootstrap
+  - trail_intelligence.protocols
+  - trail_heat.live_scores
+  - reports.one_off
+  - security.preflight
+  tier_gated:
+  - autonomous_operator.sessions
+  - workflows.supervised
+  - swap.compatibility_evm
+  - futures.hyperliquid_guarded
+  paid_ready:
+  - wallet.portfolio_reads
+  - agent_planning.research
+  - ledger.activity
+  preparation_only:
+  - agent_execution.intent_lifecycle
+  - agent_execution.mee_cross_chain
+  - autonomous_operator.erc4337_submission
+  deployment_prerequisites_required:
+  - agent_wallets.cdp_mpc
+  - virtuals_acp.tenant_owned_tenders
+  - webhook_delivery
+  disabled:
+  - generic_intent_execution
+  note: >-
+    Three of nineteen features are preparation-only and three more await deployment
+    prerequisites. Notably webhook_delivery — sold as a Syndicate ($199/mo) feature — is in the
+    prerequisites-required state, so the webhook engine is advertised in the price list but not
+    reported live by the provider's own runtime authority.
+sla:
+  published: false
+  detail: No SLA, uptime target or support-response commitment found on any probed surface.
+support:
+  discord: https://discord.gg/AR6hVaDj
+  email: farmdashone@proton.me
+  twitter: '@FarmDashone'
+  source: https://www.farmdash.one/.well-known/agent.json

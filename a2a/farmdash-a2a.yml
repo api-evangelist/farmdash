@@ -1,0 +1,82 @@
+generated: '2026-08-26'
+method: probed
+source: https://www.farmdash.one/.well-known/agent.json
+card_file: a2a/farmdash-agent-card.json
+discovery:
+  path: /.well-known/agent.json
+  canonical: false
+  host: www.farmdash.one
+  note: >-
+    Served at the pre-0.3 legacy well-known path. The canonical A2A 0.3+ path
+    /.well-known/agent-card.json returns 404 on the same host (probed 2026-08-26),
+    so an A2A 1.0 client following the current specification will not find this card.
+x-evidence:
+  fetched: '2026-08-26'
+  url: https://www.farmdash.one/.well-known/agent.json
+  http_status: 200
+  content_type: application/json; charset=utf-8
+  bytes: 10595
+  body_is_json_object: true
+card:
+  name: FarmDash
+  url: https://www.farmdash.one
+  version: 4.4.0
+  declared_protocol_version: 0.2.0
+  skills_count: 4
+  skills:
+  - id: signal-architect
+    name: Signal Architect
+  - id: futures-strategist
+    name: Futures Strategist
+  - id: trail-intelligence
+    name: Trail Intelligence
+  - id: autonomous-operator
+    name: Bounded Operator
+grade: flavored
+grade_rubric: A2A 1.0.0
+grade_basis: >-
+  capabilities IS a JSON object (streaming/pushNotifications/stateTransitionHistory) and
+  skills IS an array of 4 objects — both hard checks pass. The card FAILS the
+  protocolVersion hard check: it declares the value under the snake_case key
+  `protocol_version` (0.2.0), not the A2A-required camelCase `protocolVersion`, so a
+  conformant parser reads protocolVersion as absent. That is a hard failure, hence flavored.
+deviations:
+- key: protocol_version
+  expected: protocolVersion
+  detail: >-
+    Snake_case key instead of the A2A camelCase field name; value 0.2.0 also predates
+    A2A 1.0.0. A spec-conformant client cannot negotiate a protocol version from this card.
+  severity: hard
+- key: preferredTransport
+  expected: present
+  detail: Absent. No transport is declared, so a client cannot tell how to reach the agent.
+  severity: optional
+- key: authentication
+  expected: securitySchemes / security (A2A 1.0)
+  detail: >-
+    Uses a bespoke `authentication.schemes[]` array (bearer, x402, eip191) rather than the
+    A2A securitySchemes shape. The content is rich and honest but is not machine-parseable
+    by an A2A client.
+  severity: soft
+- key: provider
+  expected: present
+  detail: Absent; publisher identity is carried in a non-standard top-level `contact` object instead.
+  severity: optional
+- key: skills[].tags / skills[].examples
+  expected: present
+  detail: Skills carry id/name/description but omit the A2A tags[] and examples[] fields.
+  severity: optional
+non_standard_extensions:
+- endpoints
+- response_headers
+- discovery
+- sdk
+- pricing
+- security
+- contact
+non_standard_note: >-
+  Seven non-A2A top-level objects. They carry the most operationally useful content in the
+  file — the full REST endpoint map, the X-RateLimit-*/X-Request-ID/X-Payment-* response
+  header contract, the three-tier price list, and the zero-custody risk bounds — but no A2A
+  client will read any of it. This card is best understood as a FarmDash-native discovery
+  document wearing A2A field names.

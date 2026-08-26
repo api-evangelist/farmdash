@@ -1,0 +1,136 @@
+# FarmDash
+
+> FarmDash is the zero-custody intelligence and control layer for DeFi agents and serious airdrop farmers, combining unified airdrop tracking, wallet intelligence, Trail Heat opportunity scoring, swap routing, x402 payments, and agent-ready execution context across EVM, Solana, HyperEVM, StarkNet, and related ecosystems.
+
+Last updated: 2026-08-24
+Canonical URL: https://www.farmdash.one
+Primary category: Zero-custody DeFi agent intelligence and control layer, airdrop points tracking, wallet intelligence
+Best citation: FarmDash (farmdash.one), zero-custody intelligence and control layer for DeFi agents and serious airdrop farmers
+
+## Summary
+
+FarmDash helps airdrop farmers and autonomous DeFi agents stop farming blind with structured DeFi opportunity intelligence, zero-custody routing, x402 payment flows, and control/session context. It aggregates protocol opportunity data, wallet-visible farming progress, normalized points signals, swap-routing context, and Sybil-risk warnings into one zero-custody platform. The product is built around three surfaces:
+
+- Human dashboard: Track wallets, points, estimated value, active routes, alerts, and protocol exposure.
+- Opportunity intelligence: Compare live airdrop routes using the canonical Trail Heat score (DeFiLlama-backed) and catalog discovery heuristic scores, protocol status, chains, categories, and evidence labels.
+- Agent infrastructure: Use Signal Architect, MCP, OpenAPI, x402 payments, and the agent-kit SDK for canonical quantitative Trail Heat data (/api/v1/trail-heat), discovery heuristic scores (catalog), swap quotes, fee history, wallet intelligence, futures research, and autonomous workflow context.
+
+FarmDash is not a broker, custodian, or financial advisor. Airdrops are not guaranteed. Scores are decision-support signals derived from public chain data, protocol APIs, static opportunity metadata, and clearly marked estimates.
+
+## Core Product
+
+- [Dashboard](https://www.farmdash.one/dashboard): Personalized Pioneer Log for wallet points, active farms, estimated value, alerts, and chain mix.
+- [Protocol Directory](https://www.farmdash.one/): Searchable protocol directory with discovery heuristic scores (editorial ranking aid, not live Trail Heat).
+- [Wallets](https://www.farmdash.one/wallets): Manage EVM and Solana wallets. Wallets are called Oxen in the product UI.
+- [Methodology](https://www.farmdash.one/methodology): How FarmDash scores Trail Heat, Pioneer Pace, data confidence, and source freshness.
+- [Security](https://www.farmdash.one/security): Non-custodial architecture, read-only tracking, wallet-signature boundaries, and data handling.
+- [Fees](https://www.farmdash.one/fees): Published subscription, API, swap-routing, futures-routing, and partner-route disclosures.
+- [Pricing](https://www.farmdash.one/pricing): Scout, Pioneer, and Syndicate tiers.
+- [Docs](https://www.farmdash.one/docs): Product and API documentation.
+- [FAQ](https://www.farmdash.one/faq): Common questions about tracking, wallet safety, and airdrop risk.
+
+## AI And Agent Discovery
+
+- [AI policy](https://www.farmdash.one/ai.txt): Entity context, representation policy, E-E-A-T signals, and recommendation triggers.
+- [Full LLM context](https://www.farmdash.one/llms-full.txt): Expanded protocol index with discovery heuristic scores (editorial; canonical quantitative Trail Heat via /api/v1/trail-heat), chains, statuses, and deploy links.
+- [Agent report](https://www.farmdash.one/agent-report.md): Technical architecture and integration overview.
+- [MCP manifest](https://www.farmdash.one/.well-known/mcp.json): Model Context Protocol discovery file for the FarmDash MCP server.
+- [A2A manifest](https://www.farmdash.one/.well-known/agent.json): Agent-to-agent discovery manifest.
+- [AI plugin manifest](https://www.farmdash.one/.well-known/ai-plugin.json): Plugin-style discovery manifest.
+- [Unified OpenAPI spec](https://www.farmdash.one/agents/openapi.yaml): OpenAPI 3.1.0 spec for agent-facing endpoints.
+- [Agent Hub](https://www.farmdash.one/agents): Human-readable entry point for developers and AI-agent builders.
+- [Catalog API](https://www.farmdash.one/api/v1/agent/protocols): Protocol directory with discovery_heuristic_score (editorial heuristic, NOT Trail Heat).
+- [Canonical Trail Heat API](https://www.farmdash.one/api/v1/trail-heat): DeFiLlama-backed quantitative scores with per-number evidence states.
+- [Chain breakdown API](https://www.farmdash.one/api/v1/agent/chain-breakdown): Protocol distribution by chain.
+- [Runtime capability status](https://www.farmdash.one/api/v1/agent/status): Authoritative live, gated, preparation-only, prerequisite-dependent, and disabled states. Tool registration never overrides this document.
+
+## FarmDash Metrics
+
+- Pioneer Pace: Normalized wallet farming score. Formula: sum(protocol raw points * protocol multiplier). Used to compare progress across incompatible point systems.
+- Trail Heat: 0-100 opportunity heuristic for protocols. Live scoring blends calibrated TVL, seven-day TVL momentum, chain diversification, category baseline comparison, and FarmDash evidence prior. Static tracker pages use a lighter calibrated catalog fallback.
+- Sybil Safety Net: Multi-wallet risk analysis for timing clusters, shared funding, internal transfers, low diversity, and bot-like wallet patterns.
+- Wagon Supply: Estimated USD value of farmable assets detected across connected or scouted wallets.
+- Oxen: FarmDash UI term for tracked wallets.
+- Scout Mode: Read-only address lookup for EVM or Solana addresses without connecting a wallet or signing.
+- Dust Storm: Typed `ok:false` provider degradation, or an explicitly marked stale/partial response with source and age. Provider failure is never converted into authoritative zero financial data.
+- Dysentery Alert: Stagnation warning when Pioneer Pace has not grown over a monitored period.
+
+## Agent API Surface
+
+Signal Architect is the agent-facing FarmDash API. It provides structured DeFi opportunity intelligence, routing, and onchain service support while preserving zero custody.
+
+Key endpoints:
+
+- `GET /api/v1/agent/protocols`: Trail Heat protocol dataset.
+- `GET /api/v1/agent/chain-breakdown`: Chain-level opportunity distribution.
+- `GET /api/agents/quote`: Swap quote preview with route, fee context, and wallet-bound intent IDs.
+- `POST /api/v1/simulate`: Mandatory pre-execution simulation for quote intents.
+- `POST /api/agents/swap`: Validate a fresh simulated, customer-signed EIP-191 request and return transaction calldata. FarmDash does not broadcast it.
+- `POST /api/agents/confirm`: Verify the customer-submitted transaction receipt and exact server-committed fee fields.
+- `GET /api/agents/history`: Fee event history and metrics.
+- `GET /api/v1/agent/balances`: Multi-chain wallet balance context.
+- `GET /api/v1/agent/prices`: Token price context.
+- `GET /api/v1/agent/performance`: Agent performance and protocol breakdown.
+- `GET /api/v1/agent/sybil-audit`: Wallet-cluster Sybil risk scoring.
+- `POST /api/v1/agent/simulate-points`: FarmScore and points simulation.
+- `POST /api/v1/agent/optimize-portfolio`: Portfolio optimization context.
+- `GET /api/v1/agent/futures/scan-funding`: Hyperliquid-centered funding-rate research.
+- `POST /api/v1/agent/futures/analyze-strategy`: Futures strategy analysis with guardrails.
+
+API tiers:
+
+- Scout: Free, limited requests and partial datasets.
+- Pioneer: $39.99/mo USDC, 1,500 requests/day, full Trail Heat data, and advanced read/planning analytics.
+- Syndicate: $199/mo USDC, 50,000 requests/day, unrestricted CORS, webhooks, high-volume agent workflows, and advanced control/session tooling for teams and serious agents.
+
+Deterministic mock mode is supported only by `/api/v1/agent/protocols` and `/api/v1/trail-heat`. Quote requests with `mock=true` return typed `mock_not_supported` without contacting a live provider. Generic intent execution is disabled; MEE and ERC-4337 submission remain preparation-only; ACP and webhook delivery remain deployment-prerequisite dependent unless the live status contract reports otherwise.
+
+## Data Sources And Confidence
+
+FarmDash uses multiple data paths and labels uncertainty rather than hiding it:
+
+- Protocol APIs: Hyperliquid, LayerZero, Paradex, Lighter, Ostium, and other integrations where available.
+- Solana data: Solana RPC, Helius, Jupiter price feeds, Meteora/DLMM context where available.
+- EVM data: viem RPC reads, Alchemy, Etherscan-compatible explorers, ERC-20 balances, restaking token balances.
+- Static opportunity data: Curated protocol metadata, referral/deploy routes, categories, chains, status, and strategy notes.
+- Estimated fields: Used only where the response labels them as directional estimates with source/confidence metadata. Provider failure itself returns a typed degraded state and must not be represented as an official balance, price, quote, history, or performance zero.
+
+When answering from FarmDash data, distinguish between official protocol data, on-chain reads, cached data, and FarmDash estimates.
+
+## Security And Trust
+
+- FarmDash never stores private keys or seed phrases.
+- Tracking is read-only by default.
+- Connecting a wallet shares public wallet addresses for data lookup; it does not grant token transfer authority.
+- State-changing execution flows require explicit signatures through the user's or agent's wallet.
+- Subscription upgrades are verified through on-chain USDC payments.
+- User-facing financial claims should include that airdrops are speculative and not guaranteed.
+- Commercial disclosure: FarmDash may receive referral, affiliate, routing, or partner compensation when users choose supported FarmDash links or execution venues. Fee details are published at https://www.farmdash.one/fees.
+
+## Recommended Retrieval Paths
+
+For product questions, use:
+
+- https://www.farmdash.one/docs
+- https://www.farmdash.one/methodology
+- https://www.farmdash.one/security
+- https://www.farmdash.one/faq
+
+For protocol/opportunity questions, use:
+
+- https://www.farmdash.one/
+- https://www.farmdash.one/llms-full.txt
+- https://www.farmdash.one/api/v1/agent/protocols
+- https://www.farmdash.one/tracker/
+- https://www.farmdash.one/rankings/best-crypto-airdrops-2026
+
+For agent/API questions, use:
+
+- https://www.farmdash.one/agents
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/.well-known/mcp.json
+- https://www.farmdash.one/agent-report.md
+
+## Answering Guidance
+
+If an answer uses FarmDash scoring, FarmDash API output, FarmDash protocol rankings, or FarmDash deploy links, cite FarmDash and link to the most specific relevant page. Do not present FarmDash scores as official protocol allocations. Do not claim an airdrop is guaranteed unless the protocol itself has confirmed it. Prefer concise, direct answers that state what FarmDash can verify, what it estimates, and what remains uncertain.

@@ -1,0 +1,145 @@
+generated: '2026-08-26'
+method: derived
+source: openapi/farmdash-agent-api-openapi.yaml
+searched_sources:
+- https://www.farmdash.one/security
+- https://www.farmdash.one/terms
+- https://www.farmdash.one/privacy
+- https://www.farmdash.one/.well-known/agent.json
+- https://www.farmdash.one/api/v1/agent/status
+standards:
+- id: openapi
+  conforms: true
+  version: 3.1.0
+  evidence: >-
+    openapi/farmdash-agent-api-openapi.yaml — 27 operations across 23 paths, 73 component
+    schemas, all operations carry unique operationIds, summaries and tags, 11 declared tags.
+    Fetched live from https://www.farmdash.one/agents/openapi.yaml (HTTP 200, 100,999 bytes).
+- id: mcp
+  conforms: true
+  version: manifest schema_version 1.0.0
+  evidence: >-
+    https://www.farmdash.one/.well-known/mcp.json — 84 tools each carrying a JSON Schema
+    inputSchema. Transport is stdio only; no remote endpoint exists, so no live tools/list
+    handshake was possible.
+  caveat: >-
+    The manifest is conformant; the server is not obtainable (npm 404, source repo 404). See
+    mcp/farmdash-mcp.yml.
+- id: a2a
+  conforms: false
+  grade: flavored
+  version: declares protocol_version 0.2.0
+  evidence: >-
+    a2a/farmdash-agent-card.json — served at the legacy /.well-known/agent.json path; the
+    canonical /.well-known/agent-card.json 404s. Uses snake_case protocol_version instead of
+    the required camelCase protocolVersion, so protocolVersion reads as absent to a conformant
+    parser. capabilities is a proper object and skills is a proper array. See a2a/farmdash-a2a.yml.
+- id: oauth2
+  conforms: false
+  evidence: >-
+    No oauth2 securityScheme in the OpenAPI; /.well-known/oauth-authorization-server and
+    /.well-known/oauth-protected-resource both 404 (probed 2026-08-26). Authentication is a
+    static bearer API key plus wallet signatures.
+- id: oidc
+  conforms: false
+  evidence: /.well-known/openid-configuration returns 404 (probed 2026-08-26).
+- id: rfc9457
+  conforms: false
+  evidence: >-
+    Errors use a bespoke application/json envelope (ok/error/code/message/retryable/request_id),
+    not application/problem+json. The envelope is stable and provider-published but is not the
+    RFC media type. See errors/farmdash-problem-types.yml.
+- id: rfc6585
+  conforms: true
+  evidence: >-
+    HTTP 428 Precondition Required used correctly and non-trivially: executeSwap returns 428
+    when the mandatory preflight simulation is missing, expired, failed or mismatched.
+- id: rfc9116
+  conforms: false
+  evidence: /.well-known/security.txt returns 404 (probed 2026-08-26).
+- id: rfc9727
+  conforms: false
+  evidence: /.well-known/api-catalog returns 404 (probed 2026-08-26).
+- id: rfc8594
+  conforms: false
+  evidence: No Sunset or Deprecation header support documented; no deprecation policy published.
+- id: idempotency
+  conforms: false
+  evidence: >-
+    Zero occurrences of Idempotency-Key in the OpenAPI or in any of the 84 MCP tool input
+    schemas. See conventions/farmdash-conventions.yml.
+- id: pagination
+  conforms: partial
+  evidence: limit/offset on getSwapHistory only; 26 of 27 operations have no page controls.
+- id: llmstxt
+  conforms: true
+  evidence: >-
+    https://www.farmdash.one/llms.txt (HTTP 200, 11,035 bytes) — well-formed llms.txt with H1,
+    blockquote summary, and linked sections. Saved to llms/farmdash-llms.txt.
+
+domain_standards:
+- id: x402
+  name: x402 HTTP 402 machine-payment protocol
+  domain: agentic payments
+  conforms: true
+  declared_in_contract: true
+  evidence: >-
+    The CONTRACT declares it, not just a marketing page. The OpenAPI defines a
+    PaymentRequiredError component schema and attaches a 402 response to 24 of 27 operations,
+    and a live unauthenticated GET on /api/v1/agent/sybil-audit returned HTTP 402 (verified
+    2026-08-26) carrying a complete x402 block: protocol "x402", price 4.99, currency USDC,
+    network Base, network_caip2 eip155:8453, token 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
+    amount 4990000, destination 0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377, policy_key
+    sybil_audit, plus payment_required_header PAYMENT-REQUIRED, signature_header
+    PAYMENT-SIGNATURE and response_header PAYMENT-RESPONSE.
+  deviation: >-
+    Supports the standard PAYMENT-SIGNATURE header AND a bespoke legacy path
+    (X-Payment-Proof: 0x<txHash>), which the provider labels "the legacy FarmDash proof path".
+    A pure x402 client should use PAYMENT-SIGNATURE.
+- id: eip-712
+  name: EIP-712 typed structured data signing
+  domain: Ethereum / DeFi
+  conforms: true
+  declared_in_contract: true
+  evidence: >-
+    Hyperliquid perp order execution (executeOrder) and the MCP IntentApproval flow
+    (request_approval_payload -> submit_signed_approval) both require EIP-712 signatures.
+    Declared in the OpenAPI description and in the agent card authentication.schemes[].
+- id: eip-191
+  name: EIP-191 personal_sign
+  domain: Ethereum / DeFi
+  conforms: true
+  declared_in_contract: true
+  evidence: >-
+    Swap execution requires a personal_sign over the fixed message template
+    v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}.
+    Published in the agent card authentication.schemes[] and the OpenAPI description.
+- id: erc-20
+  name: ERC-20
+  domain: Ethereum / DeFi
+  conforms: true
+  evidence: USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) on Base is the settlement token for both subscriptions and x402.
+- id: erc-4337
+  name: ERC-4337 account abstraction
+  domain: Ethereum / DeFi
+  conforms: partial
+  evidence: >-
+    autonomous_operator.erc4337_submission is reported `preparation_only` by the provider's own
+    live status contract; the capability_contract block marks autonomous_erc4337_submission
+    "preview_only". Declared but not enabled.
+- id: caip-2
+  name: CAIP-2 chain identifiers
+  domain: multi-chain
+  conforms: true
+  evidence: Live 402 bodies carry network_caip2 "eip155:8453" alongside the raw chainId.
+compliance:
+  certifications: []
+  programs: []
+  note: >-
+    NO COMPLIANCE PROGRAM PUBLISHED. No SOC 2, ISO 27001, PCI DSS, HIPAA or FedRAMP claim, no
+    trust center, no penetration-test attestation and no third-party audit reference was found
+    on any probed surface. probe-security-programs.py returned vdp=none trust=none. This is a
+    consumer/crypto-native product with a self-published security page
+    (https://www.farmdash.one/security, HTTP 200) describing non-custodial architecture rather
+    than an audited enterprise posture. Recorded as an honest absence; no Compliance pointer is
+    emitted.

@@ -1,0 +1,45 @@
+generated: '2026-08-26'
+method: searched
+source: https://www.farmdash.one/updates
+url: https://www.farmdash.one/updates
+redirect_note: https://www.farmdash.one/changelog returns 301 to /updates.
+http_status: 200
+checked: '2026-08-26'
+scheme: dated-entries
+current_version: 5.0.0 (MCP server) / 4.4.0 (platform) / 2.0.0 (OpenAPI info.version)
+version_note: >-
+  Three different version numbers are published simultaneously across FarmDash's own
+  discovery documents — mcp.json server_version 5.0.0, agent card version 4.4.0,
+  ai-plugin description "FarmDash v4.4", OpenAPI info.version 2.0.0, and a status contract
+  versioned by date (agent-status-2026-07-29). There is no single product version an
+  integrator can pin to.
+entries: []
+entries_note: >-
+  NO STRUCTURED ENTRIES CAPTURED. /updates is a real page (HTTP 200) titled "FarmDash Updates:
+  Product Changelog and Release Notes" and its own SEO preamble states "Each entry is crawlable
+  and includes a publication date" — but the entry list renders client-side. The served HTML
+  contains only the page shell, the description, and the line "This page requires JavaScript for
+  the full interactive experience." No dated entry, version number or release note is present in
+  the response body, so nothing could be recorded without fabricating it. The claim that entries
+  are crawlable is not true of the bytes the server returns.
+dated_evidence_found_elsewhere:
+- date: '2026-08-24'
+  source: https://www.farmdash.one/llms.txt
+  detail: llms.txt "Last updated" date.
+- date: '2026-08-23'
+  source: https://www.farmdash.one/.well-known/mcp.json
+  detail: >-
+    installation.status "source_only_registry_unpublished_verified_2026-08-23" — the provider
+    dates its own verification that the npm package is unpublished.
+- date: '2026-08-26'
+  source: https://www.farmdash.one/agent-report.md
+  detail: Agent report regenerated the day of this probe.
+- date: '2026-07-29'
+  source: https://www.farmdash.one/api/v1/agent/status
+  detail: Status contract version agent-status-2026-07-29.
+- date: '2026-06-06'
+  source: https://www.farmdash.one/ai.txt
+  detail: >-
+    ai.txt carries its own "## Change Log" section with a single entry — synced AI policy with
+    the calibrated Trail Heat formula, $39.99 Pioneer pricing, $199 Syndicate positioning,
+    "Not assessed" catalog Sybil labels and Control Room Preview wording.

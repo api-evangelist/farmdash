@@ -1,0 +1,4741 @@
+{
+  "schema_version": "1.0.0",
+  "server_name": "farmdash-agent-os",
+  "server_version": "5.0.0",
+  "description": "FarmDash MCP server for zero-custody DeFi agent intelligence and control: Trail Heat discovery, wallet intelligence, typed adapter validation, policy checks, simulations, EIP-712 approval queues, x402 payments, and durable receipt logs. FarmDash never holds funds or private keys.",
+  "homepage": "https://www.farmdash.one/agents",
+  "repository": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/mcp-server",
+  "transport": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "dist/index.js"
+    ]
+  },
+  "installation": {
+    "status": "source_only_registry_unpublished_verified_2026-08-23",
+    "registry_note": "The @farmdash/mcp-server package was not present on the public npm registry when verified. Build from the public source repository.",
+    "source_steps": [
+      "git clone https://github.com/Parmasanandgarlic/farmdashbeta.git",
+      "cd farmdashbeta/mcp-server",
+      "npm ci",
+      "npm run build"
+    ],
+    "mcp_client_config": {
+      "claude_desktop": {
+        "mcpServers": {
+          "farmdash": {
+            "command": "node",
+            "args": [
+              "/absolute/path/to/farmdashbeta/mcp-server/dist/index.js"
+            ],
+            "env": {
+              "FARMDASH_API_KEY": "fd_scout_free",
+              "FARMDASH_BASE_URL": "https://www.farmdash.one/api"
+            }
+          }
+        }
+      }
+    }
+  },
+  "env": {
+    "FARMDASH_API_KEY": {
+      "description": "Public Scout token (fd_scout_free), or a paid bearer token for Pioneer ($39.99/mo, 1,500 req/day) or Syndicate ($199/mo, 50K req/day) tier access. You may also omit the env var entirely for Scout. Paid users issue keys at https://www.farmdash.one/api/v1/agent/api-key.",
+      "required": false
+    },
+    "FARMDASH_BASE_URL": {
+      "description": "Override API base URL. Default: https://www.farmdash.one/api",
+      "required": false,
+      "default": "https://www.farmdash.one/api"
+    }
+  },
+  "tools": [
+    {
+      "name": "create_intent",
+      "description": "Plan: create a durable FarmDashIntent. This records what an agent wants to do; it never prepares, signs, broadcasts, or executes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intent": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "FarmDashIntent create input. Must include actor, action, chain, protocol, wallet, params, constraints, and evidence."
+          }
+        },
+        "required": [
+          "intent"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Created FarmDashIntent plus next lifecycle route hints",
+      "annotations": {
+        "title": "FarmDash create_intent",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/create",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "policy_check_intent",
+      "description": "Plan: run the explicit FarmDash policy gate for an intent. Execution remains blocked unless this check passes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "policy": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "context": {
+            "$ref": "#/properties/policy"
+          }
+        },
+        "required": [
+          "intentId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Policy check result, updated intent, and rejected receipt when blocked",
+      "annotations": {
+        "title": "FarmDash policy_check_intent",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/policy-check",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_intent",
+      "description": "Plan: record a mandatory simulation result for an intent. Prepare and execute are blocked until a successful, unexpired simulation exists.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "simulation": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "intentId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Simulation result and updated intent",
+      "annotations": {
+        "title": "FarmDash simulate_intent",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/simulate",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "request_approval_payload",
+      "description": "Approve: build the EIP-712 IntentApproval payload that the human approver signs before submit_signed_approval.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "approverAddress": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ],
+            "default": "APPROVED"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 600
+          }
+        },
+        "required": [
+          "intentId",
+          "approverAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Typed data payload, approval body fields, and submit route hints",
+      "annotations": {
+        "title": "FarmDash request_approval_payload",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/approval-payload",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "request_human_approval",
+      "description": "Approve: submit a signed EIP-712 human approval or rejection for an intent. This compatibility tool is signed-only for normal callers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "approverAddress": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ],
+            "default": "APPROVED"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{130}$"
+          },
+          "simulationId": {
+            "type": "string",
+            "pattern": "^fdsim\\_"
+          },
+          "policyCheckId": {
+            "type": "string",
+            "pattern": "^fdpc\\_"
+          },
+          "maxUsdValue": {
+            "type": "number",
+            "minimum": 0
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "intentId",
+          "approverAddress",
+          "signature",
+          "simulationId",
+          "policyCheckId",
+          "maxUsdValue",
+          "nonce",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Approval record and updated intent",
+      "annotations": {
+        "title": "FarmDash request_human_approval",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/approve",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "submit_signed_approval",
+      "description": "Approve: submit a signed EIP-712 IntentApproval payload produced by request_approval_payload. This does not prepare or execute the intent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "approverAddress": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ],
+            "default": "APPROVED"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{130}$"
+          },
+          "simulationId": {
+            "type": "string",
+            "pattern": "^fdsim\\_"
+          },
+          "policyCheckId": {
+            "type": "string",
+            "pattern": "^fdpc\\_"
+          },
+          "maxUsdValue": {
+            "type": "number",
+            "minimum": 0
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "intentId",
+          "approverAddress",
+          "signature",
+          "simulationId",
+          "policyCheckId",
+          "maxUsdValue",
+          "nonce",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Approval record, updated intent, and optional rejection receipt",
+      "annotations": {
+        "title": "FarmDash submit_signed_approval",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/approve",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_approval_status",
+      "description": "Approve: inspect whether an intent is still awaiting approval, has been approved, or was rejected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          }
+        },
+        "required": [
+          "intentId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Approval status summary and intent",
+      "annotations": {
+        "title": "FarmDash get_approval_status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "prepare_intent",
+      "description": "Execute: validate adapter support and prepare an intent after policy, simulation, and approval gates pass. This does not broadcast a transaction.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "preparation": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "intentId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Prepared intent with policy, simulation, and approval references",
+      "annotations": {
+        "title": "FarmDash prepare_intent",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/prepare",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "execute_approved_intent",
+      "description": "Unavailable for generic public execution: the lifecycle API rejects client-supplied receipts until a trusted adapter and server-side transaction verifier are deployed. Use this only to observe the structured execution_verifier_unconfigured response; raw arbitrary calldata is rejected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "CONFIRMED",
+              "FAILED",
+              "REJECTED"
+            ]
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "signedPayload": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "receipt": {
+            "$ref": "#/properties/signedPayload"
+          },
+          "details": {
+            "$ref": "#/properties/signedPayload"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "intentId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Structured execution_verifier_unconfigured response until trusted execution infrastructure is deployed",
+      "annotations": {
+        "title": "FarmDash execute_approved_intent",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/execute",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "confirm_execution",
+      "description": "Unavailable for generic public confirmation: FarmDash will not record a caller-supplied receipt. A trusted adapter and server-side transaction verifier must be deployed before this action can be enabled; use get_receipt only for verified receipt observation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "txHash": {
+            "type": "string",
+            "minLength": 1
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "intentId",
+          "txHash"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Structured execution_verifier_unconfigured response until trusted execution infrastructure is deployed",
+      "annotations": {
+        "title": "FarmDash confirm_execution",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intents/{intentId}/execute",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_receipt",
+      "description": "Observe: fetch one durable FarmDash receipt by receipt_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "receiptId": {
+            "type": "string",
+            "pattern": "^fdrcpt\\_"
+          }
+        },
+        "required": [
+          "receiptId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Receipt record",
+      "annotations": {
+        "title": "FarmDash get_receipt",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/receipts/{receiptId}",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_agent_activity",
+      "description": "Observe: list durable FarmDash execution receipts. Filter by intent_id and receipt status to review recent agent activity.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "intentId": {
+            "type": "string",
+            "pattern": "^fdi\\_"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "CONFIRMED",
+              "FAILED",
+              "REJECTED"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 250
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Recent receipt records",
+      "annotations": {
+        "title": "FarmDash get_agent_activity",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/receipts",
+        "feature_status_id": "agent_execution.intent_lifecycle",
+        "availability": "preparation_only",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_trail_heat",
+      "description": "Canonical Trail Heat: fetch DeFiLlama-backed quantitative scores (0-100) with per-number evidence states, components, editorial separation and registry resolution from /v1/trail-heat.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of protocol objects sorted by Trail Heat score descending",
+      "annotations": {
+        "title": "FarmDash get_trail_heat",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/trail-heat",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_protocol_metadata",
+      "description": "Research: get catalog metadata for a specific DeFi protocol — status, chains, description, tags, and discovery_heuristic_score (catalog editorial heuristic, NOT live Trail Heat; canonical scores via get_trail_heat).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "protocolId": {
+            "type": "string",
+            "description": "Protocol ID (e.g. \"hyperliquid\")"
+          }
+        },
+        "required": [
+          "protocolId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Protocol metadata and Trail Heat context",
+      "annotations": {
+        "title": "FarmDash get_protocol_metadata",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/protocols",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_protocol_risk_factors",
+      "description": "Get protocol risk indicators from the catalog: sybil risk label, status, category, chains, and discovery_heuristic_score (editorial heuristic, NOT live Trail Heat). Canonical quantitative scores via get_trail_heat.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "protocolId": {
+            "type": "string",
+            "description": "Protocol ID to audit"
+          }
+        },
+        "required": [
+          "protocolId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Risk factor summary with severity labels and mitigations",
+      "annotations": {
+        "title": "FarmDash get_protocol_risk_factors",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/protocols",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "find_capital_route",
+      "description": "Find the most efficient route between tokens/chains. Considers fees, slippage, and gas. Returns a quote preview without executing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fromChainId": {
+            "type": "integer"
+          },
+          "toChainId": {
+            "type": "integer"
+          },
+          "fromToken": {
+            "type": "string"
+          },
+          "toToken": {
+            "type": "string"
+          },
+          "fromAmount": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "description": "Amount in token base units."
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "lifi",
+              "zerox",
+              "x402"
+            ]
+          }
+        },
+        "required": [
+          "fromChainId",
+          "toChainId",
+          "fromToken",
+          "toToken",
+          "fromAmount"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Recommended route candidates and execution context",
+      "annotations": {
+        "title": "FarmDash find_capital_route",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/agents/quote",
+        "feature_status_id": "swap.compatibility_evm",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_quote_signature_and_simulation_gated",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_chain_breakdown",
+      "description": "Get protocol distribution aggregated by blockchain network. Returns counts, airdrops, and category coverage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Object with chain names as keys, each containing protocol count and confirmed airdrop count",
+      "annotations": {
+        "title": "FarmDash get_chain_breakdown",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/chain-breakdown",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_agent_events",
+      "description": "Real-time stream of protocol events: new airdrops, snapshots, program changes, and TVL spikes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of timestamped event objects",
+      "annotations": {
+        "title": "FarmDash get_agent_events",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/events",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "audit_sybil_risk",
+      "description": "Research: audit 1-10 EVM addresses for sybil risk. Returns cluster risk score and hygiene suggestions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "addresses"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of { address, riskScore, severity, flags[] }",
+      "annotations": {
+        "title": "FarmDash audit_sybil_risk",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/sybil-audit",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_points",
+      "description": "Project FarmScore for a hypothetical configuration. Returns estimated points, gas, and speculative USD value.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "totalVolumeUsd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "txCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "daysActive": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "walletBalanceUsd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "uniqueContracts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "isCexFundingOnly": {
+            "type": "boolean"
+          },
+          "protocolPoints": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "totalVolumeUsd",
+          "txCount",
+          "daysActive",
+          "walletBalanceUsd",
+          "uniqueContracts",
+          "isCexFundingOnly",
+          "protocolPoints"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "FarmScore simulation with multiplier and tier projection",
+      "annotations": {
+        "title": "FarmDash simulate_points",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/simulate-points",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_historical_trailheat",
+      "description": "Query historical Trail Heat snapshots, 1-365 days back. Returns score trends and momentum flags.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "protocolId": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 30
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of daily { date, score, rank, delta } snapshots",
+      "annotations": {
+        "title": "FarmDash get_historical_trailheat",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/historical-trailheat",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_wallet_balances",
+      "description": "Get multi-chain token portfolio for an EVM wallet. Returns balances with live USD prices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "chains": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ chains: { [chainName]: { tokens: [{ symbol, balance, usdValue, address }] } } }",
+      "annotations": {
+        "title": "FarmDash get_wallet_balances",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/balances",
+        "feature_status_id": "wallet.portfolio_reads",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_portfolio_summary",
+      "description": "Get high-level portfolio metrics: total USD value, chain distribution, and capital efficiency score.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Portfolio summary with total value and chain/token breakdown",
+      "annotations": {
+        "title": "FarmDash get_portfolio_summary",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/balances",
+        "feature_status_id": "wallet.portfolio_reads",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_position_health",
+      "description": "Compatibility alias for agent activity/performance metrics. Current endpoint does not return DeFi position APR, PnL, impermanent loss, or rebalance health.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Health score, warnings, and recommended review actions",
+      "annotations": {
+        "title": "FarmDash get_position_health",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/performance",
+        "feature_status_id": "wallet.portfolio_reads",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_idle_capital",
+      "description": "Locate idle stablecoins or native assets across all supported chains.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Idle balances and possible route context",
+      "annotations": {
+        "title": "FarmDash get_idle_capital",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/balances",
+        "feature_status_id": "wallet.portfolio_reads",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_token_prices",
+      "description": "Get live USD prices by symbol or by network:address token pairs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbols": {
+            "type": "string"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ [token]: { priceUSD, change24h, source } }",
+      "annotations": {
+        "title": "FarmDash get_token_prices",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/prices",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "list_workflows",
+      "description": "Get the JSON catalog of named DeFi workflow recipes. Returns goals, tiers, and step graphs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Workflow catalog with inputs and authority requirements",
+      "annotations": {
+        "title": "FarmDash list_workflows",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/workflows",
+        "feature_status_id": "workflows.supervised",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_catalog_pioneer_runs",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "plan_workflow",
+      "description": "Build a Trail Marshal quality gate for a named workflow. Does not execute steps.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "type": "string"
+          },
+          "installedSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "workflowId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Planned workflow steps, required gates, and next actions",
+      "annotations": {
+        "title": "FarmDash plan_workflow",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/orchestrator",
+        "feature_status_id": "workflows.supervised",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_catalog_pioneer_runs",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "run_workflow",
+      "description": "Create a guarded workflow run record for a session. Execution still requires each owning skill and explicit user confirmation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "installedSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "workflowId",
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Workflow run ID and current step results",
+      "annotations": {
+        "title": "FarmDash run_workflow",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/orchestrator",
+        "feature_status_id": "workflows.supervised",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_catalog_pioneer_runs",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_workflow_status",
+      "description": "Read the status of a Trail Marshal workflow run.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Workflow run status and step history",
+      "annotations": {
+        "title": "FarmDash get_workflow_status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/orchestrator",
+        "feature_status_id": "workflows.supervised",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_catalog_pioneer_runs",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_swap_quote",
+      "description": "Research: get a token swap quote without executing. New agents should convert quotes into create_intent -> policy_check_intent -> simulate_intent before execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fromChainId": {
+            "type": "integer"
+          },
+          "toChainId": {
+            "type": "integer"
+          },
+          "fromToken": {
+            "type": "string"
+          },
+          "toToken": {
+            "type": "string"
+          },
+          "fromAmount": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "lifi",
+              "zerox",
+              "x402"
+            ]
+          },
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "toAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "slippage": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 5
+          },
+          "expectedUpsideUsd": {
+            "type": "number"
+          },
+          "riskBufferUsd": {
+            "type": "number"
+          },
+          "healthFactor": {
+            "type": "number"
+          },
+          "liquidationBufferPct": {
+            "type": "number"
+          },
+          "safetyMode": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "balanced"
+            ]
+          }
+        },
+        "required": [
+          "fromChainId",
+          "toChainId",
+          "fromToken",
+          "toToken",
+          "fromAmount"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "SwapQuoteResult with fee, gas, rate, and tx data",
+      "annotations": {
+        "title": "FarmDash get_swap_quote",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/agents/quote",
+        "feature_status_id": "swap.compatibility_evm",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_quote_signature_and_simulation_gated",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_swap_execution",
+      "description": "Compatibility: run the legacy mandatory swap simulation. Lifecycle-native agents should use simulate_intent on a FarmDashIntent instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "intentId",
+          "walletAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "SwapSimulationResponse with simulation_id valid for 60 seconds",
+      "annotations": {
+        "title": "FarmDash simulate_swap_execution",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/simulate",
+        "feature_status_id": "swap.compatibility_evm",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_quote_signature_and_simulation_gated",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "execute_swap",
+      "description": "Compatibility route: validate a signed token-swap request after a fresh successful simulation and return transaction calldata. FarmDash does not broadcast the returned transaction; the customer-controlled wallet or execution client decides whether to submit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fromChainId": {
+            "type": "integer"
+          },
+          "toChainId": {
+            "type": "integer"
+          },
+          "fromToken": {
+            "type": "string"
+          },
+          "toToken": {
+            "type": "string"
+          },
+          "fromAmount": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "toAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "simulationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "intentId": {
+            "type": "string"
+          },
+          "slippage": {
+            "type": "number"
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "lifi",
+              "zerox",
+              "x402"
+            ]
+          }
+        },
+        "required": [
+          "fromChainId",
+          "toChainId",
+          "fromToken",
+          "toToken",
+          "fromAmount",
+          "agentAddress",
+          "toAddress",
+          "nonce",
+          "signature",
+          "simulationId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Executable transaction calldata, fee event details, execution risk report, and the validated simulation report",
+      "annotations": {
+        "title": "FarmDash execute_swap",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/agents/swap",
+        "feature_status_id": "swap.compatibility_evm",
+        "availability": "available_with_tier_gate",
+        "tier": "scout_quote_signature_and_simulation_gated",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "confirm_swap",
+      "description": "Confirm a swap by tx hash. Marks the fee event as confirmed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feeEventId": {
+            "type": "string"
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "feeEventId",
+          "txHash",
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, settled: true, feeEventId }",
+      "annotations": {
+        "title": "FarmDash confirm_swap",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/agents/confirm",
+        "feature_status_id": "swap_fee_settlement_confirmation",
+        "availability": "server_verified",
+        "tier": "session_bound",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "optimize_portfolio",
+      "description": "Get rebalancing suggestions based on current positions and risk preference.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "currentProtocols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "riskPreference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ]
+          },
+          "chains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "budget": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          }
+        },
+        "required": [
+          "currentProtocols",
+          "riskPreference"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Top 10 protocol recommendations with allocation weights",
+      "annotations": {
+        "title": "FarmDash optimize_portfolio",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/optimize-portfolio",
+        "feature_status_id": "agent_planning.research",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "resolve_defi_intent",
+      "description": "Compatibility: resolve a legacy typed DeFi intent. New state-changing actions should create a durable FarmDashIntent and use the policy/simulation/approval lifecycle.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "swap",
+              "deposit",
+              "stake",
+              "provide_liquidity",
+              "withdraw",
+              "claim"
+            ]
+          },
+          "protocolId": {
+            "type": "string"
+          },
+          "chainId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "string",
+                "const": "solana-mainnet"
+              }
+            ]
+          },
+          "toChainId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "string",
+                "const": "solana-mainnet"
+              }
+            ]
+          },
+          "tokenIn": {
+            "type": "string"
+          },
+          "amountIn": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "userAddress": {
+            "type": "string"
+          },
+          "tokenOut": {
+            "type": "string"
+          },
+          "amountOut": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "slippage": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 5
+          },
+          "poolAddress": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "number"
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "minAmountOut": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "maxSlippageBps": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "maxGasUsd": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "expectedUpsideUsd": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "riskBufferUsd": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "positiveNetEdge": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "action",
+          "protocolId",
+          "chainId",
+          "tokenIn",
+          "amountIn",
+          "userAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Resolved plan, constraints, and recommended next lifecycle calls",
+      "annotations": {
+        "title": "FarmDash resolve_defi_intent",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/intent",
+        "feature_status_id": "agent_planning.research",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "run_risk_sentinel",
+      "description": "Run FarmDash Risk Sentinel on a route or manual health/net-edge inputs before execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fromChainId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "toChainId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "fromToken": {
+            "type": "string"
+          },
+          "toToken": {
+            "type": "string"
+          },
+          "fromAmount": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "toAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "lifi",
+              "zerox",
+              "x402"
+            ]
+          },
+          "slippage": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 5
+          },
+          "expectedUpsideUsd": {
+            "type": "number"
+          },
+          "protocolFeeUsd": {
+            "type": "number"
+          },
+          "gasUsd": {
+            "type": "number"
+          },
+          "bridgeFeeUsd": {
+            "type": "number"
+          },
+          "riskBufferUsd": {
+            "type": "number"
+          },
+          "enforcePositive": {
+            "type": "boolean"
+          },
+          "healthFactor": {
+            "type": "number"
+          },
+          "liquidationBufferPct": {
+            "type": "number"
+          },
+          "safetyMode": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "balanced"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Risk sentinel result with flags and halt recommendations",
+      "annotations": {
+        "title": "FarmDash run_risk_sentinel",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/risk-sentinel",
+        "feature_status_id": "agent_planning.research",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "scan_funding_rates",
+      "description": "Scan Hyperliquid perp funding rates across the venue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of { asset, hlRate, binanceRate, bybitRate, annualizedDelta, arbOpportunity }",
+      "annotations": {
+        "title": "FarmDash scan_funding_rates",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/scan-funding",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "scan_market_conditions",
+      "description": "Technical snapshot (EMA, RSI, MACD, etc.) for one perp asset.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "coin"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ indicators: { ema, rsi, macd, atr, bollingerBands, adx, zScore }, strategyHint }",
+      "annotations": {
+        "title": "FarmDash scan_market_conditions",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/market-conditions",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_futures_account",
+      "description": "Inspect Hyperliquid equity, margin, positions, and drawdown state. agentAddress identifies the API signer; accountAddress identifies the master/subaccount that owns the equity (omit only for a direct signer). Hyperliquid userRole must verify delegation. Daily/weekly values are conservative venue-derived loss-pressure metrics, not full period returns; history ambiguity fails closed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "accountAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ positions[], equity, marginUsed, availableBalance, guardrails }",
+      "annotations": {
+        "title": "FarmDash get_futures_account",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/account-state",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "analyze_futures_strategy",
+      "description": "Primary research tool. Returns strategy object with confidence, regime, and simulation. For a delegated Hyperliquid API wallet, set agentAddress to the signer and accountAddress to the master/subaccount whose equity must size the trade; the venue relationship is verified and fails closed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "riskMultiplier": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "coin",
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ strategy, direction, entryPrice, stopLoss, takeProfit, positionSize, confidence }",
+      "annotations": {
+        "title": "FarmDash analyze_futures_strategy",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/analyze-strategy",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "calculate_position_size",
+      "description": "Translate risk constraints into size and leverage for a perp setup.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "equity": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "entryPrice": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "stopPrice": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "riskPercent": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "targetPrice": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "riskMultiplier": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "equity",
+          "entryPrice",
+          "stopPrice"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ positionSize, effectiveLeverage, riskUSD, maxAllowedSize }",
+      "annotations": {
+        "title": "FarmDash calculate_position_size",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/position-sizing",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "execute_perp_order",
+      "description": "Compatibility: submit a pre-signed EIP-712 Hyperliquid order after a 60-second parameter-bound research gate. For delegated API wallets, set accountAddress to the venue-verified equity owner used during analysis. FarmDash recovers the exact L1 signer, rejects an agentAddress mismatch, and preflights the owner maxBuilderFee. The signed action must disclose builder f=1 (0.1 bp/0.001% of filled notional), and expiresAt is venue-signed as expiresAfter. A resting order is not a fill.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "accountAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "coin": {
+            "type": "string"
+          },
+          "isBuy": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "object",
+            "properties": {
+              "r": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{64}$"
+              },
+              "s": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{64}$"
+              },
+              "v": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "r",
+              "s",
+              "v"
+            ],
+            "additionalProperties": false
+          },
+          "reduceOnly": {
+            "type": "boolean"
+          },
+          "leverage": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "signedAction": {
+            "description": "If supplied, must include the signed FarmDash builder term { b: treasury, f: 1 }; f is tenths of a basis point."
+          },
+          "nonce": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "expiresAt": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "intentHash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agentAddress",
+          "coin",
+          "isBuy",
+          "size",
+          "price",
+          "orderType",
+          "signature",
+          "nonce",
+          "expiresAt",
+          "intentHash"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ orderId, status, asset, direction, size, price, builderFee }",
+      "annotations": {
+        "title": "FarmDash execute_perp_order",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/execute-order",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "cancel_perp_order",
+      "description": "Cancel stale or resting Hyperliquid orders with a venue-signed expiresAfter and FarmDash intent hash. For a delegated API wallet, accountAddress identifies the verified equity owner and is included as the signed vault/subaccount routing address when required. Success requires one authoritative venue success status per order; mixed errors are returned as partial rejection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "accountAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "coin": {
+            "type": "string"
+          },
+          "orderIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "signature": {
+            "type": "object",
+            "properties": {
+              "r": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{64}$"
+              },
+              "s": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{64}$"
+              },
+              "v": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "r",
+              "s",
+              "v"
+            ],
+            "additionalProperties": false
+          },
+          "signedAction": {},
+          "nonce": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "expiresAt": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "intentHash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agentAddress",
+          "coin",
+          "orderIds",
+          "signature",
+          "nonce",
+          "expiresAt",
+          "intentHash"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Array of { orderId, status } per cancellation",
+      "annotations": {
+        "title": "FarmDash cancel_perp_order",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/futures/cancel-order",
+        "feature_status_id": "futures.hyperliquid_guarded",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_research_syndicate_execution",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_agent_performance",
+      "description": "Review FarmDash fee-event activity, fees, protocol diversity, and reputation. This endpoint does not return fills, trade outcomes, realized PnL, win rate, or slippage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ totalVolume, pnl, winRate, roi, protocolBreakdown, leaderboardPercentile }",
+      "annotations": {
+        "title": "FarmDash get_agent_performance",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/performance",
+        "feature_status_id": "ledger.activity",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "audit_allowance_risk",
+      "description": "Audit token approvals for unlimited, unknown, or high-dollar allowance risk.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "allowances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string"
+                },
+                "spender": {
+                  "type": "string"
+                },
+                "allowance": {
+                  "type": "string"
+                },
+                "requiredAmount": {
+                  "type": "string"
+                },
+                "amountUsd": {
+                  "type": "number"
+                },
+                "spenderVerified": {
+                  "type": "boolean",
+                  "description": "True only after independent verification against the protocol canonical deployment."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Allowance risk findings and revoke recommendations",
+      "annotations": {
+        "title": "FarmDash audit_allowance_risk",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/camp-guard",
+        "feature_status_id": "security.preflight",
+        "availability": "available",
+        "tier": "scout_limited_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_transaction_risk",
+      "description": "Apply Camp Guard transaction policy checks to an unsigned transaction. This is not an RPC simulation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "transaction": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string"
+              },
+              "data": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "chainId": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "to",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          "expectedTransaction": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "chainId": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "value": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "dataHash": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{64}$"
+              }
+            },
+            "required": [
+              "to",
+              "chainId",
+              "dataHash"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "transaction"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Risk simulation findings and execution warnings",
+      "annotations": {
+        "title": "FarmDash simulate_transaction_risk",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/camp-guard",
+        "feature_status_id": "security.preflight",
+        "availability": "available",
+        "tier": "scout_limited_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "compare_yields",
+      "description": "Research: compare DeFi yield pools by APY, TVL depth, stablecoin exposure, IL risk, and sustainability score.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "riskPreference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ]
+          },
+          "minTvlUsd": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "stableOnly": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Ranked yield pool comparison with risk context",
+      "annotations": {
+        "title": "FarmDash compare_yields",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/supply",
+        "feature_status_id": "agent_planning.research",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "recommend_delta_hedge",
+      "description": "Recommend short-perp hedge notionals for spot farming exposure. Produces a handoff only; it does not execute.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "spotExposure": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "asset": {
+                  "type": "string"
+                },
+                "notionalUsd": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "beta": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "asset",
+                "notionalUsd"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          },
+          "riskPreference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ]
+          },
+          "volatilityRegime": {
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          },
+          "marketConditions": {}
+        },
+        "required": [
+          "spotExposure"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Hedge recommendation with sizing and caveats",
+      "annotations": {
+        "title": "FarmDash recommend_delta_hedge",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/hedge",
+        "feature_status_id": "agent_planning.research",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "ledger_realized_pnl",
+      "description": "Summarize recorded spot and futures agent activity over a date range.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Realized PnL rows and summary totals",
+      "annotations": {
+        "title": "FarmDash ledger_realized_pnl",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/ledger",
+        "feature_status_id": "ledger.activity",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "ledger_tax_export",
+      "description": "Export recorded spot execution records as CSV for downstream accounting review.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Tax export rows and metadata",
+      "annotations": {
+        "title": "FarmDash ledger_tax_export",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/ledger",
+        "feature_status_id": "ledger.activity",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "agent_onboard",
+      "description": "First-run contract: fetch live feature readiness, tier gates, error semantics, and the onboarding capability map before selecting tools. This never enables execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Live feature_status and deployment gates plus onboarding, security, and bounded-workflow guidance",
+      "annotations": {
+        "title": "FarmDash agent_onboard",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/status",
+        "feature_status_id": "agent_core.bootstrap",
+        "availability": "available",
+        "tier": "scout",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "create_session",
+      "description": "Create a persistent agent session. Normal callers must include a fresh EIP-712 or EIP-191 session signature. Returns a one-time sessionToken.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signatureType": {
+            "type": "string",
+            "enum": [
+              "eip712",
+              "eip191"
+            ]
+          }
+        },
+        "required": [
+          "agentAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ session: AgentSession, nextSteps: string[] }",
+      "annotations": {
+        "title": "FarmDash create_session",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/session",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "session_heartbeat",
+      "description": "Keep an agent session alive. Extends expiry by 24h.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ sessionId, status, expiresAt, activePositions, sessionPnl, tradeCount }",
+      "annotations": {
+        "title": "FarmDash session_heartbeat",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/session",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_farming_context",
+      "description": "Read the shared FarmingContext for a live agent session.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Current FarmingContext document",
+      "annotations": {
+        "title": "FarmDash get_farming_context",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/context",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "patch_farming_context",
+      "description": "Patch the shared FarmingContext for a live agent session. Server controls revision, sessionId, and agentAddress.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "patch": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "patch"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Updated FarmingContext document",
+      "annotations": {
+        "title": "FarmDash patch_farming_context",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/context",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_event_stream_snapshot",
+      "description": "Observe: read a JSON snapshot from the agent event stream for a live session.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Event stream snapshot",
+      "annotations": {
+        "title": "FarmDash get_event_stream_snapshot",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/stream",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "verify_delegation",
+      "description": "Verify Hyperliquid API wallet delegation for guarded venue-order workflows. Verification does not bypass live status, research, risk, or signature gates.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "apiWalletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "ownerAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "agentAddress",
+          "apiWalletAddress",
+          "ownerAddress"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ delegation: { verified, ownerAddress, apiWalletAddress }, security: { canTrade, canWithdraw } }",
+      "annotations": {
+        "title": "FarmDash verify_delegation",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/delegation",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "configure_autopilot",
+      "description": "Configure autopilot strategies, assets, and risk parameters.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "strategies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "riskPreference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ]
+          },
+          "maxEquityPct": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 0.8
+          },
+          "rebalanceIntervalMin": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "autoCompound": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "strategies",
+          "assets"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ session: AgentSession with autopilot configured }",
+      "annotations": {
+        "title": "FarmDash configure_autopilot",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "autopilot_cycle",
+      "description": "Run one authenticated bounded decision cycle and return recommended actions. A recommendation is not authorization, submission, settlement, or position management.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "accountState": {}
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ actions: AutopilotAction[], riskStatus, nextCycleInMs, executionGuide }",
+      "annotations": {
+        "title": "FarmDash autopilot_cycle",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "pause_autopilot",
+      "description": "Pause the backend cycle scheduler for an active session. This does not close positions, revoke venue authority, or prove chain-state changes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, session: AgentSession, message }",
+      "annotations": {
+        "title": "FarmDash pause_autopilot",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "resume_autopilot",
+      "description": "Resume the backend cycle scheduler for a paused session. Recommendations remain separately gated from transaction execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, session: AgentSession, message }",
+      "annotations": {
+        "title": "FarmDash resume_autopilot",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.sessions",
+        "availability": "available_with_tier_gate",
+        "tier": "pioneer_plus",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "grant_session_key",
+      "description": "Register a signed, bounded ERC-4337 session-key grant. Registration is not execution; server-side UserOperation submission remains preparation-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "ownerAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionPublicKey": {
+            "type": "string"
+          },
+          "validAfter": {
+            "type": "string",
+            "description": "ISO timestamp"
+          },
+          "validUntil": {
+            "type": "string",
+            "description": "ISO timestamp"
+          },
+          "allowedProtocols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedAssets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxValuePerTx": {
+            "type": "number"
+          },
+          "maxTotalValue": {
+            "type": "number"
+          },
+          "chainId": {
+            "type": "number"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{130}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "ownerAddress",
+          "sessionPublicKey",
+          "validAfter",
+          "validUntil",
+          "allowedProtocols",
+          "allowedAssets",
+          "maxValuePerTx",
+          "maxTotalValue",
+          "chainId",
+          "nonce",
+          "signature"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, grant: SessionKeyGrantSummary, autonomousExecution, message, nextSteps[] }",
+      "annotations": {
+        "title": "FarmDash grant_session_key",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.erc4337_submission",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "revoke_session_key",
+      "description": "Revoke any active session key grants for this agent session.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "ownerAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, revokedCount, message }",
+      "annotations": {
+        "title": "FarmDash revoke_session_key",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.erc4337_submission",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "session_key_status",
+      "description": "Check the active session key grant and autonomous execution status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "ownerAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, mode, grant: SessionKeyGrantSummary | null, autonomousExecution, hint }",
+      "annotations": {
+        "title": "FarmDash session_key_status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.erc4337_submission",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_cycle_status",
+      "description": "Poll the status of an asynchronous autopilot cycle job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "jobId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, jobId, status, completed, ... }",
+      "annotations": {
+        "title": "FarmDash get_cycle_status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.erc4337_submission",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "execute_cycle_actions",
+      "description": "Inspect the cycle execution gate. Server-side ERC-4337 action submission is preview-only and returns autonomous_execution_preview_only until real calldata, session signatures, and bundler verification ship.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "jobId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, phase, jobId, completed, executedAction, completedActions[], remainingActionsCount, result }",
+      "annotations": {
+        "title": "FarmDash execute_cycle_actions",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/autopilot",
+        "feature_status_id": "autonomous_operator.erc4337_submission",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "create_mee_intent",
+      "description": "Create a preparation-only MEE-shaped cross-chain intent bundle. Creation is not authoritative simulation, submission, or settlement.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ownerAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "chainId": {
+                  "type": "number"
+                },
+                "targetProtocol": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "estimatedGasUsd": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "chainId",
+                "targetProtocol",
+                "action",
+                "params"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "ownerAddress",
+          "steps"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, intent: MeeIntent }",
+      "annotations": {
+        "title": "FarmDash create_mee_intent",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/mee",
+        "feature_status_id": "agent_execution.mee_cross_chain",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_mee_intent",
+      "description": "Preview declared-input cross-chain economics for a MEE-shaped intent. The result is non-authoritative and cannot be submitted while the coordinator gate is disabled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok, meeIntentId, steps[], totalEstimatedGasUsd, bridgeFeeUsd, netEdgeUsd, passedPolicy, message }",
+      "annotations": {
+        "title": "FarmDash simulate_mee_intent",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/mee",
+        "feature_status_id": "agent_execution.mee_cross_chain",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "submit_mee_intent",
+      "description": "Capability probe for MEE submission. Currently returns typed feature_not_ready until a production coordinator and authoritative cross-chain receipt verifier are deployed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{130}$"
+          },
+          "nonce": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "signature",
+          "nonce"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, message, receipt: MeeBundlerReceipt }",
+      "annotations": {
+        "title": "FarmDash submit_mee_intent",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/mee",
+        "feature_status_id": "agent_execution.mee_cross_chain",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_mee_intent_status",
+      "description": "Read the preparation status of a MEE-shaped intent. Created or simulated state is not proof of submission or settlement.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, id, ownerAddress, status, stepsCount, updatedAt }",
+      "annotations": {
+        "title": "FarmDash get_mee_intent_status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/mee",
+        "feature_status_id": "agent_execution.mee_cross_chain",
+        "availability": "preparation_only",
+        "tier": "syndicate",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "analyze_protocol_risk",
+      "description": "Deep risk analysis for a DeFi protocol. Pulls live signals from DeFiLlama (TVL, momentum, chain diversification, historical trends) and combines with Trail Heat scoring to produce a composite risk grade (low/moderate/elevated/high/critical) with actionable signals.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "protocolId": {
+            "type": "string",
+            "description": "Protocol ID (e.g. \"hyperliquid\", \"etherfi\")"
+          },
+          "includeHistorical": {
+            "type": "boolean",
+            "description": "Include 30-day historical TVL trend analysis (default: true)"
+          }
+        },
+        "required": [
+          "protocolId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, protocolId, riskGrade, riskScore, signals[], summary }",
+      "annotations": {
+        "title": "FarmDash analyze_protocol_risk",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/protocol-risk",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "simulate_yield_strategy",
+      "description": "Advanced yield strategy simulation. Allocates capital across 81+ protocols using live DeFiLlama pool data and Trail Heat scoring. Returns projected allocations, yields, diversification score, and risk metrics. Combines Wagon Steward portfolio intelligence with Supply Master yield data.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "capitalUsd": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Total capital to allocate in USD"
+          },
+          "riskPreference": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ],
+            "description": "Risk tolerance (default: balanced)"
+          },
+          "timeHorizonDays": {
+            "type": "integer",
+            "minimum": 7,
+            "maximum": 365,
+            "description": "Simulation horizon in days (default: 90)"
+          },
+          "protocols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specific protocol IDs to include (defaults to all eligible)"
+          }
+        },
+        "required": [
+          "capitalUsd"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, allocations[], projectedYield, diversificationScore, riskMetrics, summary }",
+      "annotations": {
+        "title": "FarmDash simulate_yield_strategy",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/simulate-yield",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "query_trail_heat",
+      "description": "DISCOVERY HEURISTIC query (NOT canonical Trail Heat): filter/sort/paginate the catalog editorial heuristic scores across 81+ protocols. Scores are discovery_heuristic_score values from static catalog data (catalog-editorial-v1). For quantitative DeFiLlama-backed scores use get_trail_heat.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "minScore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Minimum heuristic score (0-100)"
+          },
+          "maxScore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Maximum heuristic score (0-100)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Confirmed Airdrop",
+              "Points Program",
+              "Speculative",
+              "Completed"
+            ],
+            "description": "Filter by protocol status"
+          },
+          "category": {
+            "type": "string",
+            "description": "Filter by category (e.g. Perps, Dex, Lending, L2, Restaking)"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Filter by chain name (e.g. Ethereum, Arbitrum, Solana)"
+          },
+          "hot": {
+            "type": "boolean",
+            "description": "Only hot/trending protocols"
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "score",
+              "tvl",
+              "name",
+              "change7d"
+            ],
+            "description": "Sort field (default: discovery heuristic score)"
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Sort order (default: desc)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Max results per page (default: 25)"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Pagination offset (default: 0)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "{ ok: true, protocols[], total, pagination }",
+      "annotations": {
+        "title": "FarmDash query_trail_heat",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/trail-heat-query",
+        "feature_status_id": "trail_heat.live_scores",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "select_virtuals_provider_plan_v2",
+      "description": "Select a deterministic live-registry ACP V2 committee with one eligible provider per fixed role and three distinct verified controller identities. This selection-only action cannot authorize or spend funds.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "accountAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Policy-bound provider-plan hash, three role-address bindings, and sanitized readiness evidence. No task, tender, signature, approval, or payment is created.",
+      "annotations": {
+        "title": "FarmDash select_virtuals_provider_plan_v2",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "prepare_virtuals_tender_v2",
+      "description": "Prepare a non-spendable ACP V2 evidence draft. FarmDash revalidates simulation ownership and derives output/gas economics; the caller sends only a local task commitment and disclosure manifest. This tool cannot authorize, create, fund, or settle an ACP job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 200
+          },
+          "taskCommitmentHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Lowercase SHA-256 commitment computed locally over the canonical, salted task. Do not send task plaintext."
+          },
+          "simulationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxPaymentUnits": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{0,77}$",
+            "description": "Maximum total raw Base USDC units; no spend is authorized by preparation."
+          },
+          "providers": {
+            "type": "object",
+            "properties": {
+              "solidity_auditor": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "defi_economist": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "sentiment_analyst": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              }
+            },
+            "required": [
+              "solidity_auditor",
+              "defi_economist",
+              "sentiment_analyst"
+            ],
+            "additionalProperties": false,
+            "description": "Deprecated in V2; use selectionId instead."
+          },
+          "selectionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "disclosureManifest": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "farmdash-acp-disclosure/v1"
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "transaction_intent",
+                    "token_addresses",
+                    "wallet_address",
+                    "amounts",
+                    "calldata",
+                    "strategy_context",
+                    "proprietary_context",
+                    "personal_data",
+                    "credentials_override"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 16
+              },
+              "secretScan": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "overridden"
+                ]
+              },
+              "overrideReasonHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "categories",
+              "secretScan"
+            ],
+            "additionalProperties": false
+          },
+          "approvalNonce": {
+            "type": "string",
+            "pattern": "^\\d{10,20}$"
+          },
+          "approvalExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "idempotencyKey",
+          "taskCommitmentHash",
+          "simulationId",
+          "maxPaymentUnits",
+          "selectionId",
+          "disclosureManifest",
+          "approvalNonce",
+          "approvalExpiresAt"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Immutable evidence summary, non-spendable V2 draft, Base-8453 EIP-712 data, and a readiness-gated authorization next action.",
+      "annotations": {
+        "title": "FarmDash prepare_virtuals_tender_v2",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "authorize_virtuals_tender_v2",
+      "description": "Submit an exact V2 EIP-712 signature produced by the customer ACP wallet. FarmDash first verifies deployment readiness and all committed providers; it still cannot create or fund jobs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          },
+          "nonce": {
+            "type": "string",
+            "pattern": "^\\d{10,20}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 16386,
+            "pattern": "^0x[0-9a-fA-F]+$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId",
+          "nonce",
+          "expiresAt",
+          "signature"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Authorized tender and provider-readiness evidence, or a fail-closed prerequisite response.",
+      "annotations": {
+        "title": "FarmDash authorize_virtuals_tender_v2",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "get_virtuals_tender",
+      "description": "Read the authenticated customer ACP tender, immutable commitments, role progress, and settlement state. This read grants no authority.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Tenant-scoped tender and settlement status.",
+      "annotations": {
+        "title": "FarmDash get_virtuals_tender",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "cancel_virtuals_tender",
+      "description": "Cancel an authenticated non-spendable ACP draft. It cannot erase or refund an already-created on-chain job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Cancellation status.",
+      "annotations": {
+        "title": "FarmDash cancel_virtuals_tender",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "bind_virtuals_tender_job",
+      "description": "Report a customer-created on-chain ACP job ID for one committed role. FarmDash independently verifies the Base client, provider, and evaluator before binding.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "solidity_auditor",
+              "defi_economist",
+              "sentiment_analyst"
+            ]
+          },
+          "onchainJobId": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{0,77}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId",
+          "role",
+          "onchainJobId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Verified immutable binding and updated tender status.",
+      "annotations": {
+        "title": "FarmDash bind_virtuals_tender_job",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "reserve_virtuals_tender_funding_v2",
+      "description": "Atomically reserve one role budget against the exact customer-signed ACP V2 cap after FarmDash verifies the on-chain job and proposed budget. This accounting action cannot approve tokens or spend the customer wallet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "solidity_auditor",
+              "defi_economist",
+              "sentiment_analyst"
+            ]
+          },
+          "onchainJobId": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{0,77}$"
+          },
+          "amountUnits": {
+            "$ref": "#/properties/onchainJobId"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId",
+          "role",
+          "onchainJobId",
+          "amountUnits"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Durable reservation ID, exact amount, state, and lease metadata.",
+      "annotations": {
+        "title": "FarmDash reserve_virtuals_tender_funding_v2",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "record_virtuals_tender_funding_v2",
+      "description": "Durably record canonical Base transaction hashes after the customer wallet submits an existing ACP V2 funding reservation. This action cannot submit a transaction itself.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          },
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionHashes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{64}$"
+            },
+            "minItems": 1,
+            "maxItems": 4
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId",
+          "reservationId",
+          "transactionHashes"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Durably recorded funding-submission state.",
+      "annotations": {
+        "title": "FarmDash record_virtuals_tender_funding_v2",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "evaluate_virtuals_tender",
+      "description": "Request evaluation or resume settlement for a fully bound customer-funded ACP tender. FarmDash can only complete/reject jobs committed to its evaluator identity.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "tenderId": {
+            "type": "string",
+            "pattern": "^fdat_[A-Za-z0-9_-]{8,59}$"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "tenderId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Evaluation and durable settlement progress.",
+      "annotations": {
+        "title": "FarmDash evaluate_virtuals_tender",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    },
+    {
+      "name": "hire_virtuals_specialist",
+      "description": "Deprecated V1 compatibility tool. It prepares a zero-custody V1 tender only when the deployment explicitly enables V1 creation. Prefer prepare_virtuals_tender_v2. This tool never creates, budgets, funds, or signs an ACP job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 200
+          },
+          "task": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Task payload retained by the local customer connector; FarmDash persists only its commitment hash."
+          },
+          "simulationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedOutputAmount": {
+            "type": "string",
+            "pattern": "^\\d+(?:\\.\\d+)?$"
+          },
+          "expectedGasUsdCents": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "expectedYieldUsdCents": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "maxPaymentUnits": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "description": "Maximum total raw Base USDC units (6 decimals) across the three customer-funded jobs."
+          },
+          "providers": {
+            "type": "object",
+            "properties": {
+              "solidity_auditor": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "defi_economist": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "sentiment_analyst": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              }
+            },
+            "required": [
+              "solidity_auditor",
+              "defi_economist",
+              "sentiment_analyst"
+            ],
+            "additionalProperties": false
+          },
+          "approvalNonce": {
+            "type": "string",
+            "pattern": "^\\d{10,20}$"
+          },
+          "approvalExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
+          "idempotencyKey",
+          "task",
+          "simulationId",
+          "expectedOutputAmount",
+          "expectedGasUsdCents",
+          "expectedYieldUsdCents",
+          "maxPaymentUnits",
+          "providers",
+          "approvalNonce",
+          "approvalExpiresAt"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "returns": "Draft tender plus exact EIP-712 approval data. No ACP job, customer payment, or customer signature is created by FarmDash.",
+      "annotations": {
+        "title": "FarmDash hire_virtuals_specialist",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "capability": {
+        "api_route": "/api/v1/agent/virtuals-acp",
+        "feature_status_id": "virtuals_acp.tenant_owned_tenders",
+        "availability": "available_when_deployment_prerequisites_are_met",
+        "tier": "x402_or_subscription_with_authenticated_session",
+        "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
+      }
+    }
+  ],
+  "resources": [],
+  "runtime_resource_count": 0,
+  "https_discovery_documents": [
+    "https://www.farmdash.one/agents/openapi.yaml",
+    "https://www.farmdash.one/llms.txt",
+    "https://www.farmdash.one/agent-report.md"
+  ],
+  "pricing": {
+    "tiers": [
+      {
+        "name": "Scout",
+        "price": "Free",
+        "rate_limit": "5 req/24h per IP",
+        "features": [
+          "Top 3 protocols (rest encrypted)",
+          "Swap quotes",
+          "Swap execution (EIP-191)",
+          "Token prices",
+          "Funding rate scans",
+          "Market conditions"
+        ]
+      },
+      {
+        "name": "Pioneer",
+        "price": "$39.99/mo USDC",
+        "rate_limit": "1,500 req/day",
+        "features": [
+          "Full Trail Heat dataset for the live protocol registry",
+          "Swap routing with volume discounts",
+          "Sybil risk audits",
+          "Points simulation",
+          "Portfolio optimization",
+          "Historical Trail Heat (365d)",
+          "Agent events stream",
+          "Futures account state",
+          "Strategy analysis",
+          "Position sizing",
+          "Multi-chain balances",
+          "Performance analytics",
+          "Agent sessions"
+        ]
+      },
+      {
+        "name": "Syndicate",
+        "price": "$199/mo USDC",
+        "rate_limit": "50,000 req/day",
+        "features": [
+          "Everything in Pioneer",
+          "Priority swap routing",
+          "HMAC-signed webhook engine",
+          "Perp order execution (EIP-712)",
+          "Batch order cancellation",
+          "Volume discounts (35bps at 10K, 25bps at 100K)",
+          "Bounded autopilot recommendations",
+          "Wallet delegation verification",
+          "Advanced control/session tooling"
+        ]
+      }
+    ],
+    "x402": {
+      "payment_token": "USDC",
+      "network": "Base",
+      "chain_id": "8453",
+      "treasury": "0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377",
+      "proof_header": "X-Payment-Proof",
+      "payment_required_header": "PAYMENT-REQUIRED",
+      "signature_header": "PAYMENT-SIGNATURE",
+      "response_header": "PAYMENT-RESPONSE",
+      "response_headers": [
+        "PAYMENT-REQUIRED",
+        "PAYMENT-RESPONSE",
+        "X-Payment-Required",
+        "X-Payment-Address",
+        "X-Payment-Token",
+        "X-Payment-Amount",
+        "X-Payment-Chain-Id",
+        "X-Payment-Policy",
+        "X-Payment-Reason"
+      ],
+      "one_off_prices_usdc": {
+        "default_overage": "0.01",
+        "market_data": "0.99",
+        "full_trail_heat": "1.99",
+        "wallet_portfolio": "3.99",
+        "sybil_audit": "4.99",
+        "points_simulation": "2.99",
+        "portfolio_optimization": "6.99",
+        "historical_trail_heat": "2.99",
+        "futures_strategy": "7.99",
+        "session_control": "2.49",
+        "swap_execution": "0.99",
+        "report_trail_heat_full": "2.99",
+        "report_wallet_sybil": "7.99",
+        "report_farming_plan": "9.99",
+        "report_hyperliquid_strategy": "12.99",
+        "report_portfolio_rebalance": "9.99"
+      }
+    },
+    "fee_model": {
+      "swap_fee": "45 bps default",
+      "volume_discounts": {
+        "10000": "35 bps",
+        "100000": "25 bps"
+      },
+      "futures_builder_fee": "1 bps per order"
+    }
+  },
+  "links": {
+    "openapi": "https://www.farmdash.one/agents/openapi.yaml",
+    "llms_txt": "https://www.farmdash.one/llms.txt",
+    "agent_report": "https://www.farmdash.one/agent-report.md",
+    "ai_plugin": "https://www.farmdash.one/.well-known/ai-plugin.json",
+    "x402_reports": {
+      "trail_heat_full": "https://www.farmdash.one/api/v1/reports/trail-heat-full",
+      "wallet_sybil": "https://www.farmdash.one/api/v1/reports/wallet-sybil",
+      "farming_plan": "https://www.farmdash.one/api/v1/reports/farming-plan",
+      "hyperliquid_strategy": "https://www.farmdash.one/api/v1/reports/hyperliquid-strategy",
+      "portfolio_rebalance": "https://www.farmdash.one/api/v1/reports/portfolio-rebalance"
+    },
+    "ai_txt": "https://www.farmdash.one/ai.txt",
+    "mcp_manifest": "https://www.farmdash.one/.well-known/mcp.json",
+    "a2a_manifest": "https://www.farmdash.one/.well-known/agent.json"
+  },
+  "capability_contract": {
+    "status_endpoint": "https://www.farmdash.one/api/v1/agent/status",
+    "rule": "Tool discovery is not enablement. Read status first and preserve typed feature_not_ready responses.",
+    "generic_intent_execution": "disabled",
+    "mee_submission": "preparation_only",
+    "autonomous_erc4337_submission": "preview_only"
+  }
+}

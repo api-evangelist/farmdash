@@ -1,0 +1,33 @@
+generated: '2026-08-26'
+method: generated
+source: openapi/farmdash-agent-api-openapi.yaml
+note: >-
+  Four packaged Agent Skills mirroring FarmDash's four marquee flows. Every operationId
+  referenced was grepped from the published OpenAPI; none is invented. FarmDash advertises
+  "OpenClaw agent skills" on /agents but publishes no skill files at a fetchable path and no
+  AGENTS.md was found, so these are generated from the contract rather than harvested.
+skills:
+- name: farmdash-zero-custody-swap
+  file: farmdash-zero-custody-swap.md
+  description: Quote, mandatory simulation, EIP-191 user-signed execution, on-chain confirmation.
+  operations: [getSwapQuote, simulateSwapExecution, executeSwap, confirmSwap, getSwapHistory, analyzeRiskSentinel]
+  consequence: irreversible
+  human_approval_required: true
+- name: farmdash-trail-heat-research
+  file: farmdash-trail-heat-research.md
+  description: Canonical vs editorial scoring, evidence states, Dust Storm handling.
+  operations: [getLiveTrailHeat, getProtocolCatalog, getChainBreakdown, getTokenPrices, getAgentStatus]
+  consequence: read-only
+  human_approval_required: false
+- name: farmdash-guarded-futures
+  file: farmdash-guarded-futures.md
+  description: Hyperliquid funding scan through guarded EIP-712 order placement and cancellation.
+  operations: [scanFundingRates, getMarketConditions, getAccountState, analyzeStrategy, calculatePositionSize, executeOrder, cancelOrder]
+  consequence: high
+  human_approval_required: true
+- name: farmdash-x402-payment
+  file: farmdash-x402-payment.md
+  description: Handling the 402 challenge that 24 of 27 operations can return.
+  operations: [getSwapQuote, getProtocolCatalog, getLiveTrailHeat, simulateSwapExecution, executeSwap]
+  consequence: spends-money
+  human_approval_required: true

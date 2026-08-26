@@ -1,0 +1,269 @@
+{
+  "name": "FarmDash",
+  "description": "FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. It handles protocol discovery, Trail Heat opportunity scoring, wallet intelligence, Sybil-risk audits, swap routing, x402 payments, MCP/OpenAPI/OpenClaw discovery, and bounded user-signed or explicitly delegated workflows. FarmDash does not request seed phrases or raw wallet private keys. Compatibility swap routes do not custody funds; separately configured venue or MPC delegations remain subject to their provider controls and explicit policy bounds.",
+  "url": "https://www.farmdash.one",
+  "version": "4.4.0",
+  "protocol_version": "0.2.0",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "authentication": {
+    "schemes": [
+      {
+        "scheme": "bearer",
+        "description": "API key for Pioneer ($39.99/mo, 1,500 req/day) or Syndicate ($199/mo, 50K req/day) tier access"
+      },
+      {
+        "scheme": "x402",
+        "description": "One-off USDC payment over HTTP 402. Inspect x402 fields, pay on Base, then retry with X-Payment-Proof: 0x<txHash>."
+      },
+      {
+        "scheme": "eip191",
+        "description": "EIP-191 personal_sign for zero-custody swap execution. Message: v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}"
+      },
+      {
+        "scheme": "eip712",
+        "description": "EIP-712 typed signing for Hyperliquid perpetual order execution"
+      }
+    ]
+  },
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "signal-architect",
+      "name": "Signal Architect",
+      "description": "Cross-chain token swap routing via Li.Fi, 0x, and x402 protocols. Get wallet-bound quotes, simulate before execution, prepare user-signed transaction payloads, confirm with on-chain tx hash, and track history. FarmDash does not custody funds on these routes; execution occurs through the selected protocol after customer-controlled signing. Fees are 45 bps by default, 35 bps at $10K cumulative volume, and 25 bps at $100K. Versioned signature payload (v1 prefix).",
+      "tags": [
+        "defi",
+        "swap",
+        "trading",
+        "cross-chain",
+        "zero-custody"
+      ],
+      "examples": [
+        "Swap 1 ETH for USDC on Base",
+        "Get a quote for bridging USDC from Ethereum to Arbitrum",
+        "Confirm my swap with the on-chain tx hash",
+        "Show my swap history and fees paid"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    },
+    {
+      "id": "futures-strategist",
+      "name": "Futures Strategist",
+      "description": "Hyperliquid futures research and guarded order workflows with funding-rate analysis, market conditions, position sizing, EIP-712 order payloads, and server-enforced guardrails. State-changing actions require authorized signatures or bounded delegation; FarmDash never receives private keys.",
+      "tags": [
+        "hyperliquid",
+        "perps",
+        "futures",
+        "funding-arb",
+        "momentum",
+        "risk-management"
+      ],
+      "examples": [
+        "Find the best funding rate research opportunity right now",
+        "Analyze ETH for a guarded momentum setup",
+        "Show my open positions and PnL on Hyperliquid"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    },
+    {
+      "id": "trail-intelligence",
+      "name": "Trail Intelligence",
+      "description": "DeFi protocol discovery and farming intelligence. Trail Heat scores for the live FarmDash protocol dataset, Sybil-risk audits, points simulation, portfolio optimization context, multi-chain balance tracking, and Trail Cred reputation signals.",
+      "tags": [
+        "defi",
+        "airdrop",
+        "farming",
+        "intelligence",
+        "portfolio"
+      ],
+      "examples": [
+        "What are the hottest DeFi protocols to farm right now?",
+        "Audit my wallets for sybil risk",
+        "Optimize my farming portfolio for aggressive growth"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    },
+    {
+      "id": "autonomous-operator",
+      "name": "Bounded Operator",
+      "description": "Session, delegation, webhook, and autopilot tooling for supervised DeFi agent workflows. Create bounded sessions, verify delegation boundaries, configure guarded strategies, and receive recommended actions with policy, simulation, approval, and receipt context. Control Room is currently a preview surface until backend pause/revoke endpoints are connected.",
+      "tags": [
+        "bounded",
+        "operator",
+        "session",
+        "delegation",
+        "receipts"
+      ],
+      "examples": [
+        "Create a bounded session for a supervised DeFi agent",
+        "Verify Hyperliquid delegation boundaries",
+        "Configure a guarded funding-rate research loop"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    }
+  ],
+  "endpoints": {
+    "base_url": "https://www.farmdash.one/api",
+    "onboard": "/v1/agent/onboard",
+    "api_key": "/v1/agent/api-key",
+    "session": "/v1/agent/session",
+    "autopilot": "/v1/agent/autopilot",
+    "delegation": "/v1/agent/delegation",
+    "swap_quote": "/agents/quote",
+    "swap_simulate": "/v1/simulate",
+    "swap_execute": "/agents/swap",
+    "swap_confirm": "/agents/confirm",
+    "swap_history": "/agents/history",
+    "protocols": "/v1/agent/protocols",
+    "balances": "/v1/agent/balances",
+    "prices": "/v1/agent/prices",
+    "performance": "/v1/agent/performance",
+    "reputation": "/agents/reputation",
+    "sybil_audit": "/v1/agent/sybil-audit",
+    "optimize_portfolio": "/v1/agent/optimize-portfolio",
+    "futures_scan_funding": "/v1/agent/futures/scan-funding",
+    "futures_market_conditions": "/v1/agent/futures/market-conditions",
+    "futures_account_state": "/v1/agent/futures/account-state",
+    "futures_analyze_strategy": "/v1/agent/futures/analyze-strategy",
+    "futures_position_sizing": "/v1/agent/futures/position-sizing",
+    "futures_execute_order": "/v1/agent/futures/execute-order",
+    "futures_cancel_order": "/v1/agent/futures/cancel-order",
+    "report_trail_heat_full": "/v1/reports/trail-heat-full",
+    "report_wallet_sybil": "/v1/reports/wallet-sybil",
+    "report_farming_plan": "/v1/reports/farming-plan",
+    "report_hyperliquid_strategy": "/v1/reports/hyperliquid-strategy",
+    "report_portfolio_rebalance": "/v1/reports/portfolio-rebalance"
+  },
+  "response_headers": {
+    "X-RateLimit-Limit": "Requests allowed per window",
+    "X-RateLimit-Remaining": "Requests remaining in current window",
+    "X-RateLimit-Reset": "Seconds until rate limit resets (UTC midnight)",
+    "X-Request-ID": "Unique request correlation ID (UUID v4)",
+    "X-Payment-Required": "true when a one-off x402 payment can unlock the request",
+    "X-Payment-Amount": "USDC base units required for the one-off request",
+    "X-Payment-Policy": "FarmDash x402 policy key for the request",
+    "X-Payment-Reason": "Human-readable reason for the payment request",
+    "PAYMENT-REQUIRED": "Base64-encoded x402 v2 payment requirements",
+    "PAYMENT-RESPONSE": "Base64-encoded x402 settlement or accepted-proof response"
+  },
+  "discovery": {
+    "mcp_manifest": "https://www.farmdash.one/.well-known/mcp.json",
+    "ai_plugin": "https://www.farmdash.one/.well-known/ai-plugin.json",
+    "openapi_spec": "https://www.farmdash.one/agents/openapi.yaml",
+    "llms_txt": "https://www.farmdash.one/llms.txt",
+    "agent_report": "https://www.farmdash.one/agent-report.md"
+  },
+  "sdk": {
+    "package": "@farmdash/agent-kit",
+    "source": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/agent-kit",
+    "features": [
+      "TypeScript client",
+      "Zod runtime validation schemas",
+      "automatic retry",
+      "LRU cache with ETag",
+      "Dust Storm fallback"
+    ]
+  },
+  "pricing": {
+    "tiers": [
+      {
+        "name": "Scout",
+        "price": "Free",
+        "rate_limit": "5 req/24h per IP",
+        "capabilities": [
+          "quotes",
+          "prices",
+          "funding_scans",
+          "market_conditions"
+        ]
+      },
+      {
+        "name": "Pioneer",
+        "price": "$39.99/mo USDC",
+        "rate_limit": "1,500 req/day",
+        "capabilities": [
+          "full_trail_heat",
+          "strategy_analysis",
+          "sybil_audits",
+          "portfolio_optimization",
+          "sessions",
+          "account_state"
+        ]
+      },
+      {
+        "name": "Syndicate",
+        "price": "$199/mo USDC",
+        "rate_limit": "50,000 req/day",
+        "capabilities": [
+          "high_volume_api",
+          "unrestricted_cors",
+          "webhooks",
+          "batch_operations",
+          "delegation_verification",
+          "advanced_control_session_tooling"
+        ]
+      }
+    ],
+    "x402_one_off_prices_usdc": {
+      "default_overage": "0.99",
+      "market_data": "0.99",
+      "full_trail_heat": "1.99",
+      "wallet_portfolio": "3.99",
+      "sybil_audit": "4.99",
+      "points_simulation": "2.99",
+      "portfolio_optimization": "6.99",
+      "historical_trail_heat": "2.99",
+      "futures_strategy": "7.99",
+      "session_control": "2.49",
+      "swap_execution": "0.99",
+      "report_trail_heat_full": "2.99",
+      "report_wallet_sybil": "7.99",
+      "report_farming_plan": "9.99",
+      "report_hyperliquid_strategy": "12.99",
+      "report_portfolio_rebalance": "9.99"
+    }
+  },
+  "security": {
+    "zero_custody": true,
+    "max_leverage": 5,
+    "max_risk_per_trade": "2%",
+    "daily_loss_limit": "-3%",
+    "circuit_breaker": "-15%",
+    "research_gate": "analyze_strategy required within 5 minutes before perps execution; simulate_swap_execution required within 60 seconds before swap execution",
+    "dead_mans_switch": "60s auto-cancel on agent disconnect"
+  },
+  "contact": {
+    "email": "farmdashone@proton.me",
+    "twitter": "@FarmDashone",
+    "discord": "https://discord.gg/AR6hVaDj"
+  }
+}

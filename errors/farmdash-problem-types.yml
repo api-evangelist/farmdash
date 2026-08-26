@@ -1,0 +1,176 @@
+generated: '2026-08-26'
+method: derived
+source: openapi/farmdash-agent-api-openapi.yaml
+searched_sources:
+- https://www.farmdash.one/api/v1/agent/status
+- https://www.farmdash.one/agent-report.md
+- https://www.farmdash.one/llms.txt
+format: bespoke-json
+rfc9457: false
+format_note: >-
+  FarmDash does NOT use RFC 9457 application/problem+json. It ships a stable, well-specified
+  bespoke envelope on application/json, declared as the ErrorResponse schema in the OpenAPI
+  and confirmed byte-for-byte on live 402 and 404 responses. The envelope is arguably
+  better-behaved than most problem+json implementations — it carries an explicit machine
+  `retryable` boolean and a `request_id` on every error — but it is not the standard media
+  type, so generic RFC 9457 client middleware will not parse it.
+envelope:
+  media_type: application/json
+  stable_fields:
+  - ok
+  - error
+  - code
+  - message
+  - retryable
+  - request_id
+  - rate_limit
+  - x402
+  - developer_sandbox
+  optional_fields:
+  - details
+  - tier
+  - upgrade_url
+  - direct_upgrade_url
+  - api_key_url
+  - scout_access
+  - agent_actions
+  - warnings
+  source: >-
+    stable_fields[] is published verbatim by the provider at
+    https://www.farmdash.one/api/v1/agent/status under error_contract.stable_fields.
+  example_observed:
+    url: https://www.farmdash.one/api/mcp
+    http_status: 404
+    body: '{"ok":false,"error":"not_found","code":"api_endpoint_not_found","message":"API endpoint not found.","retryable":false,"request_id":"e8bf6539-..."}'
+problem_types:
+- status: 400
+  code: bad_request
+  title: Invalid request
+  operations: 12
+  remediation: Correct the request parameters or body; validation errors are not retryable as sent.
+  retryable: false
+- status: 401
+  code: unauthorized
+  title: Invalid API key, signature, or session capability token
+  operations: 4
+  variants:
+  - operation: executeSwap
+    detail: Invalid signature or expired nonce (EIP-191).
+  - operation: getLiveTrailHeat
+    detail: Invalid API key.
+  - operation: manageSession
+    detail: Missing or invalid session capability token.
+  - operation: manageAutopilot
+    detail: Missing or invalid session capability token.
+  remediation: Re-sign the payload with a fresh nonce, or present a valid bearer key / session token.
+  retryable: false
+- status: 402
+  code: payment_required
+  title: Payment required — quota exhausted or paid-tier route
+  operations: 24
+  detail: >-
+    The single most common error in this API: 24 of 27 operations declare it. It doubles as
+    the rate-limit exhaustion response. The body carries a complete x402 challenge
+    (price, currency, network, token contract, treasury, amount in base units, policy_key,
+    compute_class) plus a sandbox fallback and an upgrade URL.
+  remediation: >-
+    Pay the stated USDC amount on Base to the treasury and retry with PAYMENT-SIGNATURE or
+    X-Payment-Proof; or upgrade a tier; or retry a mock-capable endpoint with ?mock=true.
+  retryable: true
+  verified_live:
+    url: https://www.farmdash.one/api/v1/agent/sybil-audit?agentAddress=0x0000000000000000000000000000000000000000
+    http_status: 402
+    checked: '2026-08-26'
+- status: 403
+  code: forbidden
+  title: Session owner or token verification failed
+  operations: 2
+  remediation: The caller does not own the session being addressed. Re-create the session under the correct agent address.
+  retryable: false
+- status: 405
+  code: method_not_allowed
+  title: Method not allowed
+  operations: 1
+  retryable: false
+- status: 409
+  code: conflict
+  title: State conflict — intent/wallet mismatch or guardrail halt
+  operations: 2
+  variants:
+  - operation: simulateSwapExecution
+    detail: Intent and wallet mismatch.
+  - operation: executeSwap
+    detail: Swap halted by Risk Sentinel guardrails.
+  remediation: Re-quote against the correct wallet, or resolve the Risk Sentinel finding before retrying.
+  retryable: false
+- status: 428
+  code: precondition_required
+  title: Missing, expired, failed, or mismatched preflight simulation
+  operations: 1
+  detail: >-
+    RFC 6585 428 used exactly as intended and rarely seen in the wild. executeSwap refuses to
+    run without a fresh successful simulateSwapExecution result — the simulation must be under
+    60 seconds old. This is the mechanical enforcement of FarmDash's rehearse-before-you-act
+    posture.
+  remediation: Call POST /v1/simulate and retry within 60 seconds with the returned intent.
+  retryable: true
+- status: 429
+  code: rate_limited
+  title: Too many requests
+  operations: 10
+  detail: >-
+    Declared on 10 operations, but the observed exhaustion response on a live unauthenticated
+    probe was 402, not 429. Treat 429 as declared-but-not-confirmed.
+  remediation: Back off, then retry; consult Retry-After where present.
+  retryable: true
+- status: 502
+  code: provider_degraded
+  title: Typed upstream provider degradation (Dust Storm)
+  operations: 4
+  variants:
+  - operation: getSwapQuote
+    detail: Live quote provider degradation.
+  - operation: getTokenPrices
+    detail: Upstream price degradation.
+  - operation: scanFundingRates
+    detail: Hyperliquid funding provider degradation.
+  - operation: getMarketConditions
+    detail: Hyperliquid candle provider degradation.
+  remediation: Retry with backoff. Never interpret a degraded response as a zero balance, price or quote.
+  retryable: true
+- status: 503
+  code: feature_not_ready
+  title: Service degraded or feature not provisioned
+  operations: 2
+  detail: >-
+    Also the documented status for the capability contract: the provider states that 503
+    responses carry a typed feature_not_ready state when a tool exists but its deployment
+    prerequisites are unmet.
+  remediation: Read https://www.farmdash.one/api/v1/agent/status before retrying; the feature may be disabled by design.
+  retryable: true
+dust_storm_protocol:
+  description: >-
+    FarmDash's named contract for upstream failure. On provider degradation it returns
+    ok:false with a typed degraded state and a warnings[] array containing
+    {kind:"dust_storm", message:"..."}. Cached SDK responses may be returned as stale with an
+    explicit stale-data age.
+  invariant: >-
+    "Provider failure is never converted into authoritative zero financial data." This is a
+    materially important guarantee for an agent making allocation decisions — an upstream
+    outage cannot silently present as a zero balance or a zero price.
+  source: https://www.farmdash.one/llms.txt
+evidence_state_contract:
+  description: >-
+    Canonical Trail Heat outputs attach a per-number data_evidence state so an agent can tell
+    measured market data from computed, curated, aged-out or missing values.
+  confidence_levels:
+  - high
+  - medium
+  - low
+  - demo
+  fields:
+  - data_quality.confidence
+  - data_quality.sources
+  - data_quality.caveats
+  - scoring_methodology.validation_status
+  source: https://www.farmdash.one/api/v1/agent/status

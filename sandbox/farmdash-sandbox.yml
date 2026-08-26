@@ -1,0 +1,60 @@
+generated: '2026-08-26'
+method: probed
+source: https://www.farmdash.one/api/v1/agent/status
+secondary_sources:
+- https://www.farmdash.one/agents/openapi.yaml
+- 'live 402 body from https://www.farmdash.one/api/v1/agent/sybil-audit'
+purpose: >-
+  Unmetered SDK and agent integration development without live-data claims. Published verbatim
+  by the provider in the status contract's developer_sandbox block and echoed in every 402 body.
+modes:
+- name: developer sandbox (deterministic mock)
+  public_api_key: fd_sandbox_mock
+  live_data: false
+  not_for_trading: true
+  metered: false
+  enable_with:
+  - '?mock=true'
+  - '?mode=mock'
+  - 'X-FarmDash-Mock: true'
+  - 'Authorization: Bearer fd_sandbox_mock'
+  supported_endpoints:
+  - /api/v1/agent/protocols
+  - /api/v1/trail-heat
+  coverage_caveat: >-
+    ONLY TWO ENDPOINTS. Mock mode is not a sandbox environment — it is a deterministic fixture
+    on two discovery reads. Every write path (quote, simulate, swap, confirm, futures execute,
+    futures cancel) has NO mock. Quote requests sent with mock=true return a typed
+    `mock_not_supported` error rather than a fixture, and the provider says so explicitly rather
+    than silently returning fake data. An integrator cannot rehearse a swap or an order against
+    a test environment; the only rehearsal available is the live mandatory simulation
+    (POST /v1/simulate) against real market state.
+- name: Scout free tier
+  public_api_key: fd_scout_free
+  live_data: true
+  metered: true
+  limit: 5 requests / 24h per IP
+  enable_with:
+  - omit the Authorization header entirely
+  - 'Authorization: Bearer fd_scout_free'
+  note: >-
+    Not a sandbox — real live data on a tiny free quota. Listed here because the 402 body
+    presents it alongside the sandbox as a fallback path, and because a published literal
+    key with no registration is the closest thing FarmDash offers to a try-before-you-buy
+    console.
+test_values:
+  published: false
+  note: >-
+    No test wallets, test private keys, magic addresses, test token contracts or testnet
+    deployment are published. Consistent with the zero-custody posture — FarmDash never holds
+    keys, so it has no test credentials to issue — but it means a swap or futures integration
+    can only be exercised with a real funded wallet on mainnet.
+test_networks:
+  published: false
+  note: x402 settlement is on Base mainnet (chainId 8453). No Base Sepolia / testnet facilitator is published.
+console:
+  published: false
+  note: >-
+    No hosted API console or try-it playground was found. /agents is a human documentation page,
+    not an interactive console. Control Room (Pioneer+) is a product surface, and the provider
+    states its pause/revoke controls are preview-only and not backend-authoritative.

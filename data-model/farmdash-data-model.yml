@@ -1,0 +1,163 @@
+generated: '2026-08-26'
+method: derived
+source: openapi/farmdash-agent-api-openapi.yaml
+schema_count: 73
+note: >-
+  Derived from $ref links and id-reference fields across the 73 component schemas. FarmDash's
+  model is response-shaped rather than resource-shaped: most schemas are per-operation request
+  and response envelopes, and only 12 carry a $ref to another schema (16 edges total). The real
+  entity graph is therefore carried by ID CORRELATION rather than by nesting — a quote emits an
+  intent_id, a simulation consumes it and emits a simulation_id, an execution consumes both and
+  emits a feeEventId, and a confirmation closes on that feeEventId. That chain IS the product's
+  safety model expressed as data.
+identifier_conventions:
+  casing: >-
+    INCONSISTENT — the swap family mixes snake_case (intent_id, simulation_id, wallet_address)
+    and camelCase (fromChainId, agentAddress, simulationId, intentId, feeEventId) inside the SAME
+    flow. SwapSimulationRequest uses intent_id while SwapRequest uses intentId for the same value.
+    A client must handle both spellings of one identifier.
+  address_fields: agentAddress, walletAddress, toAddress, ownerAddress, apiWalletAddress, tokenAddress (0x-prefixed, ^0x[a-fA-F0-9]{40}$ where patterned)
+  chain_fields: chainId, fromChainId, toChainId (numeric EVM chain IDs; CAIP-2 appears only in 402 bodies)
+  hash_fields: txHash, tx_hash, intentHash
+entities:
+- name: Intent
+  primary_key: intent_id / intentId
+  emitted_by: getSwapQuote
+  consumed_by: [simulateSwapExecution, executeSwap]
+  description: A wallet-bound swap intention. Binding the intent to a wallet is what makes the 409 mismatch check possible.
+- name: Simulation
+  primary_key: simulation_id / simulationId
+  emitted_by: simulateSwapExecution
+  consumed_by: [executeSwap]
+  ttl: 60 seconds
+  description: >-
+    Proof that the swap was rehearsed. executeSwap returns 428 without a fresh one. This is the
+    only TTL-bearing entity in the model.
+- name: FeeEvent
+  primary_key: id / feeEventId
+  fields: [id, agent_address, tx_hash, chain_id]
+  emitted_by: executeSwap
+  consumed_by: [confirmSwap, getSwapHistory]
+  description: The settlement record. confirmSwap verifies the customer-submitted receipt against server-committed fee fields.
+- name: AgentSession
+  primary_key: id
+  fields: [id, agentAddress, activePositions]
+  managed_by: [manageSession, findSession]
+  description: Bounded session with a 60s dead-man's switch. Owns TrackedPosition records.
+- name: DelegationRecord
+  primary_key: ownerAddress + apiWalletAddress
+  managed_by: [verifyDelegation, getDelegationStatus]
+  description: Binds an owner wallet to an API wallet for bounded execution.
+- name: FuturesPosition
+  parent: AccountStateResponse
+  description: Hyperliquid position, read-only from this API.
+- name: FuturesStrategyObject
+  primary_key: id
+  emitted_by: analyzeStrategy
+  description: Strategy recommendation; required within 5 minutes before perps execution.
+- name: ProtocolItem
+  parent: ProtocolsResponse
+  emitted_by: getProtocolCatalog
+  description: >-
+    Catalog row carrying discovery_heuristic_score — explicitly NOT Trail Heat. Canonical
+    quantitative Trail Heat comes from getLiveTrailHeat with per-number data_evidence states.
+- name: TrackedPosition
+  parent: AgentSession
+- name: RiskFlag
+  parent: [SwapRiskReport, RiskSentinelResponse]
+- name: PegCheck
+  parent: SwapRiskReport
+- name: RouteCandidate
+  parent: ExecutionAlphaReport
+- name: FundingAnalysis
+  parent: ScanFundingResponse
+- name: FeeEventList
+  parent: HistoryResponse
+- name: DustStormWarning
+  parent: [ScanFundingResponse, AccountStateResponse, MarketConditionsResponse, AnalyzeStrategyResponse, ExecuteOrderResponse, CancelOrderResponse]
+  description: >-
+    The most widely referenced schema in the model — 6 of 16 $ref edges point at it. Degradation
+    is a first-class part of every research and execution response, not an exception path.
+relationships:
+- from: QuoteResponse
+  to: SwapSimulationRequest
+  via: intent_id
+  type: correlation
+- from: SwapSimulationResponse
+  to: SwapRequest
+  via: simulationId + intentId
+  type: correlation
+- from: SwapResult
+  to: ConfirmRequest
+  via: feeEventId
+  type: correlation
+- from: ConfirmRequest
+  to: FeeEvent
+  via: feeEventId + txHash
+  type: belongs_to
+- from: HistoryResponse
+  to: FeeEvent
+  via: events
+  type: has_many
+- from: ProtocolsResponse
+  to: ProtocolItem
+  via: data
+  type: has_many
+- from: AccountStateResponse
+  to: FuturesPosition
+  via: positions
+  type: has_many
+- from: AgentSession
+  to: TrackedPosition
+  via: activePositions
+  type: has_many
+- from: SwapRiskReport
+  to: RiskFlag
+  via: flags
+  type: has_many
+- from: SwapRiskReport
+  to: PegCheck
+  via: pegChecks
+  type: has_many
+- from: ScanFundingResponse
+  to: FundingAnalysis
+  via: arbOpportunities + highFunding
+  type: has_many
+- from: ExecutionAlphaReport
+  to: RouteCandidate
+  via: candidates
+  type: has_many
+- from: RiskSentinelResponse
+  to: RiskFlag
+  via: flags
+  type: has_many
+- from: ExecuteOrderRequest
+  to: ExecuteOrderResponse
+  via: intentHash
+  type: correlation
+- from: CancelOrderRequest
+  to: CancelOrderResponse
+  via: intentHash
+  type: correlation
+critical_path:
+  name: swap settlement chain
+  steps:
+  - operation: getSwapQuote
+    emits: intent_id
+  - operation: simulateSwapExecution
+    consumes: intent_id
+    emits: simulation_id
+    guard: 409 on intent/wallet mismatch
+  - operation: executeSwap
+    consumes: [intentId, simulationId]
+    emits: feeEventId + calldata
+    guard: 428 if simulation missing/expired (>60s); 409 on Risk Sentinel halt; 401 on bad EIP-191 signature
+  - operation: (off-API)
+    detail: The user's own wallet signs and broadcasts. FarmDash never broadcasts.
+  - operation: confirmSwap
+    consumes: [feeEventId, txHash, agentAddress]
+    detail: Server verifies the on-chain receipt against committed fee fields.
+  note: >-
+    Four API calls and one off-API signature to move tokens. Every gate is a distinct HTTP status
+    an agent can branch on, which makes this one of the more legible write paths in the catalog —
+    despite the absence of an idempotency key.

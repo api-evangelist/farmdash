@@ -1,0 +1,49 @@
+generated: '2026-08-26'
+method: probed
+source: live GET probes of https://www.farmdash.one/.well-known/* on 2026-08-26
+note: >-
+  FarmDash serves three real machine-readable documents under /.well-known/ (mcp.json,
+  ai-plugin.json, agent.json) and returns a genuine HTML 404 page for every other probed
+  path — this host is NOT an SPA catch-all, so the 404s below are true absences rather
+  than a shell answering 200. The RFC 9116 security.txt, OIDC/OAuth metadata and RFC 9727
+  api-catalog are all absent. Two additional discovery documents live off the .well-known
+  namespace (/llms.txt, /ai.txt, /agent-report.md) and are captured under llms/.
+hosts:
+- host: www.farmdash.one
+  documents:
+  - path: /.well-known/mcp.json
+    status: 200
+    content_type: application/json
+    file: farmdash-mcp.json
+    note: MCP server manifest, schema_version 1.0.0, server_version 5.0.0, 84 tools with inputSchema.
+  - path: /.well-known/ai-plugin.json
+    status: 200
+    content_type: application/json
+    file: farmdash-ai-plugin.json
+    note: OpenAI-plugin-style manifest (schema_version v1) pointing at /agents/openapi.yaml.
+  - path: /.well-known/agent.json
+    status: 200
+    content_type: application/json
+    file: ../a2a/farmdash-agent-card.json
+    note: >-
+      A2A-flavored agent card at the pre-0.3 legacy path. Saved verbatim under a2a/ and
+      graded in a2a/farmdash-a2a.yml.
+  - path: /.well-known/agent-card.json
+    status: 404
+    file: null
+    note: Canonical A2A 0.3+ path is not served; only the legacy /.well-known/agent.json exists.
+  - path: /.well-known/security.txt
+    status: 404
+    file: null
+  - path: /.well-known/openid-configuration
+    status: 404
+    file: null
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+    file: null
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+    file: null
+  - path: /.well-known/api-catalog
+    status: 404
+    file: null

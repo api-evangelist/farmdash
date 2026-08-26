@@ -1,0 +1,120 @@
+generated: '2026-08-26'
+method: probed
+source: https://www.farmdash.one/api/v1/agent/status
+secondary_sources:
+- https://www.farmdash.one/.well-known/mcp.json
+- https://www.farmdash.one/.well-known/agent.json
+- https://www.farmdash.one/.well-known/ai-plugin.json
+- https://www.farmdash.one/agents/openapi.yaml
+- https://www.farmdash.one/pricing
+note: >-
+  Read from FarmDash's machine-readable surfaces rather than the pricing page: /pricing
+  returns HTTP 200 but renders its tier table client-side, while the live status endpoint,
+  the MCP manifest, the agent card and the OpenAPI info.description all carry the same three
+  tiers with identical prices and limits. Prices are quoted and settled in USDC, and the
+  per-request x402 overage prices below are the provider's published one-off catalogue.
+currency: USDC
+billing_period: monthly
+plan_count: 3
+plans:
+- name: Scout
+  price: 0
+  price_display: Free
+  billing_period: monthly
+  auth: none required (omit Authorization, or send Bearer fd_scout_free)
+  quota: 5 requests / 24 hours per IP
+  quota_window: 24h
+  limit: 5
+  scope: per-ip
+  overage: x402 one-off USDC payment per request
+  best_for: small live preview and onboarding
+  included:
+  - Top 3 protocols (remainder encrypted)
+  - Swap quotes
+  - Swap execution (EIP-191 user-signed)
+  - Token prices
+  - Funding rate scans
+  - Market conditions
+- name: Pioneer
+  price: 39.99
+  price_display: $39.99/mo USDC
+  billing_period: monthly
+  auth: 'Authorization: Bearer <key>'
+  quota: 1,500 requests / day
+  quota_window: 24h
+  limit: 1500
+  scope: per-key
+  overage: x402 one-off USDC payment per request
+  best_for: research agents and wallet-aware workflows
+  included:
+  - Full Trail Heat dataset for the live protocol registry
+  - Swap routing with volume discounts
+  - Sybil risk audits
+  - Points simulation
+  - Portfolio optimization
+  - Historical Trail Heat (365d)
+  - Agent events stream
+  - Futures account state
+  - Strategy analysis
+  - Position sizing
+  - Multi-chain balances
+  - Performance analytics
+  - Agent sessions
+- name: Syndicate
+  price: 199
+  price_display: $199/mo USDC
+  billing_period: monthly
+  auth: 'Authorization: Bearer <key>'
+  quota: 50,000 requests / day
+  quota_window: 24h
+  limit: 50000
+  scope: per-key
+  overage: x402 one-off USDC payment per request
+  best_for: teams and high-volume agent workflows
+  included:
+  - Everything in Pioneer
+  - Priority swap routing
+  - HMAC-signed webhook engine
+  - Perp order execution (EIP-712)
+  - Batch order cancellation
+  - Volume discounts (35bps at 10K, 25bps at 100K)
+  - Bounded autopilot recommendations
+  - Wallet delegation verification
+  - Advanced control/session tooling
+usage_based:
+  protocol: x402
+  payment_token: USDC
+  token_contract: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+  network: Base
+  chain_id: 8453
+  network_caip2: 'eip155:8453'
+  treasury: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+  proof_header: X-Payment-Proof
+  payment_required_header: PAYMENT-REQUIRED
+  signature_header: PAYMENT-SIGNATURE
+  response_header: PAYMENT-RESPONSE
+  verified_live: true
+  verified_evidence:
+    url: https://www.farmdash.one/api/v1/agent/sybil-audit?agentAddress=0x0000000000000000000000000000000000000000
+    http_status: 402
+    checked: '2026-08-26'
+    note: >-
+      An unauthenticated request returned a real HTTP 402 carrying a complete x402 block —
+      price 4.99 USDC, policy_key sybil_audit, treasury, token contract, chainId 8453,
+      amount 4990000 base units, agent_actions[] and both proof headers. This is a live,
+      machine-actionable payment challenge, not a documented claim.
+  one_off_prices_usdc:
+    default_overage: '0.99'
+    market_data: '0.99'
+    full_trail_heat: '1.99'
+    wallet_portfolio: '3.99'
+    sybil_audit: '4.99'
+    points_simulation: '2.99'
+    portfolio_optimization: '6.99'
+    historical_trail_heat: '2.99'
+    futures_strategy: '7.99'
+  note: >-
+    The OpenAPI info.description states a configured default overage of 0.01 USDC while the
+    MCP manifest publishes 0.99 as default_overage; the live 402 for sybil_audit returned
+    4.99, matching the manifest's per-policy catalogue. Where the two disagree, the runtime
+    402 body is authoritative.
