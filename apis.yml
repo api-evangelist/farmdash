@@ -31,30 +31,16 @@ tags:
 - wallet intelligence
 - zero custody
 apis:
-- name: FarmDash Agent Hub API
-  description: >-
-    Unified zero-custody DeFi agent API: Trail Heat protocol intelligence, swap quotes with a mandatory simulation
-    gate and user-signed execution, wallet/Sybil intelligence, and guarded Hyperliquid futures research. 27 operations
-    across 23 paths in a live OpenAPI 3.1.0 (73 component schemas). The same product also ships an 84-tool MCP server
-    manifest — roughly 3x the REST surface — so 57 tools have no published REST equivalent (see mcp/farmdash-tool-crosswalk.yml).
-    x402 is VERIFIED LIVE, not merely documented: an unauthenticated GET on /api/v1/agent/sybil-audit returned HTTP
-    402 on 2026-08-26 carrying a complete x402 challenge (4.99 USDC, Base, chainId 8453, treasury and token contract,
-    PAYMENT-SIGNATURE and X-Payment-Proof headers). baseURL corrected from the website root to the spec's declared
-    server https://www.farmdash.one/api.
+- aid: farmdash:farmdash-account-api
+  name: FarmDash Agent Hub Account API
+  description: Hyperliquid account state and risk management
   humanURL: https://www.farmdash.one/agents
   baseURL: https://www.farmdash.one/api
   tags:
-  - DeFi
-  - DeFAI
-  - AI agents
-  - MCP
-  - OpenAPI
-  - x402
-  - blockchain
-  - crypto
-  - airdrop tracking
-  - developer tools
+  - Account
   properties:
+  - type: OpenAPI
+    url: openapi/farmdash-account-api-openapi.yml
   - type: Documentation
     url: https://www.farmdash.one/docs
   - type: APIReference
@@ -63,28 +49,372 @@ apis:
     url: https://www.farmdash.one/agents
   - type: GettingStarted
     url: https://www.farmdash.one/agents
-  - type: OpenAPI
-    url: openapi/farmdash-agent-api-openapi.yaml
-    description: >-
-      OpenAPI 3.1.0 harvested verbatim from https://www.farmdash.one/agents/openapi.yaml (HTTP 200, 100,999 bytes,
-      2026-08-26). 27 operations, 73 schemas, all operationIds unique.
-  - type: MCPServer
-    url: mcp/farmdash-mcp.yml
-    description: >-
-      84 tools with full inputSchema. Transport is stdio ONLY — no remote endpoint (/api/mcp and /mcp both 404). The
-      npm package is unpublished and the source repo the provider names for a build (Parmasanandgarlic/farmdashbeta)
-      returns 404, so the server is currently not obtainable by a third party.
   - type: ToolCrosswalk
     url: mcp/farmdash-tool-crosswalk.yml
   - type: AgentCard
     url: a2a/farmdash-a2a.yml
-    description: >-
-      Served at the legacy /.well-known/agent.json (canonical /.well-known/agent-card.json 404s). Graded FLAVORED
-      against A2A 1.0.0: capabilities is an object and skills an array, but protocolVersion is spelled protocol_version.
   - type: LLMsTxt
     url: llms/farmdash-llms.txt
-  - type: Overlay
-    url: overlays/farmdash-agent-api-overlay.yaml
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-autopilot-api
+  name: FarmDash Agent Hub Autopilot API
+  description: Policy-bounded loop configuration and execution
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Autopilot
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-autopilot-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-delegation-api
+  name: FarmDash Agent Hub Delegation API
+  description: Hyperliquid wallet delegation
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Delegation
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-delegation-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-execution-api
+  name: FarmDash Agent Hub Execution API
+  description: Futures order execution and cancellation
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Execution
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-execution-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-history-api
+  name: FarmDash Agent Hub History API
+  description: Fee event history and revenue metrics
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - History
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-history-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-intelligence-api
+  name: FarmDash Agent Hub Intelligence API
+  description: Trail Heat protocol data and chain analytics
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Intelligence
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-intelligence-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-research-api
+  name: FarmDash Agent Hub Research API
+  description: Futures market research — funding rates, technical indicators
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Research
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-research-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-risk-api
+  name: FarmDash Agent Hub Risk API
+  description: Pre-trade risk analysis, alerts, and execution guardrails
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Risk
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-risk-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-session-api
+  name: FarmDash Agent Hub Session API
+  description: Bounded session management
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Session
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-session-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-strategy-api
+  name: FarmDash Agent Hub Strategy API
+  description: Strategy analysis and position sizing
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Strategy
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-strategy-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
+  - type: ErrorCatalog
+    url: errors/farmdash-problem-types.yml
+  - type: DataModel
+    url: data-model/farmdash-data-model.yml
+  - type: Conventions
+    url: conventions/farmdash-conventions.yml
+  - type: RateLimits
+    url: rate-limits/farmdash-rate-limits.yml
+  - type: Sandbox
+    url: sandbox/farmdash-sandbox.yml
+  - type: Authentication
+    url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-swap-api
+  name: FarmDash Agent Hub Swap API
+  description: Token swap quotes, execution, and confirmation
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Swap
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-swap-api-openapi.yml
+  - type: Documentation
+    url: https://www.farmdash.one/docs
+  - type: APIReference
+    url: https://www.farmdash.one/agents/openapi.yaml
+  - type: DeveloperPortal
+    url: https://www.farmdash.one/agents
+  - type: GettingStarted
+    url: https://www.farmdash.one/agents
+  - type: ToolCrosswalk
+    url: mcp/farmdash-tool-crosswalk.yml
+  - type: AgentCard
+    url: a2a/farmdash-a2a.yml
+  - type: LLMsTxt
+    url: llms/farmdash-llms.txt
   - type: ErrorCatalog
     url: errors/farmdash-problem-types.yml
   - type: DataModel
@@ -107,6 +437,10 @@ generated:
   confidence: 72
   at: '2026-08-26T16:05:34.303Z'
 common:
+- type: MCPServer
+  url: mcp/farmdash-mcp.yml
+- type: Overlay
+  url: overlays/farmdash-agent-api-overlay.yaml
 - type: Documentation
   url: https://www.farmdash.one/docs
 - type: DeveloperPortal
