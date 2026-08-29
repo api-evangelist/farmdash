@@ -11,6 +11,18 @@ description: >-
   Base. Writes are gated by mandatory pre-execution simulation and user-held EIP-191/EIP-712 signatures — FarmDash
   never broadcasts and never holds keys.
 url: https://raw.githubusercontent.com/api-evangelist/farmdash-agent-hub/refs/heads/main/apis.yml
+deliveryModel:
+  model: saas
+  open_source: false
+  commercial: true
+  callable_host: true
+  label: Hosted service · you call their endpoint
+  confidence: high
+  source:
+  - openapi
+  - pricing
+  generated: '2026-08-28'
+  method: derived
 created: '2026-08-26'
 modified: '2026-08-26'
 specificationVersion: '0.21'
