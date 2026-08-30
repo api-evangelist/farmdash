@@ -1,0 +1,1223 @@
+openapi: 3.2.0
+info:
+  title: FarmDash Agent Swap API
+  version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication
+
+    | Tier | Price | Auth | Rate Limit | Best for |
+
+    |------|-------|------|------------|----------|
+
+    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
+
+    route-specific USDC transfer on Base to the treasury to unlock one additional request.
+
+    The configured default overage is 0.01 USDC; premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
+
+    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+servers:
+- url: https://www.farmdash.one/api
+  description: Production
+tags:
+- name: Swap
+  description: Token swap quotes, execution, and confirmation
+paths:
+  /agents/quote:
+    get:
+      operationId: getSwapQuote
+      summary: Get a token swap quote
+      description: 'Returns an unsigned preview quote showing expected output, fee breakdown,
+
+        protocol selection, and FarmDash execution guardrails. No authentication required.
+
+        When wallet and risk inputs are supplied, the response also includes
+
+        allowance checks, depeg/health warnings, quote-decay diagnostics, and
+
+        positive-net-edge guidance.
+
+        Include `walletAddress` to receive a wallet-bound `intent_id` for the
+
+        mandatory `/v1/simulate` preflight.
+
+        Compatible live providers are compared by route, output, gas, and risk.
+
+        Callers may force Li.Fi, 0x, or x402; automatic selection may also choose OKX.
+
+        `mock=true` is not supported and returns a typed 400 without contacting a provider.
+
+        '
+      tags:
+      - Swap
+      parameters:
+      - $ref: '#/components/parameters/FromChainId'
+      - $ref: '#/components/parameters/ToChainId'
+      - $ref: '#/components/parameters/FromToken'
+      - $ref: '#/components/parameters/ToToken'
+      - $ref: '#/components/parameters/FromAmount'
+      - name: protocol
+        in: query
+        schema:
+          type: string
+          enum:
+          - lifi
+          - zerox
+          - x402
+        description: Force a specific routing protocol (auto-selected if omitted)
+      - name: mock
+        in: query
+        schema:
+          type: string
+          enum:
+          - 'true'
+        description: Unsupported for quotes. Returns HTTP 400 mock_not_supported and never contacts a live quote provider.
+      - name: walletAddress
+        in: query
+        schema:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        description: Optional wallet used for approval and allowance checks
+      - name: toAddress
+        in: query
+        schema:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        description: Optional destination wallet override for previewing the signed route
+      - name: slippage
+        in: query
+        schema:
+          type: number
+          minimum: 0.01
+          maximum: 5
+        description: Optional slippage tolerance in percent
+      - name: expectedUpsideUsd
+        in: query
+        schema:
+          type: number
+        description: Optional upside estimate used to enforce positive net edge
+      - name: riskBufferUsd
+        in: query
+        schema:
+          type: number
+        description: Optional execution-risk haircut added to total route cost
+      - name: healthFactor
+        in: query
+        schema:
+          type: number
+        description: Optional health factor used for halt checks
+      - name: liquidationBufferPct
+        in: query
+        schema:
+          type: number
+        description: Optional liquidation buffer percentage used for halt checks
+      - name: safetyMode
+        in: query
+        schema:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        description: '`strict` halts on severe quote decay, `balanced` downgrades that condition to a warning'
+      responses:
+        '200':
+          description: Swap quote
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed live quote provider degradation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/simulate:
+    post:
+      operationId: simulateSwapExecution
+      summary: Simulate a wallet-bound swap intent
+      description: 'Mandatory pre-execution simulation gate for Signal Architect. The caller
+
+        submits the `intent_id` returned by `/agents/quote` plus the signing wallet.
+
+        FarmDash simulates the quote intent, caches the result for 60 seconds, and
+
+        returns a `simulation_id` that `/agents/swap` requires.
+
+        '
+      tags:
+      - Swap
+      security:
+      - bearerAuth: []
+      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapSimulationRequest'
+      responses:
+        '200':
+          description: Simulation report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapSimulationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '409':
+          description: Intent and wallet mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /agents/swap:
+    post:
+      operationId: executeSwap
+      summary: Execute a signed token swap
+      description: 'Main swap router. Requires a fresh successful `simulationId`, authenticates
+
+        the agent via EIP-191 signature, reuses the simulated quote intent, applies
+
+        Execution Alpha route selection, and enforces Risk Sentinel guardrails before
+
+        returning ready-to-broadcast transaction calldata.
+
+
+        FarmDash NEVER touches funds. The protocol (Li.Fi / 0x / x402)
+
+        executes the swap. Treasury receives the fee haircut directly.
+
+
+        **Fee schedule**: 45 bps default, ≥$10k → 35 bps, ≥$100k → 25 bps.
+
+        '
+      tags:
+      - Swap
+      security:
+      - bearerAuth: []
+      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapRequest'
+      responses:
+        '200':
+          description: Executable swap with transaction calldata
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid signature or expired nonce
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Swap halted by Risk Sentinel guardrails
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapHaltResponse'
+        '428':
+          description: Missing, expired, failed, or mismatched preflight simulation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /agents/confirm:
+    post:
+      operationId: confirmSwap
+      summary: Confirm swap execution with on-chain tx hash
+      description: 'After broadcasting the swap transaction, confirm it here with the tx hash.
+
+        FarmDash verifies the transaction on-chain (10s timeout with LRU cache)
+
+        and marks the fee event as settled. Idempotent — safe to retry.
+
+        '
+      tags:
+      - Swap
+      security:
+      - bearerAuth: []
+      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmRequest'
+      responses:
+        '200':
+          description: Confirmation result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+components:
+  schemas:
+    SwapHaltResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: swap_halted
+        code:
+          type: string
+          example: swap_halted
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+    RiskSeverity:
+      type: string
+      enum:
+      - low
+      - medium
+      - high
+      - critical
+    QuoteResponse:
+      type: object
+      required:
+      - protocol
+      - estimatedOutput
+      - feeBps
+      - feeAmountUSD
+      - gasEstimate
+      - txData
+      - expiresAt
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+          description: Expected output in wei
+        feeBps:
+          type: integer
+          description: Fee in basis points (45 = 0.45% default; configured volume discounts may apply)
+        mode:
+          type: string
+          const: live
+        unsigned:
+          type: boolean
+          const: true
+        broadcast_by_farmdash:
+          type: boolean
+          const: false
+        feeAmountUSD:
+          type: string
+        gasEstimate:
+          type: string
+        txData:
+          $ref: '#/components/schemas/SwapTxData'
+        expiresAt:
+          type: integer
+          description: Unix timestamp — quotes valid 30s
+        simulation_required:
+          type: boolean
+          description: True when execute_swap requires a simulation for this route
+        simulation_available:
+          type: boolean
+          description: True when the quote was wallet-bound and returned an intent_id
+        intent_id:
+          type: string
+          nullable: true
+          description: Pass this to POST /v1/simulate before execution
+        intent_expires_at:
+          type: string
+          nullable: true
+          format: date-time
+        simulate_url:
+          type: string
+          example: /api/v1/simulate
+        allowanceTarget:
+          type: string
+          nullable: true
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+        note:
+          type: string
+    RiskFlag:
+      type: object
+      required:
+      - code
+      - category
+      - severity
+      - title
+      - message
+      properties:
+        code:
+          type: string
+        category:
+          type: string
+          enum:
+          - approval
+          - bridge
+          - contract
+          - token
+          - health
+          - execution
+        severity:
+          $ref: '#/components/schemas/RiskSeverity'
+        title:
+          type: string
+        message:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    SwapTxData:
+      type: object
+      required:
+      - to
+      - data
+      - value
+      - chainId
+      properties:
+        to:
+          type: string
+          description: Protocol contract address (NOT FarmDash)
+        data:
+          type: string
+          description: Encoded calldata
+        value:
+          type: string
+          description: Native token value in wei
+        chainId:
+          type: integer
+    SwapSimulationRequest:
+      type: object
+      required:
+      - intent_id
+      - wallet_address
+      properties:
+        intent_id:
+          type: string
+          description: Wallet-bound quote intent returned by /agents/quote
+          example: fd_intent_7f3a
+        wallet_address:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Signing wallet for the simulated execution
+    ConfirmRequest:
+      type: object
+      required:
+      - feeEventId
+      - txHash
+      - agentAddress
+      properties:
+        feeEventId:
+          type: string
+          format: uuid
+        txHash:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{64}$
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+    ConfirmResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        feeEventId:
+          type: string
+          format: uuid
+        settlementStatus:
+          type: string
+          enum:
+          - confirmed
+          - pending
+          - expired
+        idempotent:
+          type: boolean
+          description: True if this was a duplicate confirmation (safe to retry)
+    RouteCandidate:
+      type: object
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeAmountUsd:
+          type: number
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        routeRiskScore:
+          type: number
+        selected:
+          type: boolean
+    PegCheck:
+      type: object
+      properties:
+        tokenAddress:
+          type: string
+        symbol:
+          type: string
+        reference:
+          type: string
+          enum:
+          - USD
+          - ETH
+        priceUsd:
+          type: number
+          nullable: true
+        referencePriceUsd:
+          type: number
+          nullable: true
+        deviationPct:
+          type: number
+          nullable: true
+        alert:
+          type: boolean
+    NetEdgeAnalysis:
+      type: object
+      properties:
+        expectedUpsideUsd:
+          type: number
+          nullable: true
+        protocolFeeUsd:
+          type: number
+        gasUsd:
+          type: number
+        bridgeFeeUsd:
+          type: number
+        riskBufferUsd:
+          type: number
+        totalCostUsd:
+          type: number
+        netEdgeUsd:
+          type: number
+          nullable: true
+        positive:
+          type: boolean
+          nullable: true
+        enforced:
+          type: boolean
+    SwapRequest:
+      type: object
+      required:
+      - fromChainId
+      - toChainId
+      - fromToken
+      - toToken
+      - fromAmount
+      - agentAddress
+      - toAddress
+      - simulationId
+      - nonce
+      - signature
+      properties:
+        fromChainId:
+          type: integer
+          enum:
+          - 1
+          - 10
+          - 137
+          - 8453
+          - 42161
+          - 59144
+        toChainId:
+          type: integer
+          enum:
+          - 1
+          - 10
+          - 137
+          - 8453
+          - 42161
+          - 59144
+        fromToken:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        toToken:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        fromAmount:
+          type: string
+          pattern: ^\d+$
+          description: Amount in wei
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Agent wallet address (signer)
+        toAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Destination wallet for swapped tokens
+        slippage:
+          type: number
+          minimum: 0.01
+          maximum: 5
+          default: 0.5
+          description: Slippage tolerance in percent (capped at 5%)
+        protocol:
+          type: string
+          enum:
+          - lifi
+          - zerox
+          - x402
+        volumeHintUSD:
+          type: number
+          description: USD volume estimate - unlocks fee discounts (>= $10k -> 35bps, >= $100k -> 25bps)
+        expectedUpsideUsd:
+          type: number
+          description: Optional upside estimate in USD for positive-net-edge checks
+        riskBufferUsd:
+          type: number
+          description: Optional extra execution-risk buffer in USD
+        healthFactor:
+          type: number
+          description: Optional lending health factor supplied by the caller
+        liquidationBufferPct:
+          type: number
+          description: Optional liquidation-buffer percentage supplied by the caller
+        walletAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Optional wallet address used for on-chain approval checks
+        safetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+          description: USD volume estimate — unlocks fee discounts (≥$10k → 35bps, ≥$100k → 25bps)
+        simulationId:
+          type: string
+          description: Fresh successful simulation_id from POST /v1/simulate
+        intentId:
+          type: string
+          description: Optional quote intent ID; must match the simulation when supplied
+        nonce:
+          type: string
+          description: Current timestamp in milliseconds (60s window)
+        signature:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{130}$
+          description: EIP-191 personal_sign of the v1 versioned payload
+    SwapResult:
+      type: object
+      required:
+      - protocol
+      - estimatedOutput
+      - feeBps
+      - feeAmountUSD
+      - gasEstimate
+      - txData
+      - expiresAt
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeBps:
+          type: integer
+        feeAmountUSD:
+          type: string
+        feeEventId:
+          type: string
+          format: uuid
+          description: Use with /agents/confirm to confirm settlement
+        gasEstimate:
+          type: string
+        txData:
+          $ref: '#/components/schemas/SwapTxData'
+        expiresAt:
+          type: integer
+        allowanceTarget:
+          type: string
+          nullable: true
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        simulation:
+          type: object
+          additionalProperties: true
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+        confirmUrl:
+          type: string
+          example: /api/agents/confirm
+    QuoteDecayMetrics:
+      type: object
+      properties:
+        previousObservedAt:
+          type: integer
+          nullable: true
+        quoteAgeMs:
+          type: integer
+          nullable: true
+        outputDecayBps:
+          type: number
+        gasIncreaseBps:
+          type: number
+        severity:
+          $ref: '#/components/schemas/QuoteDecaySeverity'
+    SupportedProtocol:
+      type: string
+      enum:
+      - lifi
+      - zerox
+      - x402
+      - okx
+    QuoteDecaySeverity:
+      type: string
+      enum:
+      - none
+      - low
+      - medium
+      - high
+    ExecutionAlphaReport:
+      type: object
+      properties:
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        routeReason:
+          type: string
+        mevProtection:
+          type: object
+          properties:
+            safetyMode:
+              $ref: '#/components/schemas/SwapSafetyMode'
+            actualSlippageBps:
+              type: integer
+            maxRecommendedSlippageBps:
+              type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteCandidate'
+        quoteDecay:
+          $ref: '#/components/schemas/QuoteDecayMetrics'
+        netEdge:
+          $ref: '#/components/schemas/NetEdgeAnalysis'
+    HealthCheck:
+      type: object
+      properties:
+        healthFactor:
+          type: number
+          nullable: true
+        liquidationBufferPct:
+          type: number
+          nullable: true
+        alertLevel:
+          type: string
+          enum:
+          - none
+          - warning
+          - critical
+        shouldHalt:
+          type: boolean
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
+    SwapSimulationResponse:
+      type: object
+      required:
+      - ok
+      - simulation_id
+      - intent_id
+      - success
+      - gas_used
+      - gas_cost_usd
+      - output_amount
+      - mev_risk
+      - valid_until
+      - wallet_address
+      - selected_protocol
+      - required_for_execution
+      properties:
+        ok:
+          type: boolean
+          example: true
+        simulation_id:
+          type: string
+          example: sim_9b2e
+        intent_id:
+          type: string
+        success:
+          type: boolean
+        gas_used:
+          type: number
+        gas_cost_usd:
+          type: number
+        output_amount:
+          type: string
+        price_impact_pct:
+          type: number
+          nullable: true
+        mev_risk:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        revert_reason:
+          type: string
+          nullable: true
+        valid_until:
+          type: string
+          format: date-time
+        wallet_address:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        selected_protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        tx_fingerprint:
+          type: string
+        request_fingerprint:
+          type: string
+        provider:
+          type: string
+        cached:
+          type: boolean
+        required_for_execution:
+          type: boolean
+          const: true
+    SwapRiskReport:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        approval:
+          allOf:
+          - $ref: '#/components/schemas/AllowanceStatus'
+          nullable: true
+        pegChecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PegCheck'
+        health:
+          allOf:
+          - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        shouldHalt:
+          type: boolean
+        haltReasons:
+          type: array
+          items:
+            type: string
+    AllowanceStatus:
+      type: object
+      properties:
+        spender:
+          type: string
+          nullable: true
+        allowance:
+          type: string
+          nullable: true
+        requiredAmount:
+          type: string
+        approvalNeeded:
+          type: boolean
+        overApproved:
+          type: boolean
+        source:
+          type: string
+          enum:
+          - onchain
+          - quote_fallback
+          - unavailable
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+  parameters:
+    FromToken:
+      name: fromToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^0x[a-fA-F0-9]{40}$
+      description: Source token contract address
+    FromAmount:
+      name: fromAmount
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^\d+$
+      description: Amount in wei (no leading zeros)
+    ToChainId:
+      name: toChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum:
+        - 1
+        - 10
+        - 137
+        - 8453
+        - 42161
+        - 59144
+      description: Destination chain ID
+    ToToken:
+      name: toToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^0x[a-fA-F0-9]{40}$
+      description: Destination token contract address
+    FromChainId:
+      name: fromChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum:
+        - 1
+        - 10
+        - 137
+        - 8453
+        - 42161
+        - 59144
+      description: 'Source chain: 1=Ethereum, 10=Optimism, 137=Polygon, 8453=Base, 42161=Arbitrum, 59144=Linea'
+  headers:
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+x-agent-use-cases:
+- id: bounded-autopilot
+  name: Bounded Autopilot
+  tier: Syndicate
+  cadence: Every 5 minutes
+  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+  primaryTools:
+  - agent_onboard
+  - create_session
+  - configure_autopilot
+  - autopilot_cycle
+  - session_heartbeat
+  stopConditions:
+  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+  - Required local EIP-191 or EIP-712 signature is missing.
+  - Realized performance degrades enough to require analysis_only mode.
+- id: airdrop-rotation
+  name: Airdrop Rotation Desk
+  tier: Pioneer
+  cadence: Daily or event-driven
+  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+  primaryTools:
+  - get_trail_heat
+  - get_historical_trailheat
+  - get_agent_events
+  - simulate_points
+  - get_swap_quote
+  - simulate_swap_execution
+  stopConditions:
+  - Expected point edge is unclear or negative after fees and gas.
+  - Sybil risk exceeds the configured threshold.
+  - User constraints do not allow the target chain or protocol.
+- id: cross-chain-roi
+  name: Cross-Chain ROI Gate
+  tier: Pioneer
+  cadence: Before any bridge
+  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+  primaryTools:
+  - get_chain_breakdown
+  - get_wallet_balances
+  - get_token_prices
+  - get_swap_quote
+  - simulate_swap_execution
+  - optimize_portfolio
+  stopConditions:
+  - netEdgeUsd is not positive.
+  - Quote age exceeds the configured freshness limit.
+  - Target chain is not allowlisted.
+- id: perps-hedge
+  name: Perps Hedge Co-Pilot
+  tier: Syndicate
+  cadence: Before exposure changes
+  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+  primaryTools:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  stopConditions:
+  - Research gate expires.
+  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+  - Daily loss or drawdown limit is reached.

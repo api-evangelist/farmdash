@@ -1,0 +1,767 @@
+openapi: 3.2.0
+info:
+  title: FarmDash Agent Strategy API
+  version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication
+
+    | Tier | Price | Auth | Rate Limit | Best for |
+
+    |------|-------|------|------------|----------|
+
+    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
+
+    route-specific USDC transfer on Base to the treasury to unlock one additional request.
+
+    The configured default overage is 0.01 USDC; premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
+
+    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+servers:
+- url: https://www.farmdash.one/api
+  description: Production
+tags:
+- name: Strategy
+  description: Strategy analysis and position sizing
+paths:
+  /v1/agent/futures/analyze-strategy:
+    post:
+      operationId: analyzeStrategy
+      summary: Full research pipeline with adaptive strategy recommendation
+      description: 'Runs funding rates + technicals + order book liquidity + Trail Heat cross-ref.
+
+        Returns a structured strategy object, confidence score, market regime,
+
+        adaptive risk, portfolio context, pre-trade simulation, and explicit
+
+        no-trade outcomes when no setup is valid. Pioneer+ required and
+
+        registers analysis for a 60-second execution window that binds side, maximum size, entry drift, leverage metadata, and stop-derived risk.
+
+        '
+      tags:
+      - Strategy
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - coin
+              - agentAddress
+              properties:
+                coin:
+                  type: string
+                  description: Asset symbol (ETH, BTC, SOL)
+                agentAddress:
+                  type: string
+                  pattern: ^0x[a-fA-F0-9]{40}$
+                riskMultiplier:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1.0
+                  description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+      responses:
+        '200':
+          description: Strategy recommendation
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeStrategyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+  /v1/agent/futures/position-sizing:
+    post:
+      operationId: calculatePositionSize
+      summary: Position size calculator with guardrail enforcement
+      description: 'Given entry price, stop price, equity, and risk, returns exact position
+
+        size, leverage, and margin. All guardrails enforced server-side.
+
+        Pioneer+ required.
+
+        '
+      tags:
+      - Strategy
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionSizingRequest'
+      responses:
+        '200':
+          description: Position sizing result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionSizingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+components:
+  schemas:
+    FuturesTradeSimulation:
+      type: object
+      properties:
+        methodology:
+          type: string
+          enum:
+          - heuristic_preflight
+        holdingWindowHours:
+          type: number
+        entryValueUsd:
+          type: number
+        marginRequiredUsd:
+          type: number
+        marginImpactPct:
+          type: number
+        liquidationPriceEstimate:
+          type: number
+          nullable: true
+        stopScenarioPnlUsd:
+          type: number
+        targetScenarioPnlUsd:
+          type: number
+        oneAtrMovePnlUsd:
+          type: number
+        estimatedFundingPnl24hUsd:
+          type: number
+        estimatedFundingPnl72hUsd:
+          type: number
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum:
+          - long_spot_short_perp
+          - short_spot_long_perp
+          - null
+    FuturesStrategyObject:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - futures
+        market:
+          type: string
+        direction:
+          $ref: '#/components/schemas/FuturesTradeDirection'
+        regime:
+          $ref: '#/components/schemas/FuturesMarketRegime'
+        triggerConditions:
+          type: array
+          items:
+            type: string
+        entryLogic:
+          type: string
+        exitLogic:
+          type: string
+        riskModel:
+          type: object
+          properties:
+            baseRiskPercent:
+              type: number
+            appliedRiskPercent:
+              type: number
+            riskMultiplier:
+              type: number
+            leverageCap:
+              type: number
+            stopModel:
+              type: string
+        leverageModel:
+          type: object
+          properties:
+            mode:
+              type: string
+              enum:
+              - adaptive
+            suggested:
+              type: number
+            cap:
+              type: number
+            drivers:
+              type: array
+              items:
+                type: string
+        fallbackLogic:
+          type: array
+          items:
+            type: string
+        telemetryTracking:
+          type: array
+          items:
+            type: string
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+    StrategyRecommendation:
+      type: object
+      properties:
+        recommendedStrategy:
+          type: string
+          enum:
+          - funding_arb
+          - momentum_long
+          - momentum_short
+          - trend_pullback_long
+          - trend_pullback_short
+          - mean_reversion
+          - no_trade
+        confidence:
+          type: number
+        asset:
+          type: string
+        marketRegime:
+          $ref: '#/components/schemas/FuturesMarketRegime'
+        entry:
+          type: number
+        stopLoss:
+          type: number
+        takeProfit:
+          type: number
+        positionSize:
+          type: number
+        leverage:
+          type: number
+          maximum: 5
+        riskPercent:
+          type: number
+          maximum: 0.02
+        reasoning:
+          type: array
+          items:
+            type: string
+        noTradeReason:
+          type: string
+          nullable: true
+        strategyObject:
+          $ref: '#/components/schemas/FuturesStrategyObject'
+        adaptiveRisk:
+          $ref: '#/components/schemas/FuturesAdaptiveRisk'
+        simulation:
+          $ref: '#/components/schemas/FuturesTradeSimulation'
+        portfolioContext:
+          $ref: '#/components/schemas/FuturesPortfolioContext'
+        trailHeatCrossRef:
+          type: object
+          properties:
+            protocolId:
+              type: string
+            score:
+              type: number
+            farmingOpportunity:
+              type: boolean
+            referralLink:
+              type: string
+              format: uri
+        fundingAnalysis:
+          $ref: '#/components/schemas/FundingAnalysis'
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+    FuturesPortfolioContext:
+      type: object
+      properties:
+        openPositionCount:
+          type: integer
+        sameAssetExposureUsd:
+          type: number
+        sameAssetExposurePct:
+          type: number
+        directionalExposurePct:
+          type: number
+        netDirectionalBias:
+          type: string
+          enum:
+          - net_long
+          - net_short
+          - balanced
+        concentrationWarning:
+          type: string
+          nullable: true
+    PositionSizing:
+      type: object
+      properties:
+        positionSize:
+          type: number
+        positionValueUsd:
+          type: number
+        leverage:
+          type: number
+        marginRequired:
+          type: number
+        riskAmount:
+          type: number
+        riskPercent:
+          type: number
+        stopDistance:
+          type: number
+        rewardRiskRatio:
+          type: number
+    PositionSizingResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        sizing:
+          $ref: '#/components/schemas/PositionSizing'
+        guardrails:
+          type: object
+          properties:
+            maxLeverage:
+              type: integer
+            maxRiskPerTrade:
+              type: string
+            maxPositionValue:
+              type: string
+            note:
+              type: string
+        timestamp:
+          type: integer
+    PositionSizingRequest:
+      type: object
+      required:
+      - equity
+      - entryPrice
+      - stopPrice
+      properties:
+        equity:
+          type: number
+          description: Account equity in USD
+        entryPrice:
+          type: number
+        stopPrice:
+          type: number
+        riskPercent:
+          type: number
+          maximum: 0.02
+          description: Capped at 2%
+        targetPrice:
+          type: number
+          description: For R:R calculation
+        riskMultiplier:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+          description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+    FuturesAdaptiveRisk:
+      type: object
+      properties:
+        baseRiskPercent:
+          type: number
+        appliedRiskPercent:
+          type: number
+        confidenceMultiplier:
+          type: number
+        volatilityMultiplier:
+          type: number
+        drawdownMultiplier:
+          type: number
+        portfolioMultiplier:
+          type: number
+        finalRiskMultiplier:
+          type: number
+    FuturesTradeDirection:
+      type: string
+      enum:
+      - long
+      - short
+      - neutral
+    Guardrails:
+      type: object
+      properties:
+        maxLeverage:
+          type: integer
+          example: 5
+        maxRiskPerTrade:
+          type: string
+          example: 2%
+        maxPositions:
+          type: integer
+        dailyLossLimit:
+          type: string
+          example: -3%
+        weeklyLossLimit:
+          type: string
+          example: -7%
+        maxDrawdown:
+          type: string
+          example: -15%
+    TechnicalIndicators:
+      type: object
+      properties:
+        ema8:
+          type: number
+        ema34:
+          type: number
+        emaCross:
+          type: string
+          enum:
+          - bullish
+          - bearish
+          - neutral
+        rsi:
+          type: number
+        macd:
+          type: number
+        macdSignal:
+          type: number
+        macdHistogram:
+          type: number
+        macdCross:
+          type: string
+          enum:
+          - bullish_cross
+          - bearish_cross
+          - neutral
+        adx:
+          type: number
+        atr:
+          type: number
+        bbUpper:
+          type: number
+        bbMiddle:
+          type: number
+        bbLower:
+          type: number
+        bbWidth:
+          type: number
+        volumeRatio:
+          type: number
+        zScore:
+          type: number
+    FuturesMarketRegime:
+      type: string
+      enum:
+      - trending
+      - ranging
+      - high_volatility
+      - low_liquidity
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    AnalyzeStrategyResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        recommendation:
+          $ref: '#/components/schemas/StrategyRecommendation'
+        account:
+          type: object
+          properties:
+            equity:
+              type: string
+            availableMargin:
+              type: string
+            openPositions:
+              type: integer
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+x-agent-use-cases:
+- id: bounded-autopilot
+  name: Bounded Autopilot
+  tier: Syndicate
+  cadence: Every 5 minutes
+  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+  primaryTools:
+  - agent_onboard
+  - create_session
+  - configure_autopilot
+  - autopilot_cycle
+  - session_heartbeat
+  stopConditions:
+  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+  - Required local EIP-191 or EIP-712 signature is missing.
+  - Realized performance degrades enough to require analysis_only mode.
+- id: airdrop-rotation
+  name: Airdrop Rotation Desk
+  tier: Pioneer
+  cadence: Daily or event-driven
+  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+  primaryTools:
+  - get_trail_heat
+  - get_historical_trailheat
+  - get_agent_events
+  - simulate_points
+  - get_swap_quote
+  - simulate_swap_execution
+  stopConditions:
+  - Expected point edge is unclear or negative after fees and gas.
+  - Sybil risk exceeds the configured threshold.
+  - User constraints do not allow the target chain or protocol.
+- id: cross-chain-roi
+  name: Cross-Chain ROI Gate
+  tier: Pioneer
+  cadence: Before any bridge
+  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+  primaryTools:
+  - get_chain_breakdown
+  - get_wallet_balances
+  - get_token_prices
+  - get_swap_quote
+  - simulate_swap_execution
+  - optimize_portfolio
+  stopConditions:
+  - netEdgeUsd is not positive.
+  - Quote age exceeds the configured freshness limit.
+  - Target chain is not allowlisted.
+- id: perps-hedge
+  name: Perps Hedge Co-Pilot
+  tier: Syndicate
+  cadence: Before exposure changes
+  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+  primaryTools:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  stopConditions:
+  - Research gate expires.
+  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+  - Daily loss or drawdown limit is reached.

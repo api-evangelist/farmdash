@@ -1,0 +1,541 @@
+openapi: 3.2.0
+info:
+  title: FarmDash Agent Research API
+  version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication
+
+    | Tier | Price | Auth | Rate Limit | Best for |
+
+    |------|-------|------|------------|----------|
+
+    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
+
+    route-specific USDC transfer on Base to the treasury to unlock one additional request.
+
+    The configured default overage is 0.01 USDC; premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
+
+    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+servers:
+- url: https://www.farmdash.one/api
+  description: Production
+tags:
+- name: Research
+  description: Futures market research — funding rates, technical indicators
+paths:
+  /v1/agent/futures/scan-funding:
+    get:
+      operationId: scanFundingRates
+      summary: Scan Hyperliquid funding rates for arb opportunities
+      description: 'Returns current and predicted funding rates across all Hyperliquid perp
+
+        markets. Cross-references with Binance and Bybit to identify arbitrage.
+
+        Scout: top 3 with encrypted rates. Pioneer/Syndicate: full data.
+
+        '
+      tags:
+      - Research
+      security:
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Funding rate scan
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanFundingResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed Hyperliquid funding provider degradation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agent/futures/market-conditions:
+    get:
+      operationId: getMarketConditions
+      summary: Get technical indicators for an asset
+      description: 'Returns EMA-8/34, RSI-14, MACD(12,26,9), ATR-14, Bollinger Bands(20,2),
+
+        ADX-14, volume ratio, and Z-score using 4h candles.
+
+        Includes a strategy hint based on indicator confluence.
+
+        '
+      tags:
+      - Research
+      security:
+      - bearerAuth: []
+      - {}
+      parameters:
+      - name: coin
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Asset symbol (ETH, BTC, SOL, HYPE)
+      responses:
+        '200':
+          description: Technical indicators
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketConditionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '502':
+          description: Typed Hyperliquid candle provider degradation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  responses:
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ScanFundingResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/Tier'
+        arbOpportunities:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        highFunding:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        totalScanned:
+          type: integer
+        upgradeMessage:
+          type: string
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    TechnicalIndicators:
+      type: object
+      properties:
+        ema8:
+          type: number
+        ema34:
+          type: number
+        emaCross:
+          type: string
+          enum:
+          - bullish
+          - bearish
+          - neutral
+        rsi:
+          type: number
+        macd:
+          type: number
+        macdSignal:
+          type: number
+        macdHistogram:
+          type: number
+        macdCross:
+          type: string
+          enum:
+          - bullish_cross
+          - bearish_cross
+          - neutral
+        adx:
+          type: number
+        atr:
+          type: number
+        bbUpper:
+          type: number
+        bbMiddle:
+          type: number
+        bbLower:
+          type: number
+        bbWidth:
+          type: number
+        volumeRatio:
+          type: number
+        zScore:
+          type: number
+    Tier:
+      type: string
+      enum:
+      - scout
+      - pioneer
+      - syndicate
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum:
+          - long_spot_short_perp
+          - short_spot_long_perp
+          - null
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    MarketConditionsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        coin:
+          type: string
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+        strategyHint:
+          type: string
+          enum:
+          - momentum_long
+          - momentum_short
+          - mean_reversion
+          - no_trade
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+x-agent-use-cases:
+- id: bounded-autopilot
+  name: Bounded Autopilot
+  tier: Syndicate
+  cadence: Every 5 minutes
+  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+  primaryTools:
+  - agent_onboard
+  - create_session
+  - configure_autopilot
+  - autopilot_cycle
+  - session_heartbeat
+  stopConditions:
+  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+  - Required local EIP-191 or EIP-712 signature is missing.
+  - Realized performance degrades enough to require analysis_only mode.
+- id: airdrop-rotation
+  name: Airdrop Rotation Desk
+  tier: Pioneer
+  cadence: Daily or event-driven
+  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+  primaryTools:
+  - get_trail_heat
+  - get_historical_trailheat
+  - get_agent_events
+  - simulate_points
+  - get_swap_quote
+  - simulate_swap_execution
+  stopConditions:
+  - Expected point edge is unclear or negative after fees and gas.
+  - Sybil risk exceeds the configured threshold.
+  - User constraints do not allow the target chain or protocol.
+- id: cross-chain-roi
+  name: Cross-Chain ROI Gate
+  tier: Pioneer
+  cadence: Before any bridge
+  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+  primaryTools:
+  - get_chain_breakdown
+  - get_wallet_balances
+  - get_token_prices
+  - get_swap_quote
+  - simulate_swap_execution
+  - optimize_portfolio
+  stopConditions:
+  - netEdgeUsd is not positive.
+  - Quote age exceeds the configured freshness limit.
+  - Target chain is not allowlisted.
+- id: perps-hedge
+  name: Perps Hedge Co-Pilot
+  tier: Syndicate
+  cadence: Before exposure changes
+  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+  primaryTools:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  stopConditions:
+  - Research gate expires.
+  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+  - Daily loss or drawdown limit is reached.

@@ -1,0 +1,365 @@
+openapi: 3.2.0
+info:
+  title: FarmDash Agent Delegation API
+  version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication
+
+    | Tier | Price | Auth | Rate Limit | Best for |
+
+    |------|-------|------|------------|----------|
+
+    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
+
+    route-specific USDC transfer on Base to the treasury to unlock one additional request.
+
+    The configured default overage is 0.01 USDC; premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
+
+    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+servers:
+- url: https://www.farmdash.one/api
+  description: Production
+tags:
+- name: Delegation
+  description: Hyperliquid wallet delegation
+paths:
+  /v1/agent/delegation:
+    get:
+      operationId: getDelegationStatus
+      summary: Check delegation status
+      tags:
+      - Delegation
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: agentAddress
+        in: query
+        required: true
+        schema:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+      responses:
+        '200':
+          description: Delegation status
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+    post:
+      operationId: verifyDelegation
+      summary: Verify wallet delegation for bounded execution
+      description: 'The API wallet can trade but CANNOT withdraw — zero-custody preserved.
+
+        When `sessionId` is supplied, `sessionToken` is required to attach the
+
+        delegation to that session.
+
+        Syndicate required.
+
+        '
+      tags:
+      - Delegation
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - agentAddress
+              - apiWalletAddress
+              - ownerAddress
+              properties:
+                agentAddress:
+                  type: string
+                  pattern: ^0x[a-fA-F0-9]{40}$
+                apiWalletAddress:
+                  type: string
+                  pattern: ^0x[a-fA-F0-9]{40}$
+                ownerAddress:
+                  type: string
+                  pattern: ^0x[a-fA-F0-9]{40}$
+                sessionId:
+                  type: string
+                sessionToken:
+                  type: string
+                  description: Required when `sessionId` is supplied
+      responses:
+        '200':
+          description: Delegation verification result
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+components:
+  responses:
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    DelegationResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        message:
+          type: string
+        warning:
+          type: string
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+x-agent-use-cases:
+- id: bounded-autopilot
+  name: Bounded Autopilot
+  tier: Syndicate
+  cadence: Every 5 minutes
+  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+  primaryTools:
+  - agent_onboard
+  - create_session
+  - configure_autopilot
+  - autopilot_cycle
+  - session_heartbeat
+  stopConditions:
+  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+  - Required local EIP-191 or EIP-712 signature is missing.
+  - Realized performance degrades enough to require analysis_only mode.
+- id: airdrop-rotation
+  name: Airdrop Rotation Desk
+  tier: Pioneer
+  cadence: Daily or event-driven
+  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+  primaryTools:
+  - get_trail_heat
+  - get_historical_trailheat
+  - get_agent_events
+  - simulate_points
+  - get_swap_quote
+  - simulate_swap_execution
+  stopConditions:
+  - Expected point edge is unclear or negative after fees and gas.
+  - Sybil risk exceeds the configured threshold.
+  - User constraints do not allow the target chain or protocol.
+- id: cross-chain-roi
+  name: Cross-Chain ROI Gate
+  tier: Pioneer
+  cadence: Before any bridge
+  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+  primaryTools:
+  - get_chain_breakdown
+  - get_wallet_balances
+  - get_token_prices
+  - get_swap_quote
+  - simulate_swap_execution
+  - optimize_portfolio
+  stopConditions:
+  - netEdgeUsd is not positive.
+  - Quote age exceeds the configured freshness limit.
+  - Target chain is not allowlisted.
+- id: perps-hedge
+  name: Perps Hedge Co-Pilot
+  tier: Syndicate
+  cadence: Before exposure changes
+  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+  primaryTools:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  stopConditions:
+  - Research gate expires.
+  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+  - Daily loss or drawdown limit is reached.
