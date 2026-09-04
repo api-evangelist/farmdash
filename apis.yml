@@ -23,6 +23,22 @@ deliveryModel:
   - pricing
   generated: '2026-08-28'
   method: derived
+accessModel:
+  pricing: freemium
+  onboarding: self-serve
+  trial: false
+  try_now: true
+  public: false
+  label: Freemium · Self-serve signup
+  confidence: high
+  source:
+  - plans
+  - authentication
+  - rate-limits
+  - security
+  - sandbox
+  generated: '2026-09-03'
+  method: derived
 created: '2026-08-26'
 modified: '2026-08-26'
 specificationVersion: '0.21'
@@ -465,6 +481,9 @@ generated:
   confidence: 72
   at: '2026-08-26T16:05:34.303Z'
 common:
+- type: APIsJSON
+  url: https://www.farmdash.one/apis.json
+  note: 'First-party APIs.json discovered by the periodic probe 2026-09-03 (roadmap#164) — probed live, parses, declares apis[]. Merge its declarations at next re-profile.'
 - type: MCPServer
   url: mcp/farmdash-mcp.yml
 - type: Overlay
