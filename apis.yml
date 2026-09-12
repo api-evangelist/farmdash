@@ -481,6 +481,8 @@ generated:
   confidence: 72
   at: '2026-08-26T16:05:34.303Z'
 common:
+- type: Website
+  url: https://www.farmdash.one/
 - type: APIsJSON
   url: https://www.farmdash.one/apis.json
   note: 'First-party APIs.json discovered by the periodic probe 2026-09-03 (roadmap#164) — probed live, parses, declares apis[]. Merge its declarations at next re-profile.'
