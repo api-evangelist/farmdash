@@ -369,6 +369,8 @@ apis:
   humanURL: https://www.farmdash.one/agents
   baseURL: https://www.farmdash.one/api
   tags:
+  - Sessions
+  tags_raw:
   - Session
   properties:
   - type: OpenAPI
