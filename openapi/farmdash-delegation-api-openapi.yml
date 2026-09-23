@@ -2,106 +2,7 @@ openapi: 3.2.0
 info:
   title: FarmDash Agent Delegation API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
-
-
-    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
-
-    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
-
-    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
-
-
-    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
-
-    swap routes do not custody funds; separately configured venue or MPC delegations
-
-    remain subject to their provider controls and explicit policy bounds.
-
-
-    ## Authentication
-
-    | Tier | Price | Auth | Rate Limit | Best for |
-
-    |------|-------|------|------------|----------|
-
-    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
-
-    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
-
-    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
-
-
-    For SDK development without live data, use the deterministic sandbox on
-
-    the two endpoints that explicitly support it (`/v1/agent/protocols` and
-
-    `/v1/trail-heat`):
-
-    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
-
-    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
-
-
-    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
-
-    Futures execution requires an EIP-712 Hyperliquid wallet signature.
-
-
-    ## Dust Storm Protocol
-
-    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
-
-    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
-
-    Cached SDK responses may be returned as stale with explicit stale-data age.
-
-
-    ## x402 Payment Wall
-
-    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
-
-    route-specific USDC transfer on Base to the treasury to unlock one additional request.
-
-    The configured default overage is 0.01 USDC; premium routes return their own amount.
-
-
-    ## Data Confidence
-
-    Agent-facing research responses include `data_quality` and `scoring_methodology`
-
-    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
-
-    allocation, or airdrop outcome.
-
-
-    ## Rate Limit Headers
-
-    All responses include:
-
-    - `X-RateLimit-Limit` — max requests for the current window
-
-    - `X-RateLimit-Remaining` — remaining requests
-
-    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
-
-    - `X-Request-ID` — unique request trace ID (echo it for support)
-
-
-    ## Versioned Signature Payload (v1)
-
-    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
-
-
-    ## Mandatory Swap Simulation Gate
-
-    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
-
-    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
-
-    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
-
-    '
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
@@ -150,9 +51,7 @@ paths:
 
         delegation to that session.
 
-        Syndicate required.
-
-        '
+        Syndicate required.'
       tags:
       - Delegation
       security:
@@ -195,51 +94,7 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
-  responses:
-    PaymentRequired:
-      description: Free-tier limit exceeded — x402 payment required
-      headers:
-        X-Payment-Required:
-          schema:
-            type: string
-        X-Payment-Address:
-          schema:
-            type: string
-          description: Treasury wallet (USDC on Base)
-        X-Payment-Token:
-          schema:
-            type: string
-          description: USDC contract on Base
-        X-Payment-Amount:
-          schema:
-            type: string
-          description: Amount in token decimals (990000 = 0.99 USDC)
-        X-Payment-Chain-Id:
-          schema:
-            type: string
-          description: 8453 (Base)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PaymentRequiredError'
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
   schemas:
-    DelegationResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        message:
-          type: string
-        warning:
-          type: string
     PaymentRequiredError:
       type: object
       properties:
@@ -282,6 +137,17 @@ components:
             chainId:
               type: integer
               example: 8453
+    DelegationResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        message:
+          type: string
+        warning:
+          type: string
     DelegationRecord:
       type: object
       properties:
@@ -295,6 +161,39 @@ components:
           type: string
           format: date-time
           nullable: true
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+  responses:
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
   securitySchemes:
     bearerAuth:
       type: http

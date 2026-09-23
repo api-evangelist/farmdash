@@ -1,0 +1,40 @@
+{
+  "provider": "farmdash",
+  "sources": [
+    "_original/farmdash-agent-api-openapi.yaml"
+  ],
+  "outputs": [
+    "farmdash-account-api-openapi.yml",
+    "farmdash-autopilot-api-openapi.yml",
+    "farmdash-delegation-api-openapi.yml",
+    "farmdash-execution-api-openapi.yml",
+    "farmdash-history-api-openapi.yml",
+    "farmdash-intelligence-api-openapi.yml",
+    "farmdash-research-api-openapi.yml",
+    "farmdash-risk-api-openapi.yml",
+    "farmdash-session-api-openapi.yml",
+    "farmdash-strategy-api-openapi.yml",
+    "farmdash-swap-api-openapi.yml"
+  ],
+  "archived": [],
+  "errors": [],
+  "warnings": [],
+  "notes": [
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
+    "farmdash-agent-api-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
+    "apis.yml register: already-registered"
+  ],
+  "skipped": [
+    "farmdash-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-autopilot-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-delegation-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-execution-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-history-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-intelligence-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-research-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-risk-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-session-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-strategy-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "farmdash-swap-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
+}

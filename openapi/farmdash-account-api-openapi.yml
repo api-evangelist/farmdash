@@ -2,106 +2,7 @@ openapi: 3.2.0
 info:
   title: FarmDash Agent Account API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
-
-
-    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
-
-    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
-
-    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
-
-
-    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
-
-    swap routes do not custody funds; separately configured venue or MPC delegations
-
-    remain subject to their provider controls and explicit policy bounds.
-
-
-    ## Authentication
-
-    | Tier | Price | Auth | Rate Limit | Best for |
-
-    |------|-------|------|------------|----------|
-
-    | Scout | Free | None | 5 req / 24 h per IP | Keyless discovery and quotes |
-
-    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | Serious farmers, full datasets, sybil audits, wallet analytics |
-
-    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
-
-
-    For SDK development without live data, use the deterministic sandbox on
-
-    the two endpoints that explicitly support it (`/v1/agent/protocols` and
-
-    `/v1/trail-heat`):
-
-    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
-
-    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
-
-
-    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
-
-    Futures execution requires an EIP-712 Hyperliquid wallet signature.
-
-
-    ## Dust Storm Protocol
-
-    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
-
-    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
-
-    Cached SDK responses may be returned as stale with explicit stale-data age.
-
-
-    ## x402 Payment Wall
-
-    When Scout limits are exceeded, send `X-Payment-Proof: 0x<txHash>` with a
-
-    route-specific USDC transfer on Base to the treasury to unlock one additional request.
-
-    The configured default overage is 0.01 USDC; premium routes return their own amount.
-
-
-    ## Data Confidence
-
-    Agent-facing research responses include `data_quality` and `scoring_methodology`
-
-    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
-
-    allocation, or airdrop outcome.
-
-
-    ## Rate Limit Headers
-
-    All responses include:
-
-    - `X-RateLimit-Limit` — max requests for the current window
-
-    - `X-RateLimit-Remaining` — remaining requests
-
-    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
-
-    - `X-Request-ID` — unique request trace ID (echo it for support)
-
-
-    ## Versioned Signature Payload (v1)
-
-    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
-
-
-    ## Mandatory Swap Simulation Gate
-
-    Call `/agents/quote` with `walletAddress` to receive `intent_id`, then call
-
-    `POST /v1/simulate` with that intent and wallet before calling `/agents/swap`.
-
-    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
-
-    '
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
@@ -128,9 +29,7 @@ paths:
 
         full period returns.
 
-        Read-only lookup — no private key required.
-
-        '
+        Read-only lookup — no private key required.'
       tags:
       - Account
       security:
@@ -166,6 +65,60 @@ paths:
           $ref: '#/components/responses/PaymentRequired'
 components:
   schemas:
+    AccountSummary:
+      type: object
+      properties:
+        equity:
+          type: string
+        totalNotionalPosition:
+          type: string
+        marginUsed:
+          type: string
+        availableMargin:
+          type: string
+        aggregateLeverage:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    Guardrails:
+      type: object
+      properties:
+        maxLeverage:
+          type: integer
+          example: 5
+        maxRiskPerTrade:
+          type: string
+          example: 2%
+        maxPositions:
+          type: integer
+        dailyLossLimit:
+          type: string
+          example: -3%
+        weeklyLossLimit:
+          type: string
+          example: -7%
+        maxDrawdown:
+          type: string
+          example: -15%
     RiskState:
       type: object
       properties:
@@ -203,89 +156,6 @@ components:
           type: boolean
         openPositionCount:
           type: integer
-    Guardrails:
-      type: object
-      properties:
-        maxLeverage:
-          type: integer
-          example: 5
-        maxRiskPerTrade:
-          type: string
-          example: 2%
-        maxPositions:
-          type: integer
-        dailyLossLimit:
-          type: string
-          example: -3%
-        weeklyLossLimit:
-          type: string
-          example: -7%
-        maxDrawdown:
-          type: string
-          example: -15%
-    FuturesPosition:
-      type: object
-      properties:
-        coin:
-          type: string
-        size:
-          type: number
-        side:
-          type: string
-          enum:
-          - long
-          - short
-        entryPrice:
-          type: number
-        markPrice:
-          type: number
-        unrealizedPnl:
-          type: number
-        returnOnEquity:
-          type: number
-        leverage:
-          type: number
-        leverageType:
-          type: string
-        liquidationPrice:
-          type: number
-          nullable: true
-        marginUsed:
-          type: number
-    AccountSummary:
-      type: object
-      properties:
-        equity:
-          type: string
-        totalNotionalPosition:
-          type: string
-        marginUsed:
-          type: string
-        availableMargin:
-          type: string
-        aggregateLeverage:
-          type: string
-    AccountStateResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        account:
-          $ref: '#/components/schemas/AccountSummary'
-        positions:
-          type: array
-          items:
-            $ref: '#/components/schemas/FuturesPosition'
-        risk:
-          $ref: '#/components/schemas/RiskState'
-        guardrails:
-          $ref: '#/components/schemas/Guardrails'
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
     PaymentRequiredError:
       type: object
       properties:
@@ -328,27 +198,56 @@ components:
             chainId:
               type: integer
               example: 8453
-    ErrorResponse:
+    FuturesPosition:
       type: object
-      required:
-      - error
+      properties:
+        coin:
+          type: string
+        size:
+          type: number
+        side:
+          type: string
+          enum:
+          - long
+          - short
+        entryPrice:
+          type: number
+        markPrice:
+          type: number
+        unrealizedPnl:
+          type: number
+        returnOnEquity:
+          type: number
+        leverage:
+          type: number
+        leverageType:
+          type: string
+        liquidationPrice:
+          type: number
+          nullable: true
+        marginUsed:
+          type: number
+    AccountStateResponse:
+      type: object
       properties:
         ok:
           type: boolean
-          example: false
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-        retryable:
-          type: boolean
-        request_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
+        account:
+          $ref: '#/components/schemas/AccountSummary'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuturesPosition'
+        risk:
+          $ref: '#/components/schemas/RiskState'
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
     DustStormWarning:
       type: object
       required:
@@ -361,6 +260,12 @@ components:
         message:
           type: string
   responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -387,13 +292,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
   headers:
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
     X-Request-ID:
       description: Unique request trace ID for debugging and support
       schema:
@@ -401,14 +308,6 @@ components:
         format: uuid
     X-RateLimit-Reset:
       description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
       schema:
         type: string
   securitySchemes:
