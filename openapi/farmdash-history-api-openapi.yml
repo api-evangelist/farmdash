@@ -78,14 +78,25 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
   schemas:
-    SupportedProtocol:
-      type: string
-      enum:
-      - lifi
-      - zerox
-      - x402
-      - okx
     HistoryResponse:
       type: object
       required:
@@ -103,78 +114,6 @@ components:
         limit:
           type: integer
         offset:
-          type: integer
-    RevenueMetrics:
-      type: object
-      required:
-      - totalFeeUSD
-      - totalVolumeUSD
-      - totalSwaps
-      - activeAgents
-      properties:
-        totalFeeUSD:
-          type: number
-        totalVolumeUSD:
-          type: number
-        totalSwaps:
-          type: integer
-        activeAgents:
-          type: integer
-    ErrorResponse:
-      type: object
-      required:
-      - error
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-        retryable:
-          type: boolean
-        request_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-    FeeEvent:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        created_at:
-          type: string
-          format: date-time
-        protocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        from_token:
-          type: string
-        to_token:
-          type: string
-        volume_usd:
-          type: number
-        fee_bps:
-          type: integer
-        fee_usd:
-          type: number
-        agent_address:
-          type: string
-        tx_hash:
-          type: string
-          nullable: true
-        settlement_status:
-          type: string
-          enum:
-          - pending
-          - confirmed
-          - expired
-          - legacy
-        chain_id:
           type: integer
     PaymentRequiredError:
       type: object
@@ -218,42 +157,86 @@ components:
             chainId:
               type: integer
               example: 8453
-  headers:
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
+    RevenueMetrics:
+      type: object
+      required:
+      - totalFeeUSD
+      - totalVolumeUSD
+      - totalSwaps
+      - activeAgents
+      properties:
+        totalFeeUSD:
+          type: number
+        totalVolumeUSD:
+          type: number
+        totalSwaps:
+          type: integer
+        activeAgents:
+          type: integer
+    FeeEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        from_token:
+          type: string
+        to_token:
+          type: string
+        volume_usd:
+          type: number
+        fee_bps:
+          type: integer
+        fee_usd:
+          type: number
+        agent_address:
+          type: string
+        tx_hash:
+          type: string
+          nullable: true
+        settlement_status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - expired
+          - legacy
+        chain_id:
+          type: integer
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    SupportedProtocol:
+      type: string
+      enum:
+      - lifi
+      - zerox
+      - x402
+      - okx
   responses:
-    RateLimitExceeded:
-      description: Rate limit exceeded
-      headers:
-        Retry-After:
-          schema:
-            type: integer
-          description: Seconds until rate limit resets
-        X-RateLimit-Limit:
-          $ref: '#/components/headers/X-RateLimit-Limit'
-        X-RateLimit-Remaining:
-          $ref: '#/components/headers/X-RateLimit-Remaining'
-        X-RateLimit-Reset:
-          $ref: '#/components/headers/X-RateLimit-Reset'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -280,6 +263,23 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
     bearerAuth:
       type: http

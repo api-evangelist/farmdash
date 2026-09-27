@@ -280,7 +280,314 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
   schemas:
+    SwapSimulationResponse:
+      type: object
+      required:
+      - ok
+      - simulation_id
+      - intent_id
+      - success
+      - gas_used
+      - gas_cost_usd
+      - output_amount
+      - mev_risk
+      - valid_until
+      - wallet_address
+      - selected_protocol
+      - required_for_execution
+      properties:
+        ok:
+          type: boolean
+          example: true
+        simulation_id:
+          type: string
+          example: sim_9b2e
+        intent_id:
+          type: string
+        success:
+          type: boolean
+        gas_used:
+          type: number
+        gas_cost_usd:
+          type: number
+        output_amount:
+          type: string
+        price_impact_pct:
+          type: number
+          nullable: true
+        mev_risk:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        revert_reason:
+          type: string
+          nullable: true
+        valid_until:
+          type: string
+          format: date-time
+        wallet_address:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        selected_protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        tx_fingerprint:
+          type: string
+        request_fingerprint:
+          type: string
+        provider:
+          type: string
+        cached:
+          type: boolean
+        required_for_execution:
+          type: boolean
+          const: true
+    SwapResult:
+      type: object
+      required:
+      - protocol
+      - estimatedOutput
+      - feeBps
+      - feeAmountUSD
+      - gasEstimate
+      - txData
+      - expiresAt
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeBps:
+          type: integer
+        feeAmountUSD:
+          type: string
+        feeEventId:
+          type: string
+          format: uuid
+          description: Use with /agents/confirm to confirm settlement
+        gasEstimate:
+          type: string
+        txData:
+          $ref: '#/components/schemas/SwapTxData'
+        expiresAt:
+          type: integer
+        allowanceTarget:
+          type: string
+          nullable: true
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        simulation:
+          type: object
+          additionalProperties: true
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaReport'
+        riskReport:
+          $ref: '#/components/schemas/SwapRiskReport'
+        confirmUrl:
+          type: string
+          example: /api/agents/confirm
+    QuoteDecaySeverity:
+      type: string
+      enum:
+      - none
+      - low
+      - medium
+      - high
+    RiskSeverity:
+      type: string
+      enum:
+      - low
+      - medium
+      - high
+      - critical
+    ConfirmRequest:
+      type: object
+      required:
+      - feeEventId
+      - txHash
+      - agentAddress
+      properties:
+        feeEventId:
+          type: string
+          format: uuid
+        txHash:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{64}$
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    SwapRiskReport:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        approval:
+          allOf:
+          - $ref: '#/components/schemas/AllowanceStatus'
+          nullable: true
+        pegChecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PegCheck'
+        health:
+          allOf:
+          - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        shouldHalt:
+          type: boolean
+        haltReasons:
+          type: array
+          items:
+            type: string
+    ExecutionAlphaReport:
+      type: object
+      properties:
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        routeReason:
+          type: string
+        mevProtection:
+          type: object
+          properties:
+            safetyMode:
+              $ref: '#/components/schemas/SwapSafetyMode'
+            actualSlippageBps:
+              type: integer
+            maxRecommendedSlippageBps:
+              type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteCandidate'
+        quoteDecay:
+          $ref: '#/components/schemas/QuoteDecayMetrics'
+        netEdge:
+          $ref: '#/components/schemas/NetEdgeAnalysis'
+    AllowanceStatus:
+      type: object
+      properties:
+        spender:
+          type: string
+          nullable: true
+        allowance:
+          type: string
+          nullable: true
+        requiredAmount:
+          type: string
+        approvalNeeded:
+          type: boolean
+        overApproved:
+          type: boolean
+        source:
+          type: string
+          enum:
+          - onchain
+          - quote_fallback
+          - unavailable
+    PegCheck:
+      type: object
+      properties:
+        tokenAddress:
+          type: string
+        symbol:
+          type: string
+        reference:
+          type: string
+          enum:
+          - USD
+          - ETH
+        priceUsd:
+          type: number
+          nullable: true
+        referencePriceUsd:
+          type: number
+          nullable: true
+        deviationPct:
+          type: number
+          nullable: true
+        alert:
+          type: boolean
+    QuoteDecayMetrics:
+      type: object
+      properties:
+        previousObservedAt:
+          type: integer
+          nullable: true
+        quoteAgeMs:
+          type: integer
+          nullable: true
+        outputDecayBps:
+          type: number
+        gasIncreaseBps:
+          type: number
+        severity:
+          $ref: '#/components/schemas/QuoteDecaySeverity'
+    SwapTxData:
+      type: object
+      required:
+      - to
+      - data
+      - value
+      - chainId
+      properties:
+        to:
+          type: string
+          description: Protocol contract address (NOT FarmDash)
+        data:
+          type: string
+          description: Encoded calldata
+        value:
+          type: string
+          description: Native token value in wei
+        chainId:
+          type: integer
     ConfirmResponse:
       type: object
       properties:
@@ -298,6 +605,44 @@ components:
         idempotent:
           type: boolean
           description: True if this was a duplicate confirmation (safe to retry)
+    SwapSimulationRequest:
+      type: object
+      required:
+      - intent_id
+      - wallet_address
+      properties:
+        intent_id:
+          type: string
+          description: Wallet-bound quote intent returned by /agents/quote
+          example: fd_intent_7f3a
+        wallet_address:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Signing wallet for the simulated execution
+    SupportedProtocol:
+      type: string
+      enum:
+      - lifi
+      - zerox
+      - x402
+      - okx
+    HealthCheck:
+      type: object
+      properties:
+        healthFactor:
+          type: number
+          nullable: true
+        liquidationBufferPct:
+          type: number
+          nullable: true
+        alertLevel:
+          type: string
+          enum:
+          - none
+          - warning
+          - critical
+        shouldHalt:
+          type: boolean
     PaymentRequiredError:
       type: object
       properties:
@@ -340,134 +685,6 @@ components:
             chainId:
               type: integer
               example: 8453
-    RouteCandidate:
-      type: object
-      properties:
-        protocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        estimatedOutput:
-          type: string
-        feeAmountUsd:
-          type: number
-        gasEstimateUsd:
-          type: number
-          nullable: true
-        bridgeFeeUsd:
-          type: number
-          nullable: true
-        routeRiskScore:
-          type: number
-        selected:
-          type: boolean
-    SwapRiskReport:
-      type: object
-      properties:
-        flags:
-          type: array
-          items:
-            $ref: '#/components/schemas/RiskFlag'
-        approval:
-          allOf:
-          - $ref: '#/components/schemas/AllowanceStatus'
-          nullable: true
-        pegChecks:
-          type: array
-          items:
-            $ref: '#/components/schemas/PegCheck'
-        health:
-          allOf:
-          - $ref: '#/components/schemas/HealthCheck'
-          nullable: true
-        shouldHalt:
-          type: boolean
-        haltReasons:
-          type: array
-          items:
-            type: string
-    RiskFlag:
-      type: object
-      required:
-      - code
-      - category
-      - severity
-      - title
-      - message
-      properties:
-        code:
-          type: string
-        category:
-          type: string
-          enum:
-          - approval
-          - bridge
-          - contract
-          - token
-          - health
-          - execution
-        severity:
-          $ref: '#/components/schemas/RiskSeverity'
-        title:
-          type: string
-        message:
-          type: string
-        metadata:
-          type: object
-          additionalProperties: true
-    NetEdgeAnalysis:
-      type: object
-      properties:
-        expectedUpsideUsd:
-          type: number
-          nullable: true
-        protocolFeeUsd:
-          type: number
-        gasUsd:
-          type: number
-        bridgeFeeUsd:
-          type: number
-        riskBufferUsd:
-          type: number
-        totalCostUsd:
-          type: number
-        netEdgeUsd:
-          type: number
-          nullable: true
-        positive:
-          type: boolean
-          nullable: true
-        enforced:
-          type: boolean
-    SwapTxData:
-      type: object
-      required:
-      - to
-      - data
-      - value
-      - chainId
-      properties:
-        to:
-          type: string
-          description: Protocol contract address (NOT FarmDash)
-        data:
-          type: string
-          description: Encoded calldata
-        value:
-          type: string
-          description: Native token value in wei
-        chainId:
-          type: integer
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
-    SupportedProtocol:
-      type: string
-      enum:
-      - lifi
-      - zerox
-      - x402
-      - okx
     QuoteResponse:
       type: object
       required:
@@ -537,170 +754,98 @@ components:
           $ref: '#/components/schemas/SwapRiskReport'
         note:
           type: string
-    SwapSimulationResponse:
+    RouteCandidate:
       type: object
-      required:
-      - ok
-      - simulation_id
-      - intent_id
-      - success
-      - gas_used
-      - gas_cost_usd
-      - output_amount
-      - mev_risk
-      - valid_until
-      - wallet_address
-      - selected_protocol
-      - required_for_execution
-      properties:
-        ok:
-          type: boolean
-          example: true
-        simulation_id:
-          type: string
-          example: sim_9b2e
-        intent_id:
-          type: string
-        success:
-          type: boolean
-        gas_used:
-          type: number
-        gas_cost_usd:
-          type: number
-        output_amount:
-          type: string
-        price_impact_pct:
-          type: number
-          nullable: true
-        mev_risk:
-          type: string
-          enum:
-          - low
-          - medium
-          - high
-        revert_reason:
-          type: string
-          nullable: true
-        valid_until:
-          type: string
-          format: date-time
-        wallet_address:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-        selected_protocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        tx_fingerprint:
-          type: string
-        request_fingerprint:
-          type: string
-        provider:
-          type: string
-        cached:
-          type: boolean
-        required_for_execution:
-          type: boolean
-          const: true
-    ErrorResponse:
-      type: object
-      required:
-      - error
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-        retryable:
-          type: boolean
-        request_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-    SwapResult:
-      type: object
-      required:
-      - protocol
-      - estimatedOutput
-      - feeBps
-      - feeAmountUSD
-      - gasEstimate
-      - txData
-      - expiresAt
       properties:
         protocol:
           $ref: '#/components/schemas/SupportedProtocol'
         estimatedOutput:
           type: string
-        feeBps:
-          type: integer
-        feeAmountUSD:
-          type: string
-        feeEventId:
-          type: string
-          format: uuid
-          description: Use with /agents/confirm to confirm settlement
-        gasEstimate:
-          type: string
-        txData:
-          $ref: '#/components/schemas/SwapTxData'
-        expiresAt:
-          type: integer
-        allowanceTarget:
-          type: string
-          nullable: true
+        feeAmountUsd:
+          type: number
         gasEstimateUsd:
           type: number
           nullable: true
         bridgeFeeUsd:
           type: number
           nullable: true
-        simulation:
+        routeRiskScore:
+          type: number
+        selected:
+          type: boolean
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
+    NetEdgeAnalysis:
+      type: object
+      properties:
+        expectedUpsideUsd:
+          type: number
+          nullable: true
+        protocolFeeUsd:
+          type: number
+        gasUsd:
+          type: number
+        bridgeFeeUsd:
+          type: number
+        riskBufferUsd:
+          type: number
+        totalCostUsd:
+          type: number
+        netEdgeUsd:
+          type: number
+          nullable: true
+        positive:
+          type: boolean
+          nullable: true
+        enforced:
+          type: boolean
+    RiskFlag:
+      type: object
+      required:
+      - code
+      - category
+      - severity
+      - title
+      - message
+      properties:
+        code:
+          type: string
+        category:
+          type: string
+          enum:
+          - approval
+          - bridge
+          - contract
+          - token
+          - health
+          - execution
+        severity:
+          $ref: '#/components/schemas/RiskSeverity'
+        title:
+          type: string
+        message:
+          type: string
+        metadata:
           type: object
           additionalProperties: true
+    SwapHaltResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: swap_halted
+        code:
+          type: string
+          example: swap_halted
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
         executionAlpha:
           $ref: '#/components/schemas/ExecutionAlphaReport'
         riskReport:
           $ref: '#/components/schemas/SwapRiskReport'
-        confirmUrl:
-          type: string
-          example: /api/agents/confirm
-    QuoteDecayMetrics:
-      type: object
-      properties:
-        previousObservedAt:
-          type: integer
-          nullable: true
-        quoteAgeMs:
-          type: integer
-          nullable: true
-        outputDecayBps:
-          type: number
-        gasIncreaseBps:
-          type: number
-        severity:
-          $ref: '#/components/schemas/QuoteDecaySeverity'
-    HealthCheck:
-      type: object
-      properties:
-        healthFactor:
-          type: number
-          nullable: true
-        liquidationBufferPct:
-          type: number
-          nullable: true
-        alertLevel:
-          type: string
-          enum:
-          - none
-          - warning
-          - critical
-        shouldHalt:
-          type: boolean
     SwapRequest:
       type: object
       required:
@@ -798,204 +943,6 @@ components:
           type: string
           pattern: ^0x[a-fA-F0-9]{130}$
           description: EIP-191 personal_sign of the v1 versioned payload
-    ConfirmRequest:
-      type: object
-      required:
-      - feeEventId
-      - txHash
-      - agentAddress
-      properties:
-        feeEventId:
-          type: string
-          format: uuid
-        txHash:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{64}$
-        agentAddress:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-    QuoteDecaySeverity:
-      type: string
-      enum:
-      - none
-      - low
-      - medium
-      - high
-    AllowanceStatus:
-      type: object
-      properties:
-        spender:
-          type: string
-          nullable: true
-        allowance:
-          type: string
-          nullable: true
-        requiredAmount:
-          type: string
-        approvalNeeded:
-          type: boolean
-        overApproved:
-          type: boolean
-        source:
-          type: string
-          enum:
-          - onchain
-          - quote_fallback
-          - unavailable
-    SwapSimulationRequest:
-      type: object
-      required:
-      - intent_id
-      - wallet_address
-      properties:
-        intent_id:
-          type: string
-          description: Wallet-bound quote intent returned by /agents/quote
-          example: fd_intent_7f3a
-        wallet_address:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-          description: Signing wallet for the simulated execution
-    ExecutionAlphaReport:
-      type: object
-      properties:
-        selectedProtocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        routeReason:
-          type: string
-        mevProtection:
-          type: object
-          properties:
-            safetyMode:
-              $ref: '#/components/schemas/SwapSafetyMode'
-            actualSlippageBps:
-              type: integer
-            maxRecommendedSlippageBps:
-              type: integer
-        candidates:
-          type: array
-          items:
-            $ref: '#/components/schemas/RouteCandidate'
-        quoteDecay:
-          $ref: '#/components/schemas/QuoteDecayMetrics'
-        netEdge:
-          $ref: '#/components/schemas/NetEdgeAnalysis'
-    PegCheck:
-      type: object
-      properties:
-        tokenAddress:
-          type: string
-        symbol:
-          type: string
-        reference:
-          type: string
-          enum:
-          - USD
-          - ETH
-        priceUsd:
-          type: number
-          nullable: true
-        referencePriceUsd:
-          type: number
-          nullable: true
-        deviationPct:
-          type: number
-          nullable: true
-        alert:
-          type: boolean
-    SwapHaltResponse:
-      type: object
-      properties:
-        error:
-          type: string
-          example: swap_halted
-        code:
-          type: string
-          example: swap_halted
-        selectedProtocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaReport'
-        riskReport:
-          $ref: '#/components/schemas/SwapRiskReport'
-    RiskSeverity:
-      type: string
-      enum:
-      - low
-      - medium
-      - high
-      - critical
-  headers:
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-  parameters:
-    FromAmount:
-      name: fromAmount
-      in: query
-      required: true
-      schema:
-        type: string
-        pattern: ^\d+$
-      description: Amount in wei (no leading zeros)
-    ToToken:
-      name: toToken
-      in: query
-      required: true
-      schema:
-        type: string
-        pattern: ^0x[a-fA-F0-9]{40}$
-      description: Destination token contract address
-    FromChainId:
-      name: fromChainId
-      in: query
-      required: true
-      schema:
-        type: integer
-        enum:
-        - 1
-        - 10
-        - 137
-        - 8453
-        - 42161
-        - 59144
-      description: 'Source chain: 1=Ethereum, 10=Optimism, 137=Polygon, 8453=Base, 42161=Arbitrum, 59144=Linea'
-    ToChainId:
-      name: toChainId
-      in: query
-      required: true
-      schema:
-        type: integer
-        enum:
-        - 1
-        - 10
-        - 137
-        - 8453
-        - 42161
-        - 59144
-      description: Destination chain ID
-    FromToken:
-      name: fromToken
-      in: query
-      required: true
-      schema:
-        type: string
-        pattern: ^0x[a-fA-F0-9]{40}$
-      description: Source token contract address
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -1023,12 +970,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     RateLimitExceeded:
       description: Rate limit exceeded
       headers:
@@ -1046,6 +987,65 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  parameters:
+    FromAmount:
+      name: fromAmount
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^\d+$
+      description: Amount in wei (no leading zeros)
+    ToToken:
+      name: toToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^0x[a-fA-F0-9]{40}$
+      description: Destination token contract address
+    ToChainId:
+      name: toChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum:
+        - 1
+        - 10
+        - 137
+        - 8453
+        - 42161
+        - 59144
+      description: Destination chain ID
+    FromChainId:
+      name: fromChainId
+      in: query
+      required: true
+      schema:
+        type: integer
+        enum:
+        - 1
+        - 10
+        - 137
+        - 8453
+        - 42161
+        - 59144
+      description: 'Source chain: 1=Ethereum, 10=Optimism, 137=Polygon, 8453=Base, 42161=Arbitrum, 59144=Linea'
+    FromToken:
+      name: fromToken
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^0x[a-fA-F0-9]{40}$
+      description: Source token contract address
   securitySchemes:
     bearerAuth:
       type: http

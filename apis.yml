@@ -58,6 +58,7 @@ tags:
 - Hyperliquid
 - Wallet Intelligence
 - zero custody
+- A2A
 tags_raw:
 - DeFi
 - DeFAI
@@ -74,6 +75,7 @@ tags_raw:
 - Hyperliquid
 - wallet intelligence
 - zero custody
+- A2A
 apis:
 - aid: farmdash:farmdash-account-api
   name: FarmDash Agent Hub Account API
@@ -333,6 +335,8 @@ apis:
   humanURL: https://www.farmdash.one/agents
   baseURL: https://www.farmdash.one/api
   tags:
+  - Risk Management
+  tags_raw:
   - Risk
   properties:
   - type: OpenAPI
@@ -542,3 +546,11 @@ x-enrichment:
   status: enriched
   artifacts_added: 30
   pass: local-v1
+x-x402:
+  verified: true
+  probed: '2026-09-24'
+  url: "https://www.farmdash.one/api/v1/agent/futures/account-state"
+  evidence:
+  - "header:payment-required"
+  - "header:x-payment-required"
+  control: 404

@@ -64,98 +64,46 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
   schemas:
-    AccountSummary:
+    AccountStateResponse:
       type: object
-      properties:
-        equity:
-          type: string
-        totalNotionalPosition:
-          type: string
-        marginUsed:
-          type: string
-        availableMargin:
-          type: string
-        aggregateLeverage:
-          type: string
-    ErrorResponse:
-      type: object
-      required:
-      - error
       properties:
         ok:
           type: boolean
-          example: false
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-        retryable:
-          type: boolean
-        request_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-    Guardrails:
-      type: object
-      properties:
-        maxLeverage:
+        account:
+          $ref: '#/components/schemas/AccountSummary'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuturesPosition'
+        risk:
+          $ref: '#/components/schemas/RiskState'
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp:
           type: integer
-          example: 5
-        maxRiskPerTrade:
-          type: string
-          example: 2%
-        maxPositions:
-          type: integer
-        dailyLossLimit:
-          type: string
-          example: -3%
-        weeklyLossLimit:
-          type: string
-          example: -7%
-        maxDrawdown:
-          type: string
-          example: -15%
-    RiskState:
-      type: object
-      properties:
-        dailyPnl:
-          type: string
-        dailyPnlPct:
-          type: string
-        weeklyPnl:
-          type: string
-        realizedDailyPnl:
-          type: string
-        realizedWeeklyPnl:
-          type: string
-        unrealizedPnl:
-          type: string
-        pnlSource:
-          type: string
-          enum:
-          - hyperliquid_venue_loss_pressure
-        pnlAsOf:
-          type: integer
-          format: int64
-        pnlMethodology:
-          type: string
-        drawdown:
-          type: string
-        peakEquity:
-          type: string
-        isTradingHalted:
-          type: boolean
-        haltReason:
-          type: string
-          nullable: true
-        isReducedSize:
-          type: boolean
-        openPositionCount:
-          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
     PaymentRequiredError:
       type: object
       properties:
@@ -198,6 +146,30 @@ components:
             chainId:
               type: integer
               example: 8453
+    AccountSummary:
+      type: object
+      properties:
+        equity:
+          type: string
+        totalNotionalPosition:
+          type: string
+        marginUsed:
+          type: string
+        availableMargin:
+          type: string
+        aggregateLeverage:
+          type: string
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
     FuturesPosition:
       type: object
       properties:
@@ -227,45 +199,85 @@ components:
           nullable: true
         marginUsed:
           type: number
-    AccountStateResponse:
+    RiskState:
       type: object
+      properties:
+        dailyPnl:
+          type: string
+        dailyPnlPct:
+          type: string
+        weeklyPnl:
+          type: string
+        realizedDailyPnl:
+          type: string
+        realizedWeeklyPnl:
+          type: string
+        unrealizedPnl:
+          type: string
+        pnlSource:
+          type: string
+          enum:
+          - hyperliquid_venue_loss_pressure
+        pnlAsOf:
+          type: integer
+          format: int64
+        pnlMethodology:
+          type: string
+        drawdown:
+          type: string
+        peakEquity:
+          type: string
+        isTradingHalted:
+          type: boolean
+        haltReason:
+          type: string
+          nullable: true
+        isReducedSize:
+          type: boolean
+        openPositionCount:
+          type: integer
+    ErrorResponse:
+      type: object
+      required:
+      - error
       properties:
         ok:
           type: boolean
-        account:
-          $ref: '#/components/schemas/AccountSummary'
-        positions:
-          type: array
-          items:
-            $ref: '#/components/schemas/FuturesPosition'
-        risk:
-          $ref: '#/components/schemas/RiskState'
-        guardrails:
-          $ref: '#/components/schemas/Guardrails'
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
+          example: false
+        error:
           type: string
-          const: dust_storm
+        code:
+          type: string
         message:
           type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    Guardrails:
+      type: object
+      properties:
+        maxLeverage:
+          type: integer
+          example: 5
+        maxRiskPerTrade:
+          type: string
+          example: 2%
+        maxPositions:
+          type: integer
+        dailyLossLimit:
+          type: string
+          example: -3%
+        weeklyLossLimit:
+          type: string
+          example: -7%
+        maxDrawdown:
+          type: string
+          example: -15%
   responses:
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -292,24 +304,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-  headers:
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
     bearerAuth:
       type: http

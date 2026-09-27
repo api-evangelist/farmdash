@@ -94,6 +94,12 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   schemas:
     PaymentRequiredError:
       type: object
@@ -161,12 +167,6 @@ components:
           type: string
           format: date-time
           nullable: true
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required

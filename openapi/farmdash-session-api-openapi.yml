@@ -153,161 +153,42 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   schemas:
-    AgentSession:
+    TrackedPosition:
       type: object
       properties:
-        id:
+        coin:
           type: string
-        agentAddress:
-          type: string
-        status:
+        side:
           type: string
           enum:
-          - active
-          - paused
-          - halted
-          - expired
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        autopilot:
-          $ref: '#/components/schemas/AutopilotConfig'
-        activePositions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackedPosition'
-        sessionPnl:
+          - long
+          - short
+        entryPrice:
           type: number
-        peakEquity:
+        size:
           type: number
-        tradeCount:
-          type: integer
-        lastHeartbeat:
-          type: string
-          format: date-time
-        createdAt:
-          type: string
-          format: date-time
-        expiresAt:
-          type: string
-          format: date-time
-        agentMeta:
-          $ref: '#/components/schemas/AgentMeta'
-    ExecutionAlphaConfig:
-      type: object
-      properties:
-        mevSafetyMode:
-          $ref: '#/components/schemas/SwapSafetyMode'
-        maxQuoteDecayBps:
+        leverage:
           type: number
-        maxGasUsdPerAction:
+        stopLoss:
           type: number
-        requirePositiveNetEdge:
-          type: boolean
-        minNetEdgeUsd:
-          type: number
-    DelegationRecord:
-      type: object
-      properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
-          type: boolean
-        verifiedAt:
-          type: string
-          format: date-time
           nullable: true
-    OnboardResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        welcome:
+        takeProfit:
+          type: number
+          nullable: true
+        openedAt:
           type: string
-        version:
+          format: date-time
+        strategy:
           type: string
-        quickStart:
-          type: object
-          properties:
-            summary:
-              type: string
-            steps:
-              type: array
-              items:
-                type: object
-                properties:
-                  step:
-                    type: integer
-                  name:
-                    type: string
-                  description:
-                    type: string
-                  action:
-                    type: string
-                  endpoint:
-                    type: string
-                    nullable: true
-                  required:
-                    type: boolean
-        capabilities:
-          type: object
-        security:
-          type: object
-        autonomousWorkflow:
-          type: object
-        discovery:
-          type: object
-        pricing:
-          type: object
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
-    RiskSentinelConfig:
-      type: object
-      properties:
-        minHealthFactor:
+        unrealizedPnl:
           type: number
-        minLiquidationBufferPct:
-          type: number
-        maxStablecoinDepegPct:
-          type: number
-    AutopilotConfig:
-      type: object
-      properties:
-        strategies:
-          type: array
-          items:
-            type: string
-            enum:
-            - funding_arb
-            - momentum
-            - mean_reversion
-            - portfolio_rebalance
-            - full_auto
-        assets:
-          type: array
-          items:
-            type: string
-        maxEquityPct:
-          type: number
-        rebalanceIntervalMin:
-          type: integer
-        autoCompound:
-          type: boolean
-        riskPreference:
-          type: string
-          enum:
-          - conservative
-          - balanced
-          - aggressive
-        riskSentinel:
-          $ref: '#/components/schemas/RiskSentinelConfig'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaConfig'
     PaymentRequiredError:
       type: object
       properties:
@@ -350,35 +231,92 @@ components:
             chainId:
               type: integer
               example: 8453
-    TrackedPosition:
+    RiskSentinelConfig:
       type: object
       properties:
-        coin:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
+    AgentSession:
+      type: object
+      properties:
+        id:
           type: string
-        side:
+        agentAddress:
+          type: string
+        status:
           type: string
           enum:
-          - long
-          - short
-        entryPrice:
+          - active
+          - paused
+          - halted
+          - expired
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        autopilot:
+          $ref: '#/components/schemas/AutopilotConfig'
+        activePositions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedPosition'
+        sessionPnl:
           type: number
-        size:
+        peakEquity:
           type: number
-        leverage:
-          type: number
-        stopLoss:
-          type: number
-          nullable: true
-        takeProfit:
-          type: number
-          nullable: true
-        openedAt:
+        tradeCount:
+          type: integer
+        lastHeartbeat:
           type: string
           format: date-time
-        strategy:
+        createdAt:
           type: string
-        unrealizedPnl:
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        agentMeta:
+          $ref: '#/components/schemas/AgentMeta'
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
+    AutopilotConfig:
+      type: object
+      properties:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum:
+            - funding_arb
+            - momentum
+            - mean_reversion
+            - portfolio_rebalance
+            - full_auto
+        assets:
+          type: array
+          items:
+            type: string
+        maxEquityPct:
           type: number
+        rebalanceIntervalMin:
+          type: integer
+        autoCompound:
+          type: boolean
+        riskPreference:
+          type: string
+          enum:
+          - conservative
+          - balanced
+          - aggressive
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
     AgentMeta:
       type: object
       properties:
@@ -392,12 +330,74 @@ components:
           type: array
           items:
             type: string
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ExecutionAlphaConfig:
+      type: object
+      properties:
+        mevSafetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        maxQuoteDecayBps:
+          type: number
+        maxGasUsdPerAction:
+          type: number
+        requirePositiveNetEdge:
+          type: boolean
+        minNetEdgeUsd:
+          type: number
+    OnboardResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        welcome:
+          type: string
+        version:
+          type: string
+        quickStart:
+          type: object
+          properties:
+            summary:
+              type: string
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  step:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  action:
+                    type: string
+                  endpoint:
+                    type: string
+                    nullable: true
+                  required:
+                    type: boolean
+        capabilities:
+          type: object
+        security:
+          type: object
+        autonomousWorkflow:
+          type: object
+        discovery:
+          type: object
+        pricing:
+          type: object
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required

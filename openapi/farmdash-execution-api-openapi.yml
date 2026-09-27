@@ -102,59 +102,13 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   schemas:
-    ExecuteOrderRequest:
-      type: object
-      required:
-      - agentAddress
-      - coin
-      - isBuy
-      - size
-      - price
-      - orderType
-      - nonce
-      - expiresAt
-      - intentHash
-      - signature
-      properties:
-        agentAddress:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-        coin:
-          type: string
-        isBuy:
-          type: boolean
-        size:
-          type: string
-        price:
-          type: string
-        orderType:
-          type: string
-          enum:
-          - limit_gtc
-          - limit_ioc
-          - limit_alo
-          - market
-          - stop_loss
-          - take_profit
-        reduceOnly:
-          type: boolean
-          default: false
-        leverage:
-          oneOf:
-          - type: number
-          - type: string
-        signedAction:
-          type: object
-          description: 'If supplied, must contain the signed FarmDash builder term `{ b: treasury, f: 1 }`; f is tenths of a basis point.'
-        nonce:
-          type: integer
-        expiresAt:
-          type: integer
-        intentHash:
-          type: string
-        signature:
-          $ref: '#/components/schemas/EIP712Signature'
     CancelOrderResponse:
       type: object
       properties:
@@ -190,6 +144,93 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DustStormWarning'
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          example: payment_required
+        message:
+          type: string
+        retryable:
+          type: boolean
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    CancelOrderRequest:
+      type: object
+      required:
+      - agentAddress
+      - coin
+      - orderIds
+      - nonce
+      - expiresAt
+      - intentHash
+      - signature
+      properties:
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        coin:
+          type: string
+        orderIds:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: integer
+        signedAction:
+          type: object
+        nonce:
+          type: integer
+        expiresAt:
+          type: integer
+        intentHash:
+          type: string
+        signature:
+          $ref: '#/components/schemas/EIP712Signature'
+    EIP712Signature:
+      type: object
+      required:
+      - r
+      - s
+      - v
+      properties:
+        r:
+          type: string
+        s:
+          type: string
+        v:
+          type: integer
     ExecuteOrderResponse:
       type: object
       properties:
@@ -265,19 +306,69 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DustStormWarning'
-    EIP712Signature:
+    DustStormWarning:
       type: object
       required:
-      - r
-      - s
-      - v
+      - kind
+      - message
       properties:
-        r:
+        kind:
           type: string
-        s:
+          const: dust_storm
+        message:
           type: string
-        v:
+    ExecuteOrderRequest:
+      type: object
+      required:
+      - agentAddress
+      - coin
+      - isBuy
+      - size
+      - price
+      - orderType
+      - nonce
+      - expiresAt
+      - intentHash
+      - signature
+      properties:
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        coin:
+          type: string
+        isBuy:
+          type: boolean
+        size:
+          type: string
+        price:
+          type: string
+        orderType:
+          type: string
+          enum:
+          - limit_gtc
+          - limit_ioc
+          - limit_alo
+          - market
+          - stop_loss
+          - take_profit
+        reduceOnly:
+          type: boolean
+          default: false
+        leverage:
+          oneOf:
+          - type: number
+          - type: string
+        signedAction:
+          type: object
+          description: 'If supplied, must contain the signed FarmDash builder term `{ b: treasury, f: 1 }`; f is tenths of a basis point.'
+        nonce:
           type: integer
+        expiresAt:
+          type: integer
+        intentHash:
+          type: string
+        signature:
+          $ref: '#/components/schemas/EIP712Signature'
     ErrorResponse:
       type: object
       required:
@@ -299,98 +390,7 @@ components:
         details:
           type: object
           additionalProperties: true
-    CancelOrderRequest:
-      type: object
-      required:
-      - agentAddress
-      - coin
-      - orderIds
-      - nonce
-      - expiresAt
-      - intentHash
-      - signature
-      properties:
-        agentAddress:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-        coin:
-          type: string
-        orderIds:
-          type: array
-          minItems: 1
-          maxItems: 50
-          items:
-            type: integer
-        signedAction:
-          type: object
-        nonce:
-          type: integer
-        expiresAt:
-          type: integer
-        intentHash:
-          type: string
-        signature:
-          $ref: '#/components/schemas/EIP712Signature'
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
-          type: string
-          const: dust_storm
-        message:
-          type: string
   responses:
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -417,12 +417,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
     bearerAuth:
       type: http
