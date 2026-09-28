@@ -1,8 +1,11 @@
-openapi: 3.2.0
+openapi: 3.1.0
 info:
   title: FarmDash Agent Execution API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
+  description: 'Tag-filtered subset of the public FarmDash Agent API. Canonical contract: https://www.farmdash.one/agents/openapi.yaml.
+    Runtime availability and feature gates: https://www.farmdash.one/api/v1/agent/status. This discovery
+    copy does not grant execution authority; follow each operation''s security, confirmation, and simulation
+    requirements.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
@@ -21,7 +24,8 @@ paths:
       summary: Execute a pre-signed order on Hyperliquid
       description: 'Forwards a pre-signed EIP-712 order to Hyperliquid. Requires prior
 
-        execution-ready analyze-strategy call within 60 seconds (parameter-bound research gate). Syndicate only.
+        execution-ready analyze-strategy call within 60 seconds (parameter-bound research gate). Syndicate
+        only.
 
         FarmDash may receive routing compensation from supported venues. Risk guardrails enforced server-side.
 
@@ -29,13 +33,28 @@ paths:
 
         expiry and auditability. `expiresAt` is forwarded as venue `expiresAfter`.
 
+        `market_ioc` is a signed, price-protected IOC limit order with a live 100
+
+        bps adverse-price cap, never an unbounded market order. It distinguishes
+
+        full, partial, and zero fill; an IOC resting response is unknown/inconsistent.
+
+        Venue nonce authority is `network + signer + nonce` across account and vault
+
+        contexts. Durable replay control fails closed before submission.
+
         The signed order action discloses FarmDash builder `f=1`, which means
 
         0.1 bp (0.001%) of filled notional—not 1 bp. Resting/rejected/unfilled
 
         notional is not fee-bearing volume.
 
-        WARNING: This endpoint initiates real perpetual futures trades on Hyperliquid which can lead to substantial financial loss. You must explicitly present all trade details, fees, and leverage levels to the user, and obtain their manual confirmation prior to calling this endpoint. Never automate or auto-run this endpoint.'
+        WARNING: This endpoint initiates real perpetual futures trades on Hyperliquid which can lead to
+        substantial financial loss. You must explicitly present all trade details, fees, and leverage
+        levels to the user, and obtain their manual confirmation prior to calling this endpoint. Never
+        automate or auto-run this endpoint.
+
+        '
       tags:
       - Execution
       security:
@@ -46,6 +65,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ExecuteOrderRequest'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Order execution result
@@ -70,13 +91,27 @@ paths:
       summary: Cancel open Hyperliquid orders
       description: 'Cancels one or more open orders (max 50 per request).
 
-        Scout (5/day limit) or Pioneer/Syndicate (unlimited) access. EIP-712 signature on every request.
+        Scout capacity is available inside the shared 30 requests / 24h quota; Pioneer is capped at 1,500/day
+        and Syndicate at 50,000/day. The returned entitlement and rate-limit state is authoritative. EIP-712
+        signature is required on every request.
 
         Required `expiresAt` is forwarded as venue `expiresAfter`; required
 
         `intentHash` binds the FarmDash request for auditability.
 
-        WARNING: This endpoint alters active market state and cancels protective orders. Ensure the user has explicitly confirmed the action and understands the resulting exposure change before calling this endpoint. Never automate or auto-run this endpoint.'
+        HTTP 202 is returned only for `accepted` application acknowledgement, not final venue cancellation.
+
+        Reconcile every requested ID through `/api/v1/agent/futures/reconcile-order`
+
+        before dependent action. Venue nonce authority is `network + signer + nonce`
+
+        across account and vault contexts; durable replay control fails closed before submission.
+
+        WARNING: This endpoint alters active market state and cancels protective orders. Ensure the user
+        has explicitly confirmed the action and understands the resulting exposure change before calling
+        this endpoint. Never automate or auto-run this endpoint.
+
+        '
       tags:
       - Execution
       security:
@@ -87,9 +122,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CancelOrderRequest'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
-        '200':
-          description: Cancellation result
+        '202':
+          description: Cancellation application acknowledgement; final venue cancellation requires reconciliation
           headers:
             X-Request-ID:
               $ref: '#/components/headers/X-Request-ID'
@@ -101,97 +138,25 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '402':
           $ref: '#/components/responses/PaymentRequired'
+x-farmdash-canonical-openapi: https://www.farmdash.one/agents/openapi.yaml
+x-farmdash-runtime-status: https://www.farmdash.one/api/v1/agent/status
+x-farmdash-source-contract-notes:
+- Directory-only alias definitions map ApiKeyAuth and bearerAuth to HTTP Bearer because the canonical
+  OpenAPI references these names but omits components.securitySchemes; the first-party agent manifest
+  documents bearer API keys.
+- Embedded fee and protocol-count prose is normalized to current public fees/status contracts where the
+  canonical OpenAPI narrative is stale.
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
   schemas:
-    CancelOrderResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        result:
-          type: object
-          properties:
-            status:
-              type: string
-            response:
-              type: object
-        cancelled:
-          type: object
-          properties:
-            coin:
-              type: string
-            orderIds:
-              type: array
-              items:
-                type: integer
-            count:
-              type: integer
-        intentHash:
-          type: string
-        expiresAt:
-          type: integer
-        timestamp:
-          type: integer
-        error:
-          type: string
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    CancelOrderRequest:
+    ExecuteOrderRequest:
       type: object
       required:
       - agentAddress
       - coin
-      - orderIds
+      - isBuy
+      - size
+      - price
+      - orderType
       - nonce
       - expiresAt
       - intentHash
@@ -202,14 +167,34 @@ components:
           pattern: ^0x[a-fA-F0-9]{40}$
         coin:
           type: string
-        orderIds:
-          type: array
-          minItems: 1
-          maxItems: 50
-          items:
-            type: integer
+        isBuy:
+          type: boolean
+        size:
+          type: string
+        price:
+          type: string
+        orderType:
+          type: string
+          enum:
+          - limit_gtc
+          - limit_ioc
+          - limit_alo
+          - market_ioc
+          - stop_loss
+          - take_profit
+          description: '`market_ioc` is a signed, price-protected IOC limit order with a live 100 bps
+            adverse-price cap, never an unbounded market order.'
+        reduceOnly:
+          type: boolean
+          default: false
+        leverage:
+          oneOf:
+          - type: number
+          - type: string
         signedAction:
           type: object
+          description: 'If supplied, must contain the signed FarmDash builder term `{ b: treasury, f:
+            1 }`; f is tenths of a basis point.'
         nonce:
           type: integer
         expiresAt:
@@ -218,19 +203,6 @@ components:
           type: string
         signature:
           $ref: '#/components/schemas/EIP712Signature'
-    EIP712Signature:
-      type: object
-      required:
-      - r
-      - s
-      - v
-      properties:
-        r:
-          type: string
-        s:
-          type: string
-        v:
-          type: integer
     ExecuteOrderResponse:
       type: object
       properties:
@@ -239,7 +211,9 @@ components:
         state:
           type: string
           enum:
-          - filled
+          - fully_filled
+          - partially_filled
+          - zero_fill
           - resting_unfilled
           - rejected
           - unknown
@@ -306,69 +280,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DustStormWarning'
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
-          type: string
-          const: dust_storm
-        message:
-          type: string
-    ExecuteOrderRequest:
-      type: object
-      required:
-      - agentAddress
-      - coin
-      - isBuy
-      - size
-      - price
-      - orderType
-      - nonce
-      - expiresAt
-      - intentHash
-      - signature
-      properties:
-        agentAddress:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-        coin:
-          type: string
-        isBuy:
-          type: boolean
-        size:
-          type: string
-        price:
-          type: string
-        orderType:
-          type: string
-          enum:
-          - limit_gtc
-          - limit_ioc
-          - limit_alo
-          - market
-          - stop_loss
-          - take_profit
-        reduceOnly:
-          type: boolean
-          default: false
-        leverage:
-          oneOf:
-          - type: number
-          - type: string
-        signedAction:
-          type: object
-          description: 'If supplied, must contain the signed FarmDash builder term `{ b: treasury, f: 1 }`; f is tenths of a basis point.'
-        nonce:
-          type: integer
-        expiresAt:
-          type: integer
-        intentHash:
-          type: string
-        signature:
-          $ref: '#/components/schemas/EIP712Signature'
     ErrorResponse:
       type: object
       required:
@@ -390,6 +301,224 @@ components:
         details:
           type: object
           additionalProperties: true
+    CancelOrderRequest:
+      type: object
+      required:
+      - agentAddress
+      - coin
+      - orderIds
+      - nonce
+      - expiresAt
+      - intentHash
+      - signature
+      properties:
+        agentAddress:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        coin:
+          type: string
+        orderIds:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: integer
+        signedAction:
+          type: object
+        nonce:
+          type: integer
+        expiresAt:
+          type: integer
+        intentHash:
+          type: string
+        signature:
+          $ref: '#/components/schemas/EIP712Signature'
+    CancelOrderResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        state:
+          type: string
+          enum:
+          - accepted
+          - rejected
+          - partially_rejected
+          - unknown
+          description: '`accepted` is application acknowledgement, not final venue cancellation.'
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+            response:
+              type: object
+        cancellation:
+          type: object
+          properties:
+            accountAddress:
+              type: string
+            coin:
+              type: string
+            orderIds:
+              type: array
+              items:
+                type: integer
+            count:
+              type: integer
+            perOrder:
+              type: array
+              items:
+                type: object
+                properties:
+                  orderId:
+                    type: integer
+                  status: {}
+        reconciliation:
+          type: object
+          description: Required handoff for final venue cancellation evidence.
+          properties:
+            required:
+              type: boolean
+              enum:
+              - true
+            endpoint:
+              type: string
+              enum:
+              - /api/v1/agent/futures/reconcile-order
+            orderIds:
+              type: array
+              items:
+                type: integer
+        intentHash:
+          type: string
+        expiresAt:
+          type: integer
+        timestamp:
+          type: integer
+        error:
+          type: string
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    EIP712Signature:
+      type: object
+      required:
+      - r
+      - s
+      - v
+      properties:
+        r:
+          type: string
+        s:
+          type: string
+        v:
+          type: integer
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent
+            API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug
+        (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be
+        attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request,
+        and malformed values are ignored. This is a skill identity, never a wallet address, API key, or
+        user ID.'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -428,66 +557,3 @@ components:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
-x-agent-use-cases:
-- id: bounded-autopilot
-  name: Bounded Autopilot
-  tier: Syndicate
-  cadence: Every 5 minutes
-  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
-  primaryTools:
-  - agent_onboard
-  - create_session
-  - configure_autopilot
-  - autopilot_cycle
-  - session_heartbeat
-  stopConditions:
-  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
-  - Required local EIP-191 or EIP-712 signature is missing.
-  - Realized performance degrades enough to require analysis_only mode.
-- id: airdrop-rotation
-  name: Airdrop Rotation Desk
-  tier: Pioneer
-  cadence: Daily or event-driven
-  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
-  primaryTools:
-  - get_trail_heat
-  - get_historical_trailheat
-  - get_agent_events
-  - simulate_points
-  - get_swap_quote
-  - simulate_swap_execution
-  stopConditions:
-  - Expected point edge is unclear or negative after fees and gas.
-  - Sybil risk exceeds the configured threshold.
-  - User constraints do not allow the target chain or protocol.
-- id: cross-chain-roi
-  name: Cross-Chain ROI Gate
-  tier: Pioneer
-  cadence: Before any bridge
-  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
-  primaryTools:
-  - get_chain_breakdown
-  - get_wallet_balances
-  - get_token_prices
-  - get_swap_quote
-  - simulate_swap_execution
-  - optimize_portfolio
-  stopConditions:
-  - netEdgeUsd is not positive.
-  - Quote age exceeds the configured freshness limit.
-  - Target chain is not allowlisted.
-- id: perps-hedge
-  name: Perps Hedge Co-Pilot
-  tier: Syndicate
-  cadence: Before exposure changes
-  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
-  primaryTools:
-  - scan_funding_rates
-  - scan_market_conditions
-  - get_futures_account
-  - analyze_futures_strategy
-  - calculate_position_size
-  stopConditions:
-  - Research gate expires.
-  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
-  - Daily loss or drawdown limit is reached.

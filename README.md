@@ -64,4 +64,4 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-Zero-custody intelligence and control layer for DeFi agents and airdrop farmers, combining Trail Heat intelligence, Signal Architect swap routing, Hyperliquid research, and agent-ready APIs. Exposes a unified OpenAPI REST API, an MCP server, llms.txt, and OpenClaw agent skills with tiered API-key au
+FarmDash’s agent API combines read-only DeFi research and wallet/risk context with customer-signed EVM swap preparation and guarded Hyperliquid order workflows. The current REST contract is OpenAPI 3.1.0 / API v2.0.0 with 43 operations. The public-source MCP server uses local stdio and exposes 84 tools; no hosted remote MCP endpoint or published npm package is claimed. Live status and fee contracts govern availability and pricing. Solana is preview-only, 0x is paused, and A2A is not exposed.

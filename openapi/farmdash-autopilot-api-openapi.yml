@@ -1,8 +1,11 @@
-openapi: 3.2.0
+openapi: 3.1.0
 info:
   title: FarmDash Agent Autopilot API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
+  description: 'Tag-filtered subset of the public FarmDash Agent API. Canonical contract: https://www.farmdash.one/agents/openapi.yaml.
+    Runtime availability and feature gates: https://www.farmdash.one/api/v1/agent/status. This discovery
+    copy does not grant execution authority; follow each operation''s security, confirmation, and simulation
+    requirements.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
@@ -24,6 +27,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: equity
         in: query
         required: true
@@ -66,7 +70,9 @@ paths:
 
         `sessionToken` in the JSON body or `X-FarmDash-Session-Token` header.
 
-        Syndicate required for configure/cycle/pause/resume.'
+        Syndicate required for configure/cycle/pause/resume.
+
+        '
       tags:
       - Autopilot
       security:
@@ -131,6 +137,8 @@ paths:
                       type: number
                     rebalanceContext:
                       $ref: '#/components/schemas/RebalanceContext'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Autopilot action result
@@ -158,43 +166,96 @@ paths:
           description: Session owner or token verification failed
         '402':
           $ref: '#/components/responses/PaymentRequired'
+x-farmdash-canonical-openapi: https://www.farmdash.one/agents/openapi.yaml
+x-farmdash-runtime-status: https://www.farmdash.one/api/v1/agent/status
+x-farmdash-source-contract-notes:
+- Directory-only alias definitions map ApiKeyAuth and bearerAuth to HTTP Bearer because the canonical
+  OpenAPI references these names but omits components.securitySchemes; the first-party agent manifest
+  documents bearer API keys.
+- Embedded fee and protocol-count prose is normalized to current public fees/status contracts where the
+  canonical OpenAPI narrative is stale.
 components:
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug
+        (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be
+        attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request,
+        and malformed values are ignored. This is a skill identity, never a wallet address, API key, or
+        user ID.'
   headers:
     X-Request-ID:
       description: Unique request trace ID for debugging and support
       schema:
         type: string
         format: uuid
+  responses:
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
   schemas:
-    TrackedPosition:
+    AutopilotConfig:
       type: object
       properties:
-        coin:
-          type: string
-        side:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum:
+            - funding_arb
+            - momentum
+            - mean_reversion
+            - portfolio_rebalance
+            - full_auto
+        assets:
+          type: array
+          items:
+            type: string
+        maxEquityPct:
+          type: number
+        rebalanceIntervalMin:
+          type: integer
+        autoCompound:
+          type: boolean
+        riskPreference:
           type: string
           enum:
-          - long
-          - short
-        entryPrice:
-          type: number
-        size:
-          type: number
-        leverage:
-          type: number
-        stopLoss:
-          type: number
-          nullable: true
-        takeProfit:
-          type: number
-          nullable: true
-        openedAt:
-          type: string
-          format: date-time
-        strategy:
-          type: string
-        unrealizedPnl:
-          type: number
+          - conservative
+          - balanced
+          - aggressive
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
     RebalanceContext:
       type: object
       properties:
@@ -216,82 +277,6 @@ components:
         targetChain:
           type: string
           nullable: true
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    AutopilotAction:
-      type: object
-      properties:
-        type:
-          type: string
-          enum:
-          - analyze
-          - execute
-          - adjust_stop
-          - close_position
-          - rebalance
-          - skip
-          - halt
-        asset:
-          type: string
-        reason:
-          type: string
-        details:
-          type: object
-        priority:
-          type: string
-          enum:
-          - high
-          - medium
-          - low
-    RiskSentinelConfig:
-      type: object
-      properties:
-        minHealthFactor:
-          type: number
-        minLiquidationBufferPct:
-          type: number
-        maxStablecoinDepegPct:
-          type: number
     AgentSession:
       type: object
       properties:
@@ -331,57 +316,31 @@ components:
           format: date-time
         agentMeta:
           $ref: '#/components/schemas/AgentMeta'
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
-    AutopilotConfig:
+    AutopilotAction:
       type: object
       properties:
-        strategies:
-          type: array
-          items:
-            type: string
-            enum:
-            - funding_arb
-            - momentum
-            - mean_reversion
-            - portfolio_rebalance
-            - full_auto
-        assets:
-          type: array
-          items:
-            type: string
-        maxEquityPct:
-          type: number
-        rebalanceIntervalMin:
-          type: integer
-        autoCompound:
-          type: boolean
-        riskPreference:
+        type:
           type: string
           enum:
-          - conservative
-          - balanced
-          - aggressive
-        riskSentinel:
-          $ref: '#/components/schemas/RiskSentinelConfig'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaConfig'
-    AgentMeta:
-      type: object
-      properties:
-        name:
+          - analyze
+          - execute
+          - adjust_stop
+          - close_position
+          - rebalance
+          - skip
+          - halt
+        asset:
           type: string
-        version:
+        reason:
           type: string
-        framework:
+        details:
+          type: object
+        priority:
           type: string
-        capabilities:
-          type: array
-          items:
-            type: string
+          enum:
+          - high
+          - medium
+          - low
     AutopilotRiskStatus:
       type: object
       properties:
@@ -419,19 +378,88 @@ components:
         haltReason:
           type: string
           nullable: true
-    DelegationRecord:
+    PaymentRequiredError:
       type: object
       properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
+        ok:
           type: boolean
-        verifiedAt:
+          example: false
+        error:
           type: string
-          format: date-time
-          nullable: true
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent
+            API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    RiskSentinelConfig:
+      type: object
+      properties:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
     ExecutionAlphaConfig:
       type: object
       properties:
@@ -445,98 +473,68 @@ components:
           type: boolean
         minNetEdgeUsd:
           type: number
-  responses:
-    PaymentRequired:
-      description: Free-tier limit exceeded — x402 payment required
-      headers:
-        X-Payment-Required:
-          schema:
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    TrackedPosition:
+      type: object
+      properties:
+        coin:
+          type: string
+        side:
+          type: string
+          enum:
+          - long
+          - short
+        entryPrice:
+          type: number
+        size:
+          type: number
+        leverage:
+          type: number
+        stopLoss:
+          type: number
+          nullable: true
+        takeProfit:
+          type: number
+          nullable: true
+        openedAt:
+          type: string
+          format: date-time
+        strategy:
+          type: string
+        unrealizedPnl:
+          type: number
+    AgentMeta:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        framework:
+          type: string
+        capabilities:
+          type: array
+          items:
             type: string
-        X-Payment-Address:
-          schema:
-            type: string
-          description: Treasury wallet (USDC on Base)
-        X-Payment-Token:
-          schema:
-            type: string
-          description: USDC contract on Base
-        X-Payment-Amount:
-          schema:
-            type: string
-          description: Amount in token decimals (990000 = 0.99 USDC)
-        X-Payment-Chain-Id:
-          schema:
-            type: string
-          description: 8453 (Base)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PaymentRequiredError'
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
-x-agent-use-cases:
-- id: bounded-autopilot
-  name: Bounded Autopilot
-  tier: Syndicate
-  cadence: Every 5 minutes
-  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
-  primaryTools:
-  - agent_onboard
-  - create_session
-  - configure_autopilot
-  - autopilot_cycle
-  - session_heartbeat
-  stopConditions:
-  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
-  - Required local EIP-191 or EIP-712 signature is missing.
-  - Realized performance degrades enough to require analysis_only mode.
-- id: airdrop-rotation
-  name: Airdrop Rotation Desk
-  tier: Pioneer
-  cadence: Daily or event-driven
-  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
-  primaryTools:
-  - get_trail_heat
-  - get_historical_trailheat
-  - get_agent_events
-  - simulate_points
-  - get_swap_quote
-  - simulate_swap_execution
-  stopConditions:
-  - Expected point edge is unclear or negative after fees and gas.
-  - Sybil risk exceeds the configured threshold.
-  - User constraints do not allow the target chain or protocol.
-- id: cross-chain-roi
-  name: Cross-Chain ROI Gate
-  tier: Pioneer
-  cadence: Before any bridge
-  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
-  primaryTools:
-  - get_chain_breakdown
-  - get_wallet_balances
-  - get_token_prices
-  - get_swap_quote
-  - simulate_swap_execution
-  - optimize_portfolio
-  stopConditions:
-  - netEdgeUsd is not positive.
-  - Quote age exceeds the configured freshness limit.
-  - Target chain is not allowlisted.
-- id: perps-hedge
-  name: Perps Hedge Co-Pilot
-  tier: Syndicate
-  cadence: Before exposure changes
-  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
-  primaryTools:
-  - scan_funding_rates
-  - scan_market_conditions
-  - get_futures_account
-  - analyze_futures_strategy
-  - calculate_position_size
-  stopConditions:
-  - Research gate expires.
-  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
-  - Daily loss or drawdown limit is reached.

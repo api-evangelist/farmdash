@@ -1,40 +1,19 @@
 {
-  "provider": "farmdash",
-  "sources": [
-    "_original/farmdash-agent-api-openapi.yaml"
+  "generated": "2026-09-28",
+  "source_url": "https://www.farmdash.one/agents/openapi.yaml",
+  "runtime_status_url": "https://www.farmdash.one/api/v1/agent/status",
+  "fee_contract_url": "https://www.farmdash.one/api/v1/fees.json",
+  "openapi_version": "3.1.0",
+  "api_contract_version": "2.0.0",
+  "source_operations": 43,
+  "source_paths": 38,
+  "tag_subsets": 15,
+  "split_operation_total": 43,
+  "operation_ids_verified_unique_and_complete": true,
+  "split_component_references_validated": true,
+  "normalizations": [
+    "The source references bearerAuth and ApiKeyAuth without defining components.securitySchemes; split specs define directory-only HTTP Bearer aliases based on the first-party manifest and disclose the gap.",
+    "Stale embedded fee and protocol-count prose is replaced by current fee/status links."
   ],
-  "outputs": [
-    "farmdash-account-api-openapi.yml",
-    "farmdash-autopilot-api-openapi.yml",
-    "farmdash-delegation-api-openapi.yml",
-    "farmdash-execution-api-openapi.yml",
-    "farmdash-history-api-openapi.yml",
-    "farmdash-intelligence-api-openapi.yml",
-    "farmdash-research-api-openapi.yml",
-    "farmdash-risk-api-openapi.yml",
-    "farmdash-session-api-openapi.yml",
-    "farmdash-strategy-api-openapi.yml",
-    "farmdash-swap-api-openapi.yml"
-  ],
-  "archived": [],
-  "errors": [],
-  "warnings": [],
-  "notes": [
-    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
-    "farmdash-agent-api-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "apis.yml register: already-registered"
-  ],
-  "skipped": [
-    "farmdash-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-autopilot-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-delegation-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-execution-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-history-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-intelligence-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-research-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-risk-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-session-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-strategy-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-swap-api-openapi.yml: previously refined output, superseded by openapi/_original/"
-  ]
+  "runtime_boundaries": {"mcp_transport": "stdio", "mcp_tools": 84, "a2a_transport": "not_exposed", "solana": "preview-only", "0x": "operator-paused", "generic_intents": "disabled or preparation-only"}
 }

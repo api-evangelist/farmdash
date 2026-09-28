@@ -4,38 +4,35 @@
   "server_version": "5.0.0",
   "description": "FarmDash MCP server for zero-custody DeFi agent intelligence and control: Trail Heat discovery, wallet intelligence, typed adapter validation, policy checks, simulations, EIP-712 approval queues, x402 payments, and durable receipt logs. FarmDash never holds funds or private keys.",
   "homepage": "https://www.farmdash.one/agents",
-  "repository": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/mcp-server",
+  "documentation": "https://www.farmdash.one/agents",
   "transport": {
     "type": "stdio",
     "command": "node",
     "args": [
       "dist/index.js"
-    ]
+    ],
+    "requires_installation": true
   },
   "installation": {
-    "status": "source_only_registry_unpublished_verified_2026-08-23",
-    "registry_note": "The @farmdash/mcp-server package was not present on the public npm registry when verified. Build from the public source repository.",
-    "source_steps": [
-      "git clone https://github.com/Parmasanandgarlic/farmdashbeta.git",
-      "cd farmdashbeta/mcp-server",
-      "npm ci",
-      "npm run build"
-    ],
-    "mcp_client_config": {
-      "claude_desktop": {
-        "mcpServers": {
-          "farmdash": {
-            "command": "node",
-            "args": [
-              "/absolute/path/to/farmdashbeta/mcp-server/dist/index.js"
-            ],
-            "env": {
-              "FARMDASH_API_KEY": "fd_scout_free",
-              "FARMDASH_BASE_URL": "https://www.farmdash.one/api"
-            }
-          }
-        }
+    "status": "public_source_available",
+    "public_source": "https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/tree/main/mcp-server",
+    "clone": "git clone https://github.com/Parmasanandgarlic/farmdash-openclaw-skills.git",
+    "install": "npm ci --prefix mcp-server",
+    "build": "npm run build --prefix mcp-server",
+    "start": "node mcp-server/dist/index.js",
+    "registry": {
+      "npm": {
+        "package": "@farmdash/mcp-server",
+        "status": "not_yet_published"
+      },
+      "pypi": {
+        "status": "not_advertised"
       }
+    },
+    "public_resources": {
+      "agent_hub": "https://www.farmdash.one/agents",
+      "openapi": "https://www.farmdash.one/agents/openapi.yaml",
+      "llms_txt": "https://www.farmdash.one/llms.txt"
     }
   },
   "env": {
@@ -47,6 +44,14 @@
       "description": "Override API base URL. Default: https://www.farmdash.one/api",
       "required": false,
       "default": "https://www.farmdash.one/api"
+    },
+    "FARMDASH_SCOUT_GRANT": {
+      "description": "Optional short-lived onboarding grant returned by agent_onboard/GET /api/v1/agent/onboard. The stdio adapter normally captures it in memory automatically. It only applies to eligible cheap discovery routes and never grants premium or execution authority.",
+      "required": false
+    },
+    "FARMDASH_SKILL_ID": {
+      "description": "Optional canonical public skill slug used only for attribution (for example farmdash-signal-architect). Never put a wallet address, API key, or user ID here.",
+      "required": false
     }
   },
   "tools": [
@@ -85,7 +90,7 @@
         "title": "FarmDash create_intent",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -93,12 +98,13 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "policy_check_intent",
-      "description": "Plan: run the explicit FarmDash policy gate for an intent. Execution remains blocked unless this check passes.",
+      "description": "Readiness probe for the generic intent policy gate. Public callers cannot provide trusted policy decisions; until the server policy evaluator is configured this returns policy_evaluator_unconfigured. Tool discovery does not grant policy authority.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -137,7 +143,7 @@
         "title": "FarmDash policy_check_intent",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -145,12 +151,13 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "simulate_intent",
-      "description": "Plan: record a mandatory simulation result for an intent. Prepare and execute are blocked until a successful, unexpired simulation exists.",
+      "description": "Readiness probe for the generic intent simulation gate. Public callers cannot record trusted simulation evidence; until a server verifier is configured this returns simulation_verifier_unconfigured. Tool discovery does not grant simulation authority.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -186,7 +193,7 @@
         "title": "FarmDash simulate_intent",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -194,6 +201,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -257,6 +265,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -344,7 +353,7 @@
         "title": "FarmDash request_human_approval",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -352,6 +361,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -447,6 +457,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -492,6 +503,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -533,7 +545,7 @@
         "title": "FarmDash prepare_intent",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -541,6 +553,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -614,6 +627,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -660,7 +674,7 @@
         "title": "FarmDash confirm_execution",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -668,6 +682,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -713,6 +728,7 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -769,15 +785,17 @@
         "feature_status_id": "agent_execution.intent_lifecycle",
         "availability": "preparation_only",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "get_trail_heat",
-      "description": "Canonical Trail Heat: fetch DeFiLlama-backed quantitative scores (0-100) with per-number evidence states, components, editorial separation and registry resolution from /v1/trail-heat.",
+      "description": "Canonical Trail Heat: fetch DeFiLlama-backed quantitative scores (0-100) with per-number evidence states, components, editorial separation and registry resolution from /v1/trail-heat. Takes no parameters.",
       "inputSchema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "returns": "Array of protocol objects sorted by Trail Heat score descending",
@@ -793,6 +811,7 @@
         "feature_status_id": "trail_heat.live_scores",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -823,9 +842,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/protocols",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.metadata",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -856,15 +876,16 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/protocols",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.risk",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "find_capital_route",
-      "description": "Find the most efficient route between tokens/chains. Considers fees, slippage, and gas. Returns a quote preview without executing.",
+      "description": "Find the most efficient route between tokens/chains. Considers fees, slippage, and gas. Returns a provider-neutral market estimate (never executable, never attributed) — a wallet alone never triggers provider quoting. For execution, create a firm single-provider quote via the quote-intent API (LI.FI or Relay; 0x remains operator-paused), then simulate before preparing.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -875,10 +896,14 @@
             "type": "integer"
           },
           "fromToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "toToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "fromAmount": {
             "type": "string",
@@ -889,8 +914,7 @@
             "type": "string",
             "enum": [
               "lifi",
-              "zerox",
-              "x402"
+              "relay"
             ]
           }
         },
@@ -917,15 +941,17 @@
         "feature_status_id": "swap.compatibility_evm",
         "availability": "available_with_tier_gate",
         "tier": "scout_quote_signature_and_simulation_gated",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "get_chain_breakdown",
-      "description": "Get protocol distribution aggregated by blockchain network. Returns counts, airdrops, and category coverage.",
+      "description": "Get protocol distribution aggregated by blockchain network. Returns counts, airdrops, and category coverage. Takes no parameters.",
       "inputSchema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "returns": "Object with chain names as keys, each containing protocol count and confirmed airdrop count",
@@ -938,18 +964,20 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/chain-breakdown",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.chain",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "get_agent_events",
-      "description": "Real-time stream of protocol events: new airdrops, snapshots, program changes, and TVL spikes.",
+      "description": "Real-time stream of protocol events: new airdrops, snapshots, program changes, and TVL spikes. Takes no parameters.",
       "inputSchema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "returns": "Array of timestamped event objects",
@@ -962,9 +990,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/events",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.events",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1000,9 +1029,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/sybil-audit",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.sybil",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1064,9 +1094,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/simulate-points",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.points",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1099,9 +1130,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/historical-trailheat",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "trail_heat.historical",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1138,6 +1170,7 @@
         "feature_status_id": "wallet.portfolio_reads",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1171,6 +1204,7 @@
         "feature_status_id": "wallet.portfolio_reads",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1204,6 +1238,7 @@
         "feature_status_id": "wallet.portfolio_reads",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1237,6 +1272,7 @@
         "feature_status_id": "wallet.portfolio_reads",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1269,9 +1305,10 @@
       },
       "capability": {
         "api_route": "/api/v1/agent/prices",
-        "feature_status_id": "trail_heat.live_scores",
+        "feature_status_id": "protocol_intelligence.prices",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1301,6 +1338,7 @@
         "feature_status_id": "workflows.supervised",
         "availability": "available_with_tier_gate",
         "tier": "scout_catalog_pioneer_runs",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1343,6 +1381,7 @@
         "feature_status_id": "workflows.supervised",
         "availability": "available_with_tier_gate",
         "tier": "scout_catalog_pioneer_runs",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1394,6 +1433,7 @@
         "feature_status_id": "workflows.supervised",
         "availability": "available_with_tier_gate",
         "tier": "scout_catalog_pioneer_runs",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1426,12 +1466,13 @@
         "feature_status_id": "workflows.supervised",
         "availability": "available_with_tier_gate",
         "tier": "scout_catalog_pioneer_runs",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "get_swap_quote",
-      "description": "Research: get a token swap quote without executing. New agents should convert quotes into create_intent -> policy_check_intent -> simulate_intent before execution.",
+      "description": "Research or firm quote: without idempotencyKey, return a provider-neutral market estimate with zero trading-provider calls. With idempotencyKey plus a real wallet/destination and slippage, create or reuse a firm single-provider quote intent and return simulationRequirements.intent_id for simulate_swap_execution. Active selection is LI.FI/Relay; 0x remains blocked while operator-paused.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1442,10 +1483,14 @@
             "type": "integer"
           },
           "fromToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "toToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "fromAmount": {
             "type": "string",
@@ -1455,8 +1500,7 @@
             "type": "string",
             "enum": [
               "lifi",
-              "zerox",
-              "x402"
+              "relay"
             ]
           },
           "walletAddress": {
@@ -1490,6 +1534,11 @@
               "strict",
               "balanced"
             ]
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
           }
         },
         "required": [
@@ -1511,10 +1560,11 @@
         "openWorldHint": true
       },
       "capability": {
-        "api_route": "/api/agents/quote",
+        "api_route": "/api/v1/agent/quote-intent",
         "feature_status_id": "swap.compatibility_evm",
         "availability": "available_with_tier_gate",
         "tier": "scout_quote_signature_and_simulation_gated",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1553,12 +1603,13 @@
         "feature_status_id": "swap.compatibility_evm",
         "availability": "available_with_tier_gate",
         "tier": "scout_quote_signature_and_simulation_gated",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "execute_swap",
-      "description": "Compatibility route: validate a signed token-swap request after a fresh successful simulation and return transaction calldata. FarmDash does not broadcast the returned transaction; the customer-controlled wallet or execution client decides whether to submit.",
+      "description": "Compatibility route: validate a signed token-swap request after a fresh successful simulation and return transaction calldata. FarmDash does not broadcast the returned transaction. Generic execute_approved_intent remains unavailable.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1569,10 +1620,14 @@
             "type": "integer"
           },
           "fromToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "toToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "fromAmount": {
             "type": "string",
@@ -1606,8 +1661,7 @@
             "type": "string",
             "enum": [
               "lifi",
-              "zerox",
-              "x402"
+              "relay"
             ]
           }
         },
@@ -1639,30 +1693,39 @@
         "feature_status_id": "swap.compatibility_evm",
         "availability": "available_with_tier_gate",
         "tier": "scout_quote_signature_and_simulation_gated",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "confirm_swap",
-      "description": "Confirm a swap by tx hash. Marks the fee event as confirmed.",
+      "description": "Confirm a compatibility swap only through FarmDash server verification of the owning session, canonical-chain receipt, exact committed fee asset/payer/recipient/amount, and required finality. A caller-supplied tx hash alone is not confirmation.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "feeEventId": {
-            "type": "string"
-          },
-          "txHash": {
+          "sessionId": {
             "type": "string"
           },
           "agentAddress": {
             "type": "string",
             "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "sessionToken": {
+            "type": "string"
+          },
+          "feeEventId": {
+            "type": "string"
+          },
+          "txHash": {
+            "type": "string"
           }
         },
         "required": [
+          "sessionId",
+          "agentAddress",
+          "sessionToken",
           "feeEventId",
-          "txHash",
-          "agentAddress"
+          "txHash"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1672,7 +1735,7 @@
         "title": "FarmDash confirm_swap",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -1680,12 +1743,13 @@
         "feature_status_id": "swap_fee_settlement_confirmation",
         "availability": "server_verified",
         "tier": "session_bound",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "optimize_portfolio",
-      "description": "Get rebalancing suggestions based on current positions and risk preference.",
+      "description": "Get unranked catalog research candidates. Returns WAIT analysis-only: exact pool identity, wallet eligibility, policy, costs and stay-put comparison remain required. Campaign confirmation does not establish safety.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1738,6 +1802,7 @@
         "feature_status_id": "agent_planning.research",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1867,6 +1932,7 @@
         "feature_status_id": "agent_planning.research",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -1885,10 +1951,14 @@
             "exclusiveMinimum": 0
           },
           "fromToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "toToken": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "ERC-20 token contract address deployed on the corresponding chain. Do not pass a wallet/EOA; the token address and chain ID must match."
           },
           "fromAmount": {
             "type": "string",
@@ -1906,8 +1976,7 @@
             "type": "string",
             "enum": [
               "lifi",
-              "zerox",
-              "x402"
+              "relay"
             ]
           },
           "slippage": {
@@ -1963,15 +2032,17 @@
         "feature_status_id": "agent_planning.research",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "scan_funding_rates",
-      "description": "Scan Hyperliquid perp funding rates across the venue.",
+      "description": "Scan Hyperliquid perp funding rates across the venue. Takes no parameters.",
       "inputSchema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "returns": "Array of { asset, hlRate, binanceRate, bybitRate, annualizedDelta, arbOpportunity }",
@@ -1985,8 +2056,10 @@
       "capability": {
         "api_route": "/api/v1/agent/futures/scan-funding",
         "feature_status_id": "futures.hyperliquid_guarded",
-        "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "availability": "available",
+        "tier": "scout_preview_pioneer_full",
+        "commercial_model": "default_overage",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2017,8 +2090,10 @@
       "capability": {
         "api_route": "/api/v1/agent/futures/market-conditions",
         "feature_status_id": "futures.hyperliquid_guarded",
-        "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "availability": "available",
+        "tier": "scout_plus",
+        "commercial_model": "default_overage",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2054,8 +2129,10 @@
       "capability": {
         "api_route": "/api/v1/agent/futures/account-state",
         "feature_status_id": "futures.hyperliquid_guarded",
-        "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus_or_x402",
+        "commercial_model": "wallet_portfolio",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2069,6 +2146,10 @@
             "type": "string"
           },
           "agentAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "accountAddress": {
             "type": "string",
             "pattern": "^0x[a-fA-F0-9]{40}$"
           },
@@ -2096,8 +2177,10 @@
       "capability": {
         "api_route": "/api/v1/agent/futures/analyze-strategy",
         "feature_status_id": "futures.hyperliquid_guarded",
-        "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus_or_x402",
+        "commercial_model": "futures_strategy",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2152,14 +2235,16 @@
       "capability": {
         "api_route": "/api/v1/agent/futures/position-sizing",
         "feature_status_id": "futures.hyperliquid_guarded",
-        "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "availability": "paid_ready",
+        "tier": "pioneer_plus_or_x402",
+        "commercial_model": "futures_strategy",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "execute_perp_order",
-      "description": "Compatibility: submit a pre-signed EIP-712 Hyperliquid order after a 60-second parameter-bound research gate. For delegated API wallets, set accountAddress to the venue-verified equity owner used during analysis. FarmDash recovers the exact L1 signer, rejects an agentAddress mismatch, and preflights the owner maxBuilderFee. The signed action must disclose builder f=1 (0.1 bp/0.001% of filled notional), and expiresAt is venue-signed as expiresAfter. A resting order is not a fill.",
+      "description": "Compatibility: submit a pre-signed EIP-712 Hyperliquid order after a 60-second parameter-bound research gate. `market_ioc` is a signed, price-protected IOC limit order with a live 100 bps adverse-price cap, never an unbounded market order; its outcome distinguishes full, partial, and zero fill, and an IOC resting response is unknown/inconsistent. For delegated API wallets, set accountAddress to the venue-verified equity owner used during analysis. FarmDash recovers the exact L1 signer, rejects an agentAddress mismatch, and preflights the owner maxBuilderFee. The signed action must disclose builder f=1 (0.1 bp/0.001% of filled notional), and expiresAt is venue-signed as expiresAfter. Venue nonce authority is network + signer + nonce across account/vault contexts; durable replay control fails closed before submission.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2184,7 +2269,15 @@
             "type": "string"
           },
           "orderType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "limit_gtc",
+              "limit_ioc",
+              "limit_alo",
+              "market_ioc",
+              "stop_loss",
+              "take_profit"
+            ]
           },
           "signature": {
             "type": "object",
@@ -2257,13 +2350,15 @@
         "api_route": "/api/v1/agent/futures/execute-order",
         "feature_status_id": "futures.hyperliquid_guarded",
         "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "tier": "scout_capacity_signature_gated",
+        "commercial_model": "default_overage",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "cancel_perp_order",
-      "description": "Cancel stale or resting Hyperliquid orders with a venue-signed expiresAfter and FarmDash intent hash. For a delegated API wallet, accountAddress identifies the verified equity owner and is included as the signed vault/subaccount routing address when required. Success requires one authoritative venue success status per order; mixed errors are returned as partial rejection.",
+      "description": "Cancel stale or resting Hyperliquid orders with a venue-signed expiresAfter and FarmDash intent hash. For a delegated API wallet, accountAddress identifies the verified equity owner and is included as the signed vault/subaccount routing address when required. `accepted` is an application acknowledgement, not final venue cancellation: reconcile every requested ID through /api/v1/agent/futures/reconcile-order before dependent actions. Mixed errors are partial rejection; malformed or timeout outcomes are unknown. Venue nonce authority is network + signer + nonce across account/vault contexts; durable replay control fails closed before submission.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2346,7 +2441,9 @@
         "api_route": "/api/v1/agent/futures/cancel-order",
         "feature_status_id": "futures.hyperliquid_guarded",
         "availability": "available_with_tier_gate",
-        "tier": "pioneer_research_syndicate_execution",
+        "tier": "scout_capacity_signature_gated",
+        "commercial_model": "default_overage",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2379,7 +2476,9 @@
         "api_route": "/api/v1/agent/performance",
         "feature_status_id": "ledger.activity",
         "availability": "paid_ready",
-        "tier": "pioneer_plus",
+        "tier": "pioneer_plus_or_x402",
+        "commercial_model": "wallet_portfolio",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2438,6 +2537,7 @@
         "feature_status_id": "security.preflight",
         "availability": "available",
         "tier": "scout_limited_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2521,6 +2621,7 @@
         "feature_status_id": "security.preflight",
         "availability": "available",
         "tier": "scout_limited_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2585,6 +2686,7 @@
         "feature_status_id": "agent_planning.research",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2661,6 +2763,7 @@
         "feature_status_id": "agent_planning.research",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2700,6 +2803,7 @@
         "feature_status_id": "ledger.activity",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2739,15 +2843,17 @@
         "feature_status_id": "ledger.activity",
         "availability": "paid_ready",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "agent_onboard",
-      "description": "First-run contract: fetch live feature readiness, tier gates, error semantics, and the onboarding capability map before selecting tools. This never enables execution.",
+      "description": "First-run contract: fetch live feature readiness, tier gates, error semantics, and the onboarding capability map before selecting tools. This never enables execution. Takes no parameters.",
       "inputSchema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "returns": "Live feature_status and deployment gates plus onboarding, security, and bounded-workflow guidance",
@@ -2763,6 +2869,7 @@
         "feature_status_id": "agent_core.bootstrap",
         "availability": "available",
         "tier": "scout",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2810,7 +2917,7 @@
         "title": "FarmDash create_session",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -2818,6 +2925,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2851,7 +2959,7 @@
         "title": "FarmDash session_heartbeat",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -2859,6 +2967,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2900,6 +3009,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -2938,7 +3048,7 @@
         "title": "FarmDash patch_farming_context",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -2946,6 +3056,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3001,6 +3112,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3044,6 +3156,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3111,7 +3224,7 @@
         "title": "FarmDash configure_autopilot",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -3119,12 +3232,13 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "autopilot_cycle",
-      "description": "Run one authenticated bounded decision cycle and return recommended actions. A recommendation is not authorization, submission, settlement, or position management.",
+      "description": "Run one authenticated autopilot cycle. Returns recommended actions.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3161,12 +3275,13 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "pause_autopilot",
-      "description": "Pause the backend cycle scheduler for an active session. This does not close positions, revoke venue authority, or prove chain-state changes.",
+      "description": "Pause the backend cycle scheduler for an active agent session. This does not close positions, revoke venue authority, or prove chain-state changes.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3202,12 +3317,13 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "resume_autopilot",
-      "description": "Resume the backend cycle scheduler for a paused session. Recommendations remain separately gated from transaction execution.",
+      "description": "Resume the backend cycle scheduler for a paused agent session. Recommendations remain separately gated from transaction execution.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3243,6 +3359,7 @@
         "feature_status_id": "autonomous_operator.sessions",
         "availability": "available_with_tier_gate",
         "tier": "pioneer_plus",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3338,6 +3455,7 @@
         "feature_status_id": "autonomous_operator.erc4337_submission",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3383,6 +3501,7 @@
         "feature_status_id": "autonomous_operator.erc4337_submission",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3428,6 +3547,7 @@
         "feature_status_id": "autonomous_operator.erc4337_submission",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3473,6 +3593,7 @@
         "feature_status_id": "autonomous_operator.erc4337_submission",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3510,7 +3631,7 @@
         "title": "FarmDash execute_cycle_actions",
         "readOnlyHint": false,
         "destructiveHint": true,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -3518,6 +3639,7 @@
         "feature_status_id": "autonomous_operator.erc4337_submission",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3575,7 +3697,7 @@
         "title": "FarmDash create_mee_intent",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -3583,6 +3705,7 @@
         "feature_status_id": "agent_execution.mee_cross_chain",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3615,6 +3738,7 @@
         "feature_status_id": "agent_execution.mee_cross_chain",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3656,6 +3780,7 @@
         "feature_status_id": "agent_execution.mee_cross_chain",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3688,6 +3813,7 @@
         "feature_status_id": "agent_execution.mee_cross_chain",
         "availability": "preparation_only",
         "tier": "syndicate",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3725,12 +3851,13 @@
         "feature_status_id": "trail_heat.live_scores",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "simulate_yield_strategy",
-      "description": "Advanced yield strategy simulation. Allocates capital across 81+ protocols using live DeFiLlama pool data and Trail Heat scoring. Returns projected allocations, yields, diversification score, and risk metrics. Combines Wagon Steward portfolio intelligence with Supply Master yield data.",
+      "description": "Read-only independent yield alternatives with exact pool, chain and asset identities. Missing rates/costs remain null; hypothetical yields and rewards never enter observed totals. Returns WAIT analysis-only until wallet, policy, route, freshness and all-in economics are verified.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3759,7 +3886,136 @@
             "items": {
               "type": "string"
             },
-            "description": "Specific protocol IDs to include (defaults to all eligible)"
+            "description": "Specific protocol IDs to investigate"
+          },
+          "poolIdentities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "protocolId": {
+                  "type": "string"
+                },
+                "poolId": {
+                  "type": "string"
+                },
+                "chain": {
+                  "type": "string"
+                },
+                "assetAddresses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "protocolId",
+                "poolId",
+                "chain",
+                "assetAddresses"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Exact upstream chain, pool ID and underlying asset addresses"
+          },
+          "costs": {
+            "type": "object",
+            "properties": {
+              "gas": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "slippage": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bridge": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exit": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "platform": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subscription": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "perCall": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "description": "Editable scenario costs in USD; missing mandatory costs force WAIT"
+          },
+          "stayPutApy": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Editable stay-put baseline APY assumption"
+          },
+          "scenarioApy": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Editable APY assumptions by protocol; excluded from observed yield"
           }
         },
         "required": [
@@ -3781,12 +4037,13 @@
         "feature_status_id": "trail_heat.live_scores",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
     {
       "name": "query_trail_heat",
-      "description": "DISCOVERY HEURISTIC query (NOT canonical Trail Heat): filter/sort/paginate the catalog editorial heuristic scores across 81+ protocols. Scores are discovery_heuristic_score values from static catalog data (catalog-editorial-v1). For quantitative DeFiLlama-backed scores use get_trail_heat.",
+      "description": "DISCOVERY HEURISTIC query (NOT canonical Trail Heat): filter/sort/paginate the catalog editorial heuristic scores. Scores share the directory and export discovery_snapshot contract (catalog-editorial-v2), with campaign evidence and unknown source freshness. For quantitative DeFiLlama-backed scores use get_trail_heat.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3870,6 +4127,7 @@
         "feature_status_id": "trail_heat.live_scores",
         "availability": "available",
         "tier": "scout_preview_pioneer_full",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -3919,6 +4177,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4065,7 +4324,7 @@
         "title": "FarmDash prepare_virtuals_tender_v2",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -4073,6 +4332,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4139,6 +4399,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4189,6 +4450,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4239,6 +4501,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4295,7 +4558,7 @@
         "title": "FarmDash bind_virtuals_tender_job",
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -4303,6 +4566,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4371,6 +4635,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4436,6 +4701,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4478,7 +4744,7 @@
         "title": "FarmDash evaluate_virtuals_tender",
         "readOnlyHint": false,
         "destructiveHint": true,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": true
       },
       "capability": {
@@ -4486,6 +4752,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": true,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     },
@@ -4604,6 +4871,7 @@
         "feature_status_id": "virtuals_acp.tenant_owned_tenders",
         "availability": "available_when_deployment_prerequisites_are_met",
         "tier": "x402_or_subscription_with_authenticated_session",
+        "idempotent": false,
         "status_endpoint": "https://www.farmdash.one/api/v1/agent/status"
       }
     }
@@ -4620,7 +4888,7 @@
       {
         "name": "Scout",
         "price": "Free",
-        "rate_limit": "5 req/24h per IP",
+        "rate_limit": "30 req/24h per IP + bounded onboarding grants on cheap discovery routes",
         "features": [
           "Top 3 protocols (rest encrypted)",
           "Swap quotes",
