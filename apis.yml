@@ -554,3 +554,36 @@ x-x402:
   - "header:payment-required"
   - "header:x-payment-required"
   control: 404
+x-correction-request:
+  requested: '2026-10-02'
+  source:
+  - https://github.com/api-evangelist/farmdash/pull/1
+  request: >-
+    Submitted by Michael (GitHub Parmasanandgarlic; profile lists farmdash.one / michael@farmdash.one
+    and owns the public MCP source repo). Verified live 2026-10-02 -- the live sources have
+    already moved past the PR (opened 2026-09-28). CONTRACT: openapi/_original refreshed verbatim
+    from https://www.farmdash.one/agents/openapi.yaml (OpenAPI 3.1.0, info.version 2.0.0, now 45
+    operations across 16 tags; was 27). bearerAuth IS now declared in components.securitySchemes;
+    ApiKeyAuth is still referenced by operations but not declared -- record as a provider-side
+    defect, do NOT invent a scheme. RE-PROFILE: re-split from the refreshed _original (the PR's 15
+    split files carry 43 ops and add directory-only Bearer aliases, so they were not taken).
+    MCP: https://www.farmdash.one/.well-known/mcp.json, stdio only (node, public source
+    github.com/Parmasanandgarlic/farmdash-openclaw-skills/tree/main/mcp-server), npm
+    @farmdash/mcp-server not_yet_published, now 90 tools (status release_train.mcp_tool_count; PR
+    said 84) -- no hosted remote MCP endpoint. A2A: not exposed -- /.well-known/agent.json is a
+    legacy 'farmdash-agent-capabilities/v1' manifest (4.4.0) with a2a_transport.available false;
+    drop the A2A tag and do not list it as an A2A AgentCard (it may be kept as a capability
+    manifest). EXECUTION: swaps on six EVM chains (ethereum, optimism, polygon, base, arbitrum,
+    linea), Solana preview only, 0x operator-paused, customer signs and submits. TIERS
+    (/api/v1/fees.json + status tier_summary): Scout free 30 req/24h per IP, Pioneer $39.99/mo
+    1,500/day, Syndicate $199/mo 50,000/day, USDC on Base, x402 overage 0.01 USDC; swap routing fee
+    50 bps default tiered to 30. POINTERS to add (all 200): RuntimeStatus
+    https://www.farmdash.one/api/v1/agent/status; FeeSchedule
+    https://www.farmdash.one/api/v1/fees.json and https://www.farmdash.one/fees; MCPManifest
+    https://www.farmdash.one/.well-known/mcp.json; LLMsTxt https://www.farmdash.one/llms.txt; AITxt
+    https://www.farmdash.one/ai.txt; AIPlugin https://www.farmdash.one/.well-known/ai-plugin.json.
+    Fix url to https://raw.githubusercontent.com/api-evangelist/farmdash/refs/heads/main/apis.yml
+    (currently points at farmdash-agent-hub). NOT TAKEN: the PR's apis.yml, split OpenAPIs, MCP
+    mirror/crosswalk, well-known copies, skills, overlays and the deletions it made to errors,
+    conventions, data-model, sandbox, lifecycle files -- all pipeline-generated and already stale
+    against the live 45-op / 90-tool contract; regenerate from the live sources above.
