@@ -1,6 +1,6 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Delegation API
+  title: FarmDash Agent Planning API
   version: 2.0.0
   description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
@@ -12,103 +12,109 @@ servers:
 - url: https://www.farmdash.one/api
   description: Production
 tags:
-- name: Delegation
-  description: Hyperliquid wallet delegation
+- name: Planning
 paths:
-  /v1/agent/delegation:
-    get:
-      operationId: getDelegationStatus
-      summary: Check delegation status
+  /v1/agent/simulate-points:
+    post:
+      operationId: simulatePoints
+      summary: FarmScore and points projection simulation
+      description: 'Projects FarmScore for a farming configuration so agents can compare
+
+        projected points-per-dollar across protocols. Simulations are
+
+        decision-support estimates, not guarantees.'
       tags:
-      - Delegation
-      security:
-      - bearerAuth: []
+      - Planning
       parameters:
       - $ref: '#/components/parameters/X-ClawHub-Skill'
-      - name: agentAddress
-        in: query
-        required: true
-        schema:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-      responses:
-        '200':
-          description: Delegation status
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/X-Request-ID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DelegationResponse'
-        '402':
-          $ref: '#/components/responses/PaymentRequired'
-    post:
-      operationId: verifyDelegation
-      summary: Verify wallet delegation for bounded execution
-      description: 'The API wallet can trade but CANNOT withdraw — zero-custody preserved.
-
-        When `sessionId` is supplied, `sessionToken` is required to attach the
-
-        delegation to that session.
-
-        Syndicate required.'
-      tags:
-      - Delegation
-      security:
-      - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - agentAddress
-              - apiWalletAddress
-              - ownerAddress
               properties:
-                agentAddress:
-                  type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
-                apiWalletAddress:
-                  type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
-                ownerAddress:
-                  type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
-                sessionId:
-                  type: string
-                sessionToken:
-                  type: string
-                  description: Required when `sessionId` is supplied
-      parameters:
-      - $ref: '#/components/parameters/X-ClawHub-Skill'
+                totalVolumeUsd:
+                  type: number
+                protocolPoints:
+                  type: object
+                txCount:
+                  type: integer
+                daysActive:
+                  type: integer
+                isCexFundingOnly:
+                  type: boolean
       responses:
         '200':
-          description: Delegation verification result
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/X-Request-ID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DelegationResponse'
+          description: Projected FarmScore and per-protocol points comparison
         '402':
           $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /v1/agent/optimize-portfolio:
+    post:
+      operationId: optimizePortfolio
+      summary: Portfolio optimization context
+      description: 'Personalized protocol-allocation recommendations based on current
+
+        positions, budget, and risk preference. Planning output only — it
+
+        does not authorize or execute any transaction.'
+      tags:
+      - Planning
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                budget:
+                  type: number
+                chains:
+                  type: array
+                  items:
+                    type: string
+                currentProtocols:
+                  type: array
+                  items:
+                    type: string
+                riskPreference:
+                  type: string
+      responses:
+        '200':
+          description: Ordered allocation recommendations with rationale
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 components:
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+  headers:
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
   schemas:
-    DelegationResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        message:
-          type: string
-        warning:
-          type: string
     PaymentRequiredError:
       type: object
       properties:
@@ -181,29 +187,27 @@ components:
             chainId:
               type: integer
               example: 8453
-    DelegationRecord:
+    ErrorResponse:
       type: object
+      required:
+      - error
       properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
+        ok:
           type: boolean
-        verifiedAt:
+          example: false
+        error:
           type: string
-          format: date-time
-          nullable: true
-  parameters:
-    X-ClawHub-Skill:
-      name: X-ClawHub-Skill
-      in: header
-      required: false
-      schema:
-        type: string
-        pattern: ^[a-zA-Z0-9-]{1,128}$
-        example: farmdash-signal-architect
-      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -231,12 +235,23 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
     bearerAuth:
       type: http

@@ -24,6 +24,8 @@ paths:
         No auth required — entry point for new agents.'
       tags:
       - Session
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Onboarding guide
@@ -43,6 +45,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: agentAddress
         in: query
         required: true
@@ -111,6 +114,8 @@ paths:
                   description: Required for `resume`, `heartbeat`, and `close`; returned only once by `create`
                 agentMeta:
                   $ref: '#/components/schemas/AgentMeta'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Session action result
@@ -153,93 +158,20 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
   schemas:
-    TrackedPosition:
+    AgentMeta:
       type: object
       properties:
-        coin:
+        name:
           type: string
-        side:
+        version:
           type: string
-          enum:
-          - long
-          - short
-        entryPrice:
-          type: number
-        size:
-          type: number
-        leverage:
-          type: number
-        stopLoss:
-          type: number
-          nullable: true
-        takeProfit:
-          type: number
-          nullable: true
-        openedAt:
+        framework:
           type: string
-          format: date-time
-        strategy:
-          type: string
-        unrealizedPnl:
-          type: number
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    RiskSentinelConfig:
-      type: object
-      properties:
-        minHealthFactor:
-          type: number
-        minLiquidationBufferPct:
-          type: number
-        maxStablecoinDepegPct:
-          type: number
+        capabilities:
+          type: array
+          items:
+            type: string
     AgentSession:
       type: object
       properties:
@@ -284,78 +216,78 @@ components:
       enum:
       - strict
       - balanced
-    AutopilotConfig:
+    PaymentRequiredError:
       type: object
       properties:
-        strategies:
-          type: array
-          items:
-            type: string
-            enum:
-            - funding_arb
-            - momentum
-            - mean_reversion
-            - portfolio_rebalance
-            - full_auto
-        assets:
-          type: array
-          items:
-            type: string
-        maxEquityPct:
-          type: number
-        rebalanceIntervalMin:
-          type: integer
-        autoCompound:
+        ok:
           type: boolean
-        riskPreference:
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
           type: string
           enum:
-          - conservative
-          - balanced
-          - aggressive
-        riskSentinel:
-          $ref: '#/components/schemas/RiskSentinelConfig'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaConfig'
-    AgentMeta:
-      type: object
-      properties:
-        name:
-          type: string
-        version:
-          type: string
-        framework:
-          type: string
-        capabilities:
-          type: array
-          items:
-            type: string
-    DelegationRecord:
-      type: object
-      properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
           type: boolean
-        verifiedAt:
+          example: false
+        next_action:
           type: string
-          format: date-time
-          nullable: true
-    ExecutionAlphaConfig:
-      type: object
-      properties:
-        mevSafetyMode:
-          $ref: '#/components/schemas/SwapSafetyMode'
-        maxQuoteDecayBps:
-          type: number
-        maxGasUsdPerAction:
-          type: number
-        requirePositiveNetEdge:
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
           type: boolean
-        minNetEdgeUsd:
-          type: number
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
     OnboardResponse:
       type: object
       properties:
@@ -398,6 +330,113 @@ components:
           type: object
         pricing:
           type: object
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    TrackedPosition:
+      type: object
+      properties:
+        coin:
+          type: string
+        side:
+          type: string
+          enum:
+          - long
+          - short
+        entryPrice:
+          type: number
+        size:
+          type: number
+        leverage:
+          type: number
+        stopLoss:
+          type: number
+          nullable: true
+        takeProfit:
+          type: number
+          nullable: true
+        openedAt:
+          type: string
+          format: date-time
+        strategy:
+          type: string
+        unrealizedPnl:
+          type: number
+    AutopilotConfig:
+      type: object
+      properties:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum:
+            - funding_arb
+            - momentum
+            - mean_reversion
+            - portfolio_rebalance
+            - full_auto
+        assets:
+          type: array
+          items:
+            type: string
+        maxEquityPct:
+          type: number
+        rebalanceIntervalMin:
+          type: integer
+        autoCompound:
+          type: boolean
+        riskPreference:
+          type: string
+          enum:
+          - conservative
+          - balanced
+          - aggressive
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
+    ExecutionAlphaConfig:
+      type: object
+      properties:
+        mevSafetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        maxQuoteDecayBps:
+          type: number
+        maxGasUsdPerAction:
+          type: number
+        requirePositiveNetEdge:
+          type: boolean
+        minNetEdgeUsd:
+          type: number
+    RiskSentinelConfig:
+      type: object
+      properties:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -425,6 +464,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     bearerAuth:
       type: http

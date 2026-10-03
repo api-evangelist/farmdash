@@ -18,22 +18,34 @@ paths:
   /agents/history:
     get:
       operationId: getSwapHistory
-      summary: Get fee event history
-      description: 'Returns paginated swap fee events. Optionally filter by agent address.
+      summary: Get your own fee event history (tenant-bound)
+      description: 'Returns paginated swap fee events owned by the wallet bound to your
 
-        Use `?metrics=true` for aggregate revenue metrics.'
+        API key. Requires a Pioneer or Syndicate bearer key; anonymous and
+
+        scout callers receive 401 authentication_required. The query is
+
+        always forced to the authenticated wallet — any `agentAddress` that
+
+        differs from it returns 403 cross_tenant_denied.
+
+        Use `?metrics=true` for aggregate revenue metrics for your own wallet.
+
+        For the public leaderboard view (server-aggregated totals only, no
+
+        raw transactions), use GET /v1/agent/leaderboard.'
       tags:
       - History
       security:
       - bearerAuth: []
-      - {}
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: agentAddress
         in: query
         schema:
           type: string
           pattern: ^0x[a-fA-F0-9]{40}$
-        description: Filter by agent wallet
+        description: Optional. Must equal the wallet bound to your API key; any other value is rejected with 403 cross_tenant_denied.
       - name: limit
         in: query
         schema:
@@ -54,7 +66,7 @@ paths:
           type: string
           enum:
           - 'true'
-        description: Return aggregate revenue metrics instead of events
+        description: Return aggregate revenue metrics (own wallet only) instead of events
       responses:
         '200':
           description: History events or aggregate metrics
@@ -73,106 +85,89 @@ paths:
                 oneOf:
                 - $ref: '#/components/schemas/HistoryResponse'
                 - $ref: '#/components/schemas/RevenueMetrics'
+        '401':
+          description: Authentication required — bind a Pioneer/Syndicate API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Cross-tenant denial — agentAddress does not match the authenticated wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '402':
           $ref: '#/components/responses/PaymentRequired'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+  /v1/agent/leaderboard:
+    get:
+      operationId: getLeaderboard
+      summary: Public leaderboard — server-aggregated per-agent totals
+      description: 'Per-agent aggregate totals (volume, fees, swap count) ranked by
+
+        volume, top 50. Computed server-side over fee_events; returns
+
+        aggregates ONLY — no raw transactions, tx hashes, or per-event
+
+        timestamps. No API key required beyond rate-limiting tiers.'
+      tags:
+      - History
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 50
+          minimum: 1
+          maximum: 50
+      responses:
+        '200':
+          description: Aggregated leaderboard entries
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /v1/agent/performance:
+    get:
+      operationId: getAgentPerformance
+      summary: Agent performance and protocol breakdown
+      description: 'Fee-event activity aggregates for the authenticated agent address:
+
+        cumulative volume, fees, and protocol diversity context. It is not a
+
+        fill-quality ledger; profitability cannot be inferred from it.'
+      tags:
+      - History
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      - name: address
+        in: query
+        required: true
+        schema:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        description: EVM agent/wallet address (must match bound tenant wallet when a key is presented).
+      responses:
+        '200':
+          description: Aggregate performance context
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '403':
+          description: Queried address does not match the bound tenant wallet.
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
   schemas:
-    HistoryResponse:
-      type: object
-      required:
-      - events
-      - total
-      - limit
-      - offset
-      properties:
-        events:
-          type: array
-          items:
-            $ref: '#/components/schemas/FeeEvent'
-        total:
-          type: integer
-        limit:
-          type: integer
-        offset:
-          type: integer
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    RevenueMetrics:
-      type: object
-      required:
-      - totalFeeUSD
-      - totalVolumeUSD
-      - totalSwaps
-      - activeAgents
-      properties:
-        totalFeeUSD:
-          type: number
-        totalVolumeUSD:
-          type: number
-        totalSwaps:
-          type: integer
-        activeAgents:
-          type: integer
     FeeEvent:
       type: object
       properties:
@@ -233,9 +228,176 @@ components:
       type: string
       enum:
       - lifi
-      - zerox
-      - x402
-      - okx
+      - relay
+      description: Swap quote provider. Automatic routing compares all healthy compatible providers (LI.FI, Relay; 0x paused until reinstated); force one with ?protocol= (deterministic, never silent fallback).
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    LeaderboardResponse:
+      type: object
+      required:
+      - ok
+      - source
+      - entries
+      properties:
+        ok:
+          type: boolean
+        source:
+          type: string
+          description: Always 'fee_events_aggregated' — aggregates only, never raw events
+        windowDays:
+          type: integer
+          nullable: true
+        entries:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            required:
+            - address
+            - totalVolumeUSD
+            - totalFeeUSD
+            - swapCount
+            properties:
+              address:
+                type: string
+              totalVolumeUSD:
+                type: number
+              totalFeeUSD:
+                type: number
+              swapCount:
+                type: integer
+    HistoryResponse:
+      type: object
+      required:
+      - events
+      - total
+      - limit
+      - offset
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeeEvent'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    RevenueMetrics:
+      type: object
+      required:
+      - totalFeeUSD
+      - totalVolumeUSD
+      - totalSwaps
+      - activeAgents
+      properties:
+        totalFeeUSD:
+          type: number
+        totalVolumeUSD:
+          type: number
+        totalSwaps:
+          type: integer
+        activeAgents:
+          type: integer
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required

@@ -1,6 +1,6 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Research API
+  title: FarmDash Agent Reputation API
   version: 2.0.0
   description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
@@ -12,150 +12,112 @@ servers:
 - url: https://www.farmdash.one/api
   description: Production
 tags:
-- name: Research
-  description: Futures market research — funding rates, technical indicators
+- name: Reputation
 paths:
-  /v1/agent/futures/scan-funding:
+  /agents/reputation:
     get:
-      operationId: scanFundingRates
-      summary: Scan Hyperliquid funding rates for arb opportunities
-      description: 'Returns current and predicted funding rates across all Hyperliquid perp
+      operationId: getAgentReputation
+      summary: Public single-address reputation lookup (Trail Cred)
+      description: 'Trail Cred score, badge, vouch count, on-chain score, and recent
 
-        markets. Cross-references with Binance and Bybit to identify arbitrage.
+        vouchers for one EVM address, plus a swap-activity summary. Public
 
-        Scout: top 3 with encrypted rates. Pioneer/Syndicate: full data.'
+        data beyond rate-limiting tiers; over-quota Scouts draw first from a
+
+        small overflow bonus pool shared with the leaderboard (bonus 200s
+
+        carry `scout_bonus` and X-Scout-Bonus-Remaining), then 402.'
       tags:
-      - Research
-      security:
-      - bearerAuth: []
-      - {}
+      - Reputation
       parameters:
       - $ref: '#/components/parameters/X-ClawHub-Skill'
-      responses:
-        '200':
-          description: Funding rate scan
-          headers:
-            X-RateLimit-Limit:
-              $ref: '#/components/headers/X-RateLimit-Limit'
-            X-RateLimit-Remaining:
-              $ref: '#/components/headers/X-RateLimit-Remaining'
-            X-RateLimit-Reset:
-              $ref: '#/components/headers/X-RateLimit-Reset'
-            X-Request-ID:
-              $ref: '#/components/headers/X-Request-ID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ScanFundingResponse'
-        '402':
-          $ref: '#/components/responses/PaymentRequired'
-        '429':
-          $ref: '#/components/responses/RateLimitExceeded'
-        '502':
-          description: Typed Hyperliquid funding provider degradation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /v1/agent/futures/market-conditions:
-    get:
-      operationId: getMarketConditions
-      summary: Get technical indicators for an asset
-      description: 'Returns EMA-8/34, RSI-14, MACD(12,26,9), ATR-14, Bollinger Bands(20,2),
-
-        ADX-14, volume ratio, and Z-score using 4h candles.
-
-        Includes a strategy hint based on indicator confluence.'
-      tags:
-      - Research
-      security:
-      - bearerAuth: []
-      - {}
-      parameters:
-      - $ref: '#/components/parameters/X-ClawHub-Skill'
-      - name: coin
+      - name: address
         in: query
         required: true
         schema:
           type: string
-        description: Asset symbol (ETH, BTC, SOL, HYPE)
+          pattern: ^0x[a-fA-F0-9]{40}$
+        description: EVM agent address to look up.
+      - name: voucher
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+        description: Optional voucher address; response includes whether it vouched for the target.
       responses:
         '200':
-          description: Technical indicators
+          description: Reputation record for the address
           headers:
-            X-RateLimit-Limit:
-              $ref: '#/components/headers/X-RateLimit-Limit'
-            X-RateLimit-Remaining:
-              $ref: '#/components/headers/X-RateLimit-Remaining'
-            X-RateLimit-Reset:
-              $ref: '#/components/headers/X-RateLimit-Reset'
             X-Request-ID:
               $ref: '#/components/headers/X-Request-ID'
+            X-Scout-Bonus-Remaining:
+              $ref: '#/components/headers/X-Scout-Bonus-Remaining'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MarketConditionsResponse'
+                $ref: '#/components/schemas/ReputationResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '402':
-          $ref: '#/components/responses/PaymentRequired'
-        '502':
-          description: Typed Hyperliquid candle provider degradation
+          description: Missing or invalid ?address parameter
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 components:
   schemas:
-    TechnicalIndicators:
+    ReputationResponse:
       type: object
+      required:
+      - ok
+      - reputation
       properties:
-        ema8:
-          type: number
-        ema34:
-          type: number
-        emaCross:
-          type: string
-          enum:
-          - bullish
-          - bearish
-          - neutral
-        rsi:
-          type: number
-        macd:
-          type: number
-        macdSignal:
-          type: number
-        macdHistogram:
-          type: number
-        macdCross:
-          type: string
-          enum:
-          - bullish_cross
-          - bearish_cross
-          - neutral
-        adx:
-          type: number
-        atr:
-          type: number
-        bbUpper:
-          type: number
-        bbMiddle:
-          type: number
-        bbLower:
-          type: number
-        bbWidth:
-          type: number
-        volumeRatio:
-          type: number
-        zScore:
-          type: number
-    Tier:
-      type: string
-      enum:
-      - scout
-      - pioneer
-      - syndicate
+        ok:
+          type: boolean
+        reputation:
+          type: object
+          required:
+          - address
+          - trailCred
+          - badge
+          properties:
+            address:
+              type: string
+            trailCred:
+              type: number
+            badge:
+              type: string
+            onchainScore:
+              type: number
+            vouchScore:
+              type: number
+            vouchCount:
+              type: integer
+            vouchers:
+              type: array
+              maxItems: 50
+              items:
+                type: object
+            activity:
+              type: object
+            onchainData:
+              nullable: true
+            computedAt:
+              type: string
+              nullable: true
+        scout_bonus:
+          type: object
+          description: Present only on overflow-bonus 200s after the shared Scout budget is spent
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            remaining:
+              type: integer
     ErrorResponse:
       type: object
       required:
@@ -177,28 +139,6 @@ components:
         details:
           type: object
           additionalProperties: true
-    MarketConditionsResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        coin:
-          type: string
-        indicators:
-          $ref: '#/components/schemas/TechnicalIndicators'
-        strategyHint:
-          type: string
-          enum:
-          - momentum_long
-          - momentum_short
-          - mean_reversion
-          - no_trade
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
     PaymentRequiredError:
       type: object
       properties:
@@ -271,68 +211,6 @@ components:
             chainId:
               type: integer
               example: 8453
-    FundingAnalysis:
-      type: object
-      properties:
-        coin:
-          type: string
-        fundingRate:
-          type: number
-        annualizedRate:
-          type: number
-        predictedRate:
-          type: number
-        crossVenueDelta:
-          type: number
-        premium:
-          type: number
-        openInterest:
-          type: number
-        isArbOpportunity:
-          type: boolean
-        arbDirection:
-          type: string
-          nullable: true
-          enum:
-          - long_spot_short_perp
-          - short_spot_long_perp
-          - null
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
-          type: string
-          const: dust_storm
-        message:
-          type: string
-    ScanFundingResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        tier:
-          $ref: '#/components/schemas/Tier'
-        arbOpportunities:
-          type: array
-          items:
-            $ref: '#/components/schemas/FundingAnalysis'
-        highFunding:
-          type: array
-          items:
-            $ref: '#/components/schemas/FundingAnalysis'
-        totalScanned:
-          type: integer
-        upgradeMessage:
-          type: string
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
   parameters:
     X-ClawHub-Skill:
       name: X-ClawHub-Skill
@@ -346,6 +224,10 @@ components:
   headers:
     X-RateLimit-Limit:
       description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-Scout-Bonus-Remaining:
+      description: Remaining overflow-only free reads for public reputation/leaderboard after the shared Scout budget is spent. Present only on bonus-served 200s from those two endpoints.
       schema:
         type: string
     X-Request-ID:
@@ -388,12 +270,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     RateLimitExceeded:
       description: Rate limit exceeded
       headers:

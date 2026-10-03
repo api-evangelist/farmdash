@@ -1,6 +1,6 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Delegation API
+  title: FarmDash Agent Execution Authority API
   version: 2.0.0
   description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
@@ -12,49 +12,89 @@ servers:
 - url: https://www.farmdash.one/api
   description: Production
 tags:
-- name: Delegation
-  description: Hyperliquid wallet delegation
+- name: ExecutionAuthority
 paths:
-  /v1/agent/delegation:
+  /v1/agent/authority:
     get:
-      operationId: getDelegationStatus
-      summary: Check delegation status
+      operationId: getExecutionAuthority
+      summary: Get current execution authority configuration and bounded delegation status
+      description: 'Returns the dual execution-authority state (USER_SIGNED vs BOUNDED_AUTONOMOUS),
+
+        zero-custody confirmation, and active delegation status if configured.'
       tags:
-      - Delegation
+      - ExecutionAuthority
       security:
       - bearerAuth: []
       parameters:
       - $ref: '#/components/parameters/X-ClawHub-Skill'
-      - name: agentAddress
+      - name: ownerAddress
         in: query
-        required: true
+        required: false
         schema:
           type: string
           pattern: ^0x[a-fA-F0-9]{40}$
+      - name: sessionId
+        in: query
+        required: false
+        schema:
+          type: string
       responses:
         '200':
-          description: Delegation status
+          description: Authority discovery or active grant summary
           headers:
             X-Request-ID:
               $ref: '#/components/headers/X-Request-ID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DelegationResponse'
+                type: object
+                required:
+                - ok
+                - mode
+                - supportedModes
+                - autonomousAvailable
+                - executionRole
+                - signingAuthority
+                - zeroCustody
+                properties:
+                  ok:
+                    type: boolean
+                  mode:
+                    type: string
+                    enum:
+                    - USER_SIGNED
+                    - BOUNDED_AUTONOMOUS
+                  supportedModes:
+                    type: array
+                    items:
+                      type: string
+                  autonomousAvailable:
+                    type: boolean
+                  executionRole:
+                    type: string
+                  signingAuthority:
+                    type: string
+                  zeroCustody:
+                    type: boolean
+                  grant:
+                    type: object
+                    nullable: true
+                  nextAction:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '402':
           $ref: '#/components/responses/PaymentRequired'
     post:
-      operationId: verifyDelegation
-      summary: Verify wallet delegation for bounded execution
-      description: 'The API wallet can trade but CANNOT withdraw — zero-custody preserved.
+      operationId: manageExecutionAuthority
+      summary: Request delegation payload, register delegation, prepare autonomous swap…
+      description: 'Dual execution authority management. Actions: get_authority, request_delegation,
 
-        When `sessionId` is supplied, `sessionToken` is required to attach the
+        register_delegation, prepare_autonomous_swap, confirm_autonomous_swap, revoke.
 
-        delegation to that session.
-
-        Syndicate required.'
+        Zero key custody: calling agent local signer retains wallet authority.'
       tags:
-      - Delegation
+      - ExecutionAuthority
       security:
       - bearerAuth: []
       requestBody:
@@ -64,51 +104,71 @@ paths:
             schema:
               type: object
               required:
-              - agentAddress
-              - apiWalletAddress
-              - ownerAddress
+              - action
               properties:
-                agentAddress:
+                action:
                   type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
-                apiWalletAddress:
-                  type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
+                  enum:
+                  - get_authority
+                  - status
+                  - request_delegation
+                  - register_delegation
+                  - prepare_autonomous_swap
+                  - confirm_autonomous_swap
+                  - revoke
                 ownerAddress:
                   type: string
-                  pattern: ^0x[a-fA-F0-9]{40}$
                 sessionId:
                   type: string
-                sessionToken:
+                grantId:
                   type: string
-                  description: Required when `sessionId` is supplied
-      parameters:
-      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
-          description: Delegation verification result
+          description: Authority operation success
           headers:
             X-Request-ID:
               $ref: '#/components/headers/X-Request-ID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DelegationResponse'
+                type: object
+                required:
+                - ok
+                properties:
+                  ok:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '402':
           $ref: '#/components/responses/PaymentRequired'
+        '403':
+          description: Policy violation or structured authority rejection
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                  details:
+                    type: object
 components:
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   schemas:
-    DelegationResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        message:
-          type: string
-        warning:
-          type: string
     PaymentRequiredError:
       type: object
       properties:
@@ -181,29 +241,27 @@ components:
             chainId:
               type: integer
               example: 8453
-    DelegationRecord:
+    ErrorResponse:
       type: object
+      required:
+      - error
       properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
+        ok:
           type: boolean
-        verifiedAt:
+          example: false
+        error:
           type: string
-          format: date-time
-          nullable: true
-  parameters:
-    X-ClawHub-Skill:
-      name: X-ClawHub-Skill
-      in: header
-      required: false
-      schema:
-        type: string
-        pattern: ^[a-zA-Z0-9-]{1,128}$
-        example: farmdash-signal-architect
-      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -231,6 +289,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   headers:
     X-Request-ID:
       description: Unique request trace ID for debugging and support

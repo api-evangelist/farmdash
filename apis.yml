@@ -477,6 +477,57 @@ apis:
     url: sandbox/farmdash-sandbox.yml
   - type: Authentication
     url: authentication/farmdash-authentication.yml
+- aid: farmdash:farmdash-executionauthority-api
+  name: FarmDash Agent Hub Execution Authority API
+  description: >-
+    The ExecutionAuthority API from FarmDash Agent Hub — 1 operation(s) for executionauthority.
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - ExecutionAuthority
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-executionauthority-api-openapi.yml
+- aid: farmdash:farmdash-planning-api
+  name: FarmDash Agent Hub Planning API
+  description: The Planning API from FarmDash Agent Hub — 2 operation(s) for planning.
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Planning
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-planning-api-openapi.yml
+- aid: farmdash:farmdash-proof-api
+  name: FarmDash Agent Hub Proof API
+  description: The Proof API from FarmDash Agent Hub — 3 operation(s) for proof.
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Proof
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-proof-api-openapi.yml
+- aid: farmdash:farmdash-reputation-api
+  name: FarmDash Agent Hub Reputation API
+  description: The Reputation API from FarmDash Agent Hub — 1 operation(s) for reputation.
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Reputation
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-reputation-api-openapi.yml
+- aid: farmdash:farmdash-wallet-api
+  name: FarmDash Agent Hub Wallet API
+  description: The Wallet API from FarmDash Agent Hub — 1 operation(s) for wallet.
+  humanURL: https://www.farmdash.one/agents
+  baseURL: https://www.farmdash.one/api
+  tags:
+  - Wallet
+  properties:
+  - type: OpenAPI
+    url: openapi/farmdash-wallet-api-openapi.yml
 maintainers:
 - FN: FarmDash Agent Hub
   url: https://www.farmdash.one

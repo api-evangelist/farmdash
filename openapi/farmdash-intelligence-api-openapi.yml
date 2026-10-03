@@ -15,6 +15,33 @@ tags:
 - name: Intelligence
   description: Trail Heat protocol data and chain analytics
 paths:
+  /api/status:
+    get:
+      operationId: getPublicSystemStatus
+      summary: Get authoritative public system status and agent capability contract
+      description: 'Returns the real-time operational status of all 9 Trail Stack lifecycle stages,
+
+        core infrastructure, and venue execution capabilities (e.g. EVM swaps LIVE,
+
+        Hyperliquid perps LIVE, generic intents PREPARATION ONLY, Solana DISCOVERY ONLY).
+
+        Zero authentication required. Autonomous AI agents can query this before
+
+        initiating transactions.'
+      tags:
+      - Intelligence
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      responses:
+        '200':
+          description: Public system status and capability contract
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Major system outage detected
   /v1/agent/status:
     get:
       operationId: getAgentStatus
@@ -28,6 +55,8 @@ paths:
         portfolio-data surface.'
       tags:
       - Intelligence
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Agent status contract
@@ -50,9 +79,7 @@ paths:
 
         (methodology catalog-editorial-v1). The canonical quantitative Trail
 
-        Heat lives at /v1/trail-heat.
-
-        Scout tier: top 3 with encrypted numeric values.
+        Scout tier: top 3 spotlight protocols with 100% unmasked quantitative scores (30 req/day).
 
         Pioneer/Syndicate: full dataset for the current FarmDash protocol registry (81 protocols at this build).'
       tags:
@@ -60,6 +87,8 @@ paths:
       security:
       - bearerAuth: []
       - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Protocol dataset
@@ -86,15 +115,30 @@ paths:
       summary: Get live or deterministic mock Trail Heat scores
       description: 'Returns DeFiLlama-backed Trail Heat scores with source, confidence, and
 
-        methodology metadata. `?mock=true` returns deterministic demo fixtures
+        methodology metadata. Aggregate responses also include agent recommendations
 
-        that are explicitly marked mock and not for trading.'
+        derived from the same live scores. Commercial preference is transparent:
+
+        FarmDash referral routes may move ahead only inside a 5-point Trail Heat
+
+        quality band; materially stronger protocols always win and canonical scores
+
+        are never changed. Campaign activity/eligibility is not inferred from protocol
+
+        activity. Pioneer/Syndicate callers can use `?recommend=N` for a recommendation-only
+
+        response; Scout callers continue to receive the bounded three-protocol spotlight preview
+
+        with recommendations limited to that preview. `?mock=true` returns deterministic demo fixtures that are explicitly marked
+
+        mock and not for trading.'
       tags:
       - Intelligence
       security:
       - bearerAuth: []
       - {}
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: mock
         in: query
         schema:
@@ -102,6 +146,14 @@ paths:
           enum:
           - 'true'
         description: Return deterministic, explicitly non-live demo data.
+      - name: recommend
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        description: Pioneer/Syndicate only — return N live protocol recommendations. Scout remains bounded to its three-protocol spotlight preview. Canonical Trail Heat is the primary signal; only owner-confirmed, non-wallet-bound FarmDash referral routes are eligible for the near-equivalent-quality tiebreaker.
       responses:
         '200':
           description: Live or deterministic mock Trail Heat response
@@ -137,6 +189,7 @@ paths:
       - bearerAuth: []
       - {}
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: symbols
         in: query
         schema:
@@ -183,6 +236,7 @@ paths:
       tags:
       - Intelligence
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: filter
         in: query
         schema:
@@ -210,6 +264,8 @@ paths:
       security:
       - bearerAuth: []
       - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Chain breakdown
@@ -231,7 +287,48 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 components:
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   schemas:
+    ChainBreakdownItem:
+      type: object
+      properties:
+        chain:
+          type: string
+        protocol_count:
+          oneOf:
+          - type: integer
+          - type: string
+        pct_of_total:
+          oneOf:
+          - type: number
+          - type: string
+        confirmed_airdrops:
+          oneOf:
+          - type: integer
+          - type: string
+        points_programs:
+          oneOf:
+          - type: integer
+          - type: string
+        categories:
+          type: array
+          items:
+            type: string
+    Tier:
+      type: string
+      enum:
+      - scout
+      - pioneer
+      - syndicate
     ProtocolItem:
       type: object
       properties:
@@ -275,30 +372,27 @@ components:
         recommended_agent_deploy_link:
           type: string
           format: uri
-    ProtocolsResponse:
+    ErrorResponse:
       type: object
       required:
-      - tier
-      - count
-      - data
+      - error
       properties:
-        tier:
-          $ref: '#/components/schemas/Tier'
-        count:
-          type: integer
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProtocolItem'
-        status:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
           type: string
         message:
           type: string
-        direct_upgrade_url:
+        retryable:
+          type: boolean
+        request_id:
           type: string
-          format: uri
-        total_protocols_available:
-          type: integer
+        details:
+          type: object
+          additionalProperties: true
     PaymentRequiredError:
       type: object
       properties:
@@ -310,11 +404,41 @@ components:
           example: payment_required
         code:
           type: string
-          example: payment_required
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
         message:
           type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
         retryable:
           type: boolean
+        upgrade_url:
+          type: string
+          format: uri
         direct_upgrade_url:
           type: string
           format: uri
@@ -381,61 +505,33 @@ components:
                 $ref: '#/components/schemas/ChainBreakdownItem'
             summary:
               $ref: '#/components/schemas/ChainBreakdownSummary'
-    ChainBreakdownItem:
-      type: object
-      properties:
-        chain:
-          type: string
-        protocol_count:
-          oneOf:
-          - type: integer
-          - type: string
-        pct_of_total:
-          oneOf:
-          - type: number
-          - type: string
-        confirmed_airdrops:
-          oneOf:
-          - type: integer
-          - type: string
-        points_programs:
-          oneOf:
-          - type: integer
-          - type: string
-        categories:
-          type: array
-          items:
-            type: string
-    ErrorResponse:
+    ProtocolsResponse:
       type: object
       required:
-      - error
+      - tier
+      - count
+      - data
       properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-        code:
+        tier:
+          $ref: '#/components/schemas/Tier'
+        count:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProtocolItem'
+        status:
           type: string
         message:
           type: string
-        retryable:
-          type: boolean
-        request_id:
+        direct_upgrade_url:
           type: string
-        details:
-          type: object
-          additionalProperties: true
-    Tier:
-      type: string
-      enum:
-      - scout
-      - pioneer
-      - syndicate
+          format: uri
+        total_protocols_available:
+          type: integer
   headers:
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
       schema:
         type: string
     X-Request-ID:
@@ -443,12 +539,12 @@ components:
       schema:
         type: string
         format: uuid
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
       schema:
         type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
       schema:
         type: string
   responses:

@@ -15,6 +15,90 @@ tags:
 - name: Account
   description: Hyperliquid account state and risk management
 paths:
+  /v1/agent/billing-history:
+    get:
+      operationId: getBillingHistory
+      summary: Get your subscription state and payment history
+      description: 'Billing-portal-lite for paid agents. Requires a stored Pioneer or
+
+        Syndicate API key (the key is bound to the paying wallet). Returns the
+
+        current subscription state (tier, expiry, auto_renew=false — prepaid
+
+        30-day terms) plus the append-only payment ledger: one row per
+
+        verified on-chain USDC payment, newest first. Renewals append rows;
+
+        history is never overwritten.'
+      tags:
+      - Account
+      security:
+      - ApiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      responses:
+        '200':
+          description: Subscription state and payment ledger
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - ok
+                - wallet
+                - subscription
+                - payments
+                properties:
+                  ok:
+                    type: boolean
+                  wallet:
+                    type: string
+                    pattern: ^0x[a-fA-F0-9]{40}$
+                  subscription:
+                    type: object
+                    properties:
+                      tier:
+                        type: string
+                        nullable: true
+                      expires_at:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      active:
+                        type: boolean
+                      auto_renew:
+                        type: boolean
+                  payments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                        tier:
+                          type: string
+                          nullable: true
+                        amount_usdc:
+                          type: number
+                          nullable: true
+                        tx_hash:
+                          type: string
+                          nullable: true
+                        chain_id:
+                          type: integer
+                          nullable: true
+                        verified_at:
+                          type: string
+                          format: date-time
+                        created_at:
+                          type: string
+                          format: date-time
+        '402':
+          description: Payment required (free tier has no billing history)
+        '403':
+          description: Pioneer or Syndicate subscription required
+        '503':
+          description: Billing ledger temporarily unavailable
   /v1/agent/futures/account-state:
     get:
       operationId: getAccountState
@@ -36,6 +120,7 @@ paths:
       - bearerAuth: []
       - {}
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: agentAddress
         in: query
         required: true
@@ -64,112 +149,17 @@ paths:
         '402':
           $ref: '#/components/responses/PaymentRequired'
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
       schema:
         type: string
-        format: uuid
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   schemas:
-    AccountStateResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        account:
-          $ref: '#/components/schemas/AccountSummary'
-        positions:
-          type: array
-          items:
-            $ref: '#/components/schemas/FuturesPosition'
-        risk:
-          $ref: '#/components/schemas/RiskState'
-        guardrails:
-          $ref: '#/components/schemas/Guardrails'
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    AccountSummary:
-      type: object
-      properties:
-        equity:
-          type: string
-        totalNotionalPosition:
-          type: string
-        marginUsed:
-          type: string
-        availableMargin:
-          type: string
-        aggregateLeverage:
-          type: string
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
-          type: string
-          const: dust_storm
-        message:
-          type: string
     FuturesPosition:
       type: object
       properties:
@@ -199,43 +189,6 @@ components:
           nullable: true
         marginUsed:
           type: number
-    RiskState:
-      type: object
-      properties:
-        dailyPnl:
-          type: string
-        dailyPnlPct:
-          type: string
-        weeklyPnl:
-          type: string
-        realizedDailyPnl:
-          type: string
-        realizedWeeklyPnl:
-          type: string
-        unrealizedPnl:
-          type: string
-        pnlSource:
-          type: string
-          enum:
-          - hyperliquid_venue_loss_pressure
-        pnlAsOf:
-          type: integer
-          format: int64
-        pnlMethodology:
-          type: string
-        drawdown:
-          type: string
-        peakEquity:
-          type: string
-        isTradingHalted:
-          type: boolean
-        haltReason:
-          type: string
-          nullable: true
-        isReducedSize:
-          type: boolean
-        openPositionCount:
-          type: integer
     ErrorResponse:
       type: object
       required:
@@ -277,6 +230,178 @@ components:
         maxDrawdown:
           type: string
           example: -15%
+    RiskState:
+      type: object
+      properties:
+        dailyPnl:
+          type: string
+        dailyPnlPct:
+          type: string
+        weeklyPnl:
+          type: string
+        realizedDailyPnl:
+          type: string
+        realizedWeeklyPnl:
+          type: string
+        unrealizedPnl:
+          type: string
+        pnlSource:
+          type: string
+          enum:
+          - hyperliquid_venue_loss_pressure
+        pnlAsOf:
+          type: integer
+          format: int64
+        pnlMethodology:
+          type: string
+        drawdown:
+          type: string
+        peakEquity:
+          type: string
+        isTradingHalted:
+          type: boolean
+        haltReason:
+          type: string
+          nullable: true
+        isReducedSize:
+          type: boolean
+        openPositionCount:
+          type: integer
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    AccountStateResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        account:
+          $ref: '#/components/schemas/AccountSummary'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuturesPosition'
+        risk:
+          $ref: '#/components/schemas/RiskState'
+        guardrails:
+          $ref: '#/components/schemas/Guardrails'
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    AccountSummary:
+      type: object
+      properties:
+        equity:
+          type: string
+        totalNotionalPosition:
+          type: string
+        marginUsed:
+          type: string
+        availableMargin:
+          type: string
+        aggregateLeverage:
+          type: string
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required

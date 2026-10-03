@@ -8,13 +8,18 @@
     "farmdash-autopilot-api-openapi.yml",
     "farmdash-delegation-api-openapi.yml",
     "farmdash-execution-api-openapi.yml",
+    "farmdash-executionauthority-api-openapi.yml",
     "farmdash-history-api-openapi.yml",
     "farmdash-intelligence-api-openapi.yml",
+    "farmdash-planning-api-openapi.yml",
+    "farmdash-proof-api-openapi.yml",
+    "farmdash-reputation-api-openapi.yml",
     "farmdash-research-api-openapi.yml",
     "farmdash-risk-api-openapi.yml",
     "farmdash-session-api-openapi.yml",
     "farmdash-strategy-api-openapi.yml",
-    "farmdash-swap-api-openapi.yml"
+    "farmdash-swap-api-openapi.yml",
+    "farmdash-wallet-api-openapi.yml"
   ],
   "archived": [],
   "errors": [],
@@ -22,7 +27,12 @@
   "notes": [
     "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
     "farmdash-agent-api-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "apis.yml register: already-registered"
+    "farmdash-agent-api-openapi.yaml: declared missing tag: ExecutionAuthority",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Planning",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Proof",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Reputation",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Wallet",
+    "apis.yml register: written (+5 apis, 16 total)"
   ],
   "skipped": [
     "farmdash-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
