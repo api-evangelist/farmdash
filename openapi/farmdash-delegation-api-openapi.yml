@@ -1,13 +1,13 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Delegation API
+  title: Farmdash Delegation API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
+  description: 'Operations tagged Delegation across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -24,6 +24,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: agentAddress
         in: query
         required: true
@@ -81,6 +82,8 @@ paths:
                 sessionToken:
                   type: string
                   description: Required when `sessionId` is supplied
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Delegation verification result
@@ -93,6 +96,9 @@ paths:
                 $ref: '#/components/schemas/DelegationResponse'
         '402':
           $ref: '#/components/responses/PaymentRequired'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
 components:
   headers:
     X-Request-ID:
@@ -100,73 +106,16 @@ components:
       schema:
         type: string
         format: uuid
-  schemas:
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    DelegationResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        message:
-          type: string
-        warning:
-          type: string
-    DelegationRecord:
-      type: object
-      properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
-          type: boolean
-        verifiedAt:
-          type: string
-          format: date-time
-          nullable: true
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -194,11 +143,111 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
+  schemas:
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    DelegationResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        message:
+          type: string
+        warning:
+          type: string
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
+x-refined-from:
+- farmdash-agent-api-openapi.yaml
+- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot

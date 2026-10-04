@@ -1,13 +1,13 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Research API
+  title: Farmdash Research API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
+  description: 'Operations tagged Research across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -29,6 +29,8 @@ paths:
       security:
       - bearerAuth: []
       - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Funding rate scan
@@ -55,6 +57,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
   /v1/agent/futures/market-conditions:
     get:
       operationId: getMarketConditions
@@ -70,6 +75,7 @@ paths:
       - bearerAuth: []
       - {}
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: coin
         in: query
         required: true
@@ -102,23 +108,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
 components:
   headers:
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
     X-Request-ID:
       description: Unique request trace ID for debugging and support
       schema:
         type: string
         format: uuid
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
     X-RateLimit-Limit:
       description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
       schema:
         type: string
   schemas:
@@ -147,107 +156,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DustStormWarning'
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    FundingAnalysis:
-      type: object
-      properties:
-        coin:
-          type: string
-        fundingRate:
-          type: number
-        annualizedRate:
-          type: number
-        predictedRate:
-          type: number
-        crossVenueDelta:
-          type: number
-        premium:
-          type: number
-        openInterest:
-          type: number
-        isArbOpportunity:
-          type: boolean
-        arbDirection:
-          type: string
-          nullable: true
-          enum:
-          - long_spot_short_perp
-          - short_spot_long_perp
-          - null
-    DustStormWarning:
-      type: object
-      required:
-      - kind
-      - message
-      properties:
-        kind:
-          type: string
-          const: dust_storm
-        message:
-          type: string
-    MarketConditionsResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        coin:
-          type: string
-        indicators:
-          $ref: '#/components/schemas/TechnicalIndicators'
-        strategyHint:
-          type: string
-          enum:
-          - momentum_long
-          - momentum_short
-          - mean_reversion
-          - no_trade
-        timestamp:
-          type: integer
-        warnings:
-          type: array
-          items:
-            $ref: '#/components/schemas/DustStormWarning'
+    Tier:
+      type: string
+      enum:
+      - scout
+      - pioneer
+      - syndicate
     ErrorResponse:
       type: object
       required:
@@ -269,12 +183,6 @@ components:
         details:
           type: object
           additionalProperties: true
-    Tier:
-      type: string
-      enum:
-      - scout
-      - pioneer
-      - syndicate
     TechnicalIndicators:
       type: object
       properties:
@@ -318,6 +226,147 @@ components:
           type: number
         zScore:
           type: number
+    MarketConditionsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        coin:
+          type: string
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+        strategyHint:
+          type: string
+          enum:
+          - momentum_long
+          - momentum_short
+          - mean_reversion
+          - no_trade
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum:
+          - long_spot_short_perp
+          - short_spot_long_perp
+          - null
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -345,12 +394,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     RateLimitExceeded:
       description: Rate limit exceeded
       headers:
@@ -368,11 +411,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
+x-refined-from:
+- farmdash-agent-api-openapi.yaml
+- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot

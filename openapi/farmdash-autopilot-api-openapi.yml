@@ -1,13 +1,13 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Autopilot API
+  title: Farmdash Autopilot API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
+  description: 'Operations tagged Autopilot across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -24,6 +24,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       - name: equity
         in: query
         required: true
@@ -131,6 +132,8 @@ paths:
                       type: number
                     rebalanceContext:
                       $ref: '#/components/schemas/RebalanceContext'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Autopilot action result
@@ -158,6 +161,9 @@ paths:
           description: Session owner or token verification failed
         '402':
           $ref: '#/components/responses/PaymentRequired'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
 components:
   headers:
     X-Request-ID:
@@ -166,6 +172,27 @@ components:
         type: string
         format: uuid
   schemas:
+    RebalanceContext:
+      type: object
+      properties:
+        expectedUpsideUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        gasUsd:
+          type: number
+          nullable: true
+        riskBufferUsd:
+          type: number
+          nullable: true
+        currentChain:
+          type: string
+          nullable: true
+        targetChain:
+          type: string
+          nullable: true
     TrackedPosition:
       type: object
       properties:
@@ -195,27 +222,168 @@ components:
           type: string
         unrealizedPnl:
           type: number
-    RebalanceContext:
+    AutopilotConfig:
       type: object
       properties:
-        expectedUpsideUsd:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum:
+            - funding_arb
+            - momentum
+            - mean_reversion
+            - portfolio_rebalance
+            - full_auto
+        assets:
+          type: array
+          items:
+            type: string
+        maxEquityPct:
+          type: number
+        rebalanceIntervalMin:
+          type: integer
+        autoCompound:
+          type: boolean
+        riskPreference:
+          type: string
+          enum:
+          - conservative
+          - balanced
+          - aggressive
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
+    AgentSession:
+      type: object
+      properties:
+        id:
+          type: string
+        agentAddress:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - halted
+          - expired
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        autopilot:
+          $ref: '#/components/schemas/AutopilotConfig'
+        activePositions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedPosition'
+        sessionPnl:
+          type: number
+        peakEquity:
+          type: number
+        tradeCount:
+          type: integer
+        lastHeartbeat:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        agentMeta:
+          $ref: '#/components/schemas/AgentMeta'
+    ExecutionAlphaConfig:
+      type: object
+      properties:
+        mevSafetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        maxQuoteDecayBps:
+          type: number
+        maxGasUsdPerAction:
+          type: number
+        requirePositiveNetEdge:
+          type: boolean
+        minNetEdgeUsd:
+          type: number
+    AgentMeta:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        framework:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+    AutopilotRiskStatus:
+      type: object
+      properties:
+        dailyPnlPct:
+          type: number
+        weeklyPnlPct:
+          type: number
+        drawdownPct:
+          type: number
+        openPositions:
+          type: integer
+        aggregateLeverage:
+          type: number
+        healthFactor:
           type: number
           nullable: true
-        bridgeFeeUsd:
+        liquidationBufferPct:
           type: number
           nullable: true
-        gasUsd:
+        stablecoinDepegPct:
           type: number
           nullable: true
-        riskBufferUsd:
+        quoteDecayBps:
           type: number
           nullable: true
-        currentChain:
+        gasPerActionUsd:
+          type: number
+          nullable: true
+        alerts:
+          type: array
+          items:
+            type: string
+        isTradingAllowed:
+          type: boolean
+        haltReason:
           type: string
           nullable: true
-        targetChain:
+    RiskSentinelConfig:
+      type: object
+      properties:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
           type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
           nullable: true
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
     PaymentRequiredError:
       type: object
       properties:
@@ -227,11 +395,41 @@ components:
           example: payment_required
         code:
           type: string
-          example: payment_required
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
         message:
           type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
         retryable:
           type: boolean
+        upgrade_url:
+          type: string
+          format: uri
         direct_upgrade_url:
           type: string
           format: uri
@@ -283,168 +481,16 @@ components:
           - high
           - medium
           - low
-    RiskSentinelConfig:
-      type: object
-      properties:
-        minHealthFactor:
-          type: number
-        minLiquidationBufferPct:
-          type: number
-        maxStablecoinDepegPct:
-          type: number
-    AgentSession:
-      type: object
-      properties:
-        id:
-          type: string
-        agentAddress:
-          type: string
-        status:
-          type: string
-          enum:
-          - active
-          - paused
-          - halted
-          - expired
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        autopilot:
-          $ref: '#/components/schemas/AutopilotConfig'
-        activePositions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackedPosition'
-        sessionPnl:
-          type: number
-        peakEquity:
-          type: number
-        tradeCount:
-          type: integer
-        lastHeartbeat:
-          type: string
-          format: date-time
-        createdAt:
-          type: string
-          format: date-time
-        expiresAt:
-          type: string
-          format: date-time
-        agentMeta:
-          $ref: '#/components/schemas/AgentMeta'
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
-    AutopilotConfig:
-      type: object
-      properties:
-        strategies:
-          type: array
-          items:
-            type: string
-            enum:
-            - funding_arb
-            - momentum
-            - mean_reversion
-            - portfolio_rebalance
-            - full_auto
-        assets:
-          type: array
-          items:
-            type: string
-        maxEquityPct:
-          type: number
-        rebalanceIntervalMin:
-          type: integer
-        autoCompound:
-          type: boolean
-        riskPreference:
-          type: string
-          enum:
-          - conservative
-          - balanced
-          - aggressive
-        riskSentinel:
-          $ref: '#/components/schemas/RiskSentinelConfig'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaConfig'
-    AgentMeta:
-      type: object
-      properties:
-        name:
-          type: string
-        version:
-          type: string
-        framework:
-          type: string
-        capabilities:
-          type: array
-          items:
-            type: string
-    AutopilotRiskStatus:
-      type: object
-      properties:
-        dailyPnlPct:
-          type: number
-        weeklyPnlPct:
-          type: number
-        drawdownPct:
-          type: number
-        openPositions:
-          type: integer
-        aggregateLeverage:
-          type: number
-        healthFactor:
-          type: number
-          nullable: true
-        liquidationBufferPct:
-          type: number
-          nullable: true
-        stablecoinDepegPct:
-          type: number
-          nullable: true
-        quoteDecayBps:
-          type: number
-          nullable: true
-        gasPerActionUsd:
-          type: number
-          nullable: true
-        alerts:
-          type: array
-          items:
-            type: string
-        isTradingAllowed:
-          type: boolean
-        haltReason:
-          type: string
-          nullable: true
-    DelegationRecord:
-      type: object
-      properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
-          type: boolean
-        verifiedAt:
-          type: string
-          format: date-time
-          nullable: true
-    ExecutionAlphaConfig:
-      type: object
-      properties:
-        mevSafetyMode:
-          $ref: '#/components/schemas/SwapSafetyMode'
-        maxQuoteDecayBps:
-          type: number
-        maxGasUsdPerAction:
-          type: number
-        requirePositiveNetEdge:
-          type: boolean
-        minNetEdgeUsd:
-          type: number
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -477,6 +523,9 @@ components:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
+x-refined-from:
+- farmdash-agent-api-openapi.yaml
+- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot

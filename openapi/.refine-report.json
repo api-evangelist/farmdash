@@ -1,30 +1,67 @@
 {
   "provider": "farmdash",
   "sources": [
-    "_original/farmdash-agent-api-openapi.yaml"
+    "_original/farmdash-agent-api-openapi.yaml",
+    "farmdash-openapi.yaml"
   ],
   "outputs": [
     "farmdash-account-api-openapi.yml",
     "farmdash-autopilot-api-openapi.yml",
     "farmdash-delegation-api-openapi.yml",
     "farmdash-execution-api-openapi.yml",
+    "farmdash-executionauthority-api-openapi.yml",
     "farmdash-history-api-openapi.yml",
     "farmdash-intelligence-api-openapi.yml",
+    "farmdash-planning-api-openapi.yml",
+    "farmdash-proof-api-openapi.yml",
+    "farmdash-reputation-api-openapi.yml",
     "farmdash-research-api-openapi.yml",
     "farmdash-risk-api-openapi.yml",
     "farmdash-session-api-openapi.yml",
     "farmdash-strategy-api-openapi.yml",
-    "farmdash-swap-api-openapi.yml"
+    "farmdash-swap-api-openapi.yml",
+    "farmdash-wallet-api-openapi.yml"
   ],
-  "archived": [],
+  "archived": [
+    "archived openapi/farmdash-openapi.yaml"
+  ],
   "errors": [],
   "warnings": [],
   "notes": [
+    "1 archived document(s) dropped as subsets of other archived documents",
     "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
     "farmdash-agent-api-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "apis.yml register: already-registered"
+    "farmdash-agent-api-openapi.yaml: declared missing tag: ExecutionAuthority",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Planning",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Proof",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Reputation",
+    "farmdash-agent-api-openapi.yaml: declared missing tag: Wallet",
+    "farmdash-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
+    "farmdash-openapi.yaml: declared missing tag: ExecutionAuthority",
+    "farmdash-openapi.yaml: declared missing tag: Planning",
+    "farmdash-openapi.yaml: declared missing tag: Proof",
+    "farmdash-openapi.yaml: declared missing tag: Reputation",
+    "farmdash-openapi.yaml: declared missing tag: Wallet",
+    "tag 'Account' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Autopilot' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Delegation' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Execution' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'ExecutionAuthority' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'History' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Intelligence' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Planning' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Proof' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Reputation' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Research' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Risk' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Session' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Strategy' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Swap' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "tag 'Wallet' spans 2 source specs (farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml): per-path servers applied",
+    "apis.yml register: written (+16 apis, 16 total)"
   ],
   "skipped": [
+    "_original/farmdash-openapi.yaml: archived document superseded by a larger archived document",
     "farmdash-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
     "farmdash-autopilot-api-openapi.yml: previously refined output, superseded by openapi/_original/",
     "farmdash-delegation-api-openapi.yml: previously refined output, superseded by openapi/_original/",

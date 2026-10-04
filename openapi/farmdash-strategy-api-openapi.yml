@@ -1,13 +1,13 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Strategy API
+  title: Farmdash Strategy API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
+  description: 'Operations tagged Strategy across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -53,6 +53,8 @@ paths:
                   minimum: 0.1
                   maximum: 1.0
                   description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Strategy recommendation
@@ -67,6 +69,9 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '402':
           $ref: '#/components/responses/PaymentRequired'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
   /v1/agent/futures/position-sizing:
     post:
       operationId: calculatePositionSize
@@ -86,6 +91,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PositionSizingRequest'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Position sizing result
@@ -100,64 +107,131 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '402':
           $ref: '#/components/responses/PaymentRequired'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-  responses:
-    PaymentRequired:
-      description: Free-tier limit exceeded — x402 payment required
-      headers:
-        X-Payment-Required:
-          schema:
-            type: string
-        X-Payment-Address:
-          schema:
-            type: string
-          description: Treasury wallet (USDC on Base)
-        X-Payment-Token:
-          schema:
-            type: string
-          description: USDC contract on Base
-        X-Payment-Amount:
-          schema:
-            type: string
-          description: Amount in token decimals (990000 = 0.99 USDC)
-        X-Payment-Chain-Id:
-          schema:
-            type: string
-          description: 8453 (Base)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
   schemas:
-    FuturesAdaptiveRisk:
+    FuturesTradeSimulation:
       type: object
       properties:
-        baseRiskPercent:
+        methodology:
+          type: string
+          enum:
+          - heuristic_preflight
+        holdingWindowHours:
           type: number
-        appliedRiskPercent:
+        entryValueUsd:
           type: number
-        confidenceMultiplier:
+        marginRequiredUsd:
           type: number
-        volatilityMultiplier:
+        marginImpactPct:
           type: number
-        drawdownMultiplier:
+        liquidationPriceEstimate:
           type: number
-        portfolioMultiplier:
+          nullable: true
+        stopScenarioPnlUsd:
           type: number
-        finalRiskMultiplier:
+        targetScenarioPnlUsd:
           type: number
+        oneAtrMovePnlUsd:
+          type: number
+        estimatedFundingPnl24hUsd:
+          type: number
+        estimatedFundingPnl72hUsd:
+          type: number
+    PositionSizingResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        sizing:
+          $ref: '#/components/schemas/PositionSizing'
+        guardrails:
+          type: object
+          properties:
+            maxLeverage:
+              type: integer
+            maxRiskPerTrade:
+              type: string
+            maxPositionValue:
+              type: string
+            note:
+              type: string
+        timestamp:
+          type: integer
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
     ErrorResponse:
       type: object
       required:
@@ -179,89 +253,50 @@ components:
         details:
           type: object
           additionalProperties: true
-    FuturesPortfolioContext:
+    PositionSizingRequest:
       type: object
+      required:
+      - equity
+      - entryPrice
+      - stopPrice
       properties:
-        openPositionCount:
-          type: integer
-        sameAssetExposureUsd:
+        equity:
           type: number
-        sameAssetExposurePct:
+          description: Account equity in USD
+        entryPrice:
           type: number
-        directionalExposurePct:
+        stopPrice:
           type: number
-        netDirectionalBias:
-          type: string
-          enum:
-          - net_long
-          - net_short
-          - balanced
-        concentrationWarning:
-          type: string
-          nullable: true
-    TechnicalIndicators:
+        riskPercent:
+          type: number
+          maximum: 0.02
+          description: Capped at 2%
+        targetPrice:
+          type: number
+          description: For R:R calculation
+        riskMultiplier:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+          description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
+    FuturesMarketRegime:
+      type: string
+      enum:
+      - trending
+      - ranging
+      - high_volatility
+      - low_liquidity
+    DustStormWarning:
       type: object
+      required:
+      - kind
+      - message
       properties:
-        ema8:
-          type: number
-        ema34:
-          type: number
-        emaCross:
+        kind:
           type: string
-          enum:
-          - bullish
-          - bearish
-          - neutral
-        rsi:
-          type: number
-        macd:
-          type: number
-        macdSignal:
-          type: number
-        macdHistogram:
-          type: number
-        macdCross:
+          const: dust_storm
+        message:
           type: string
-          enum:
-          - bullish_cross
-          - bearish_cross
-          - neutral
-        adx:
-          type: number
-        atr:
-          type: number
-        bbUpper:
-          type: number
-        bbMiddle:
-          type: number
-        bbLower:
-          type: number
-        bbWidth:
-          type: number
-        volumeRatio:
-          type: number
-        zScore:
-          type: number
-    Guardrails:
-      type: object
-      properties:
-        maxLeverage:
-          type: integer
-          example: 5
-        maxRiskPerTrade:
-          type: string
-          example: 2%
-        maxPositions:
-          type: integer
-        dailyLossLimit:
-          type: string
-          example: -3%
-        weeklyLossLimit:
-          type: string
-          example: -7%
-        maxDrawdown:
-          type: string
-          example: -15%
     FuturesTradeDirection:
       type: string
       enum:
@@ -327,32 +362,49 @@ components:
           type: array
           items:
             type: string
-    FundingAnalysis:
+    TechnicalIndicators:
       type: object
       properties:
-        coin:
+        ema8:
+          type: number
+        ema34:
+          type: number
+        emaCross:
           type: string
-        fundingRate:
-          type: number
-        annualizedRate:
-          type: number
-        predictedRate:
-          type: number
-        crossVenueDelta:
-          type: number
-        premium:
-          type: number
-        openInterest:
-          type: number
-        isArbOpportunity:
-          type: boolean
-        arbDirection:
-          type: string
-          nullable: true
           enum:
-          - long_spot_short_perp
-          - short_spot_long_perp
-          - null
+          - bullish
+          - bearish
+          - neutral
+        rsi:
+          type: number
+        macd:
+          type: number
+        macdSignal:
+          type: number
+        macdHistogram:
+          type: number
+        macdCross:
+          type: string
+          enum:
+          - bullish_cross
+          - bearish_cross
+          - neutral
+        adx:
+          type: number
+        atr:
+          type: number
+        bbUpper:
+          type: number
+        bbMiddle:
+          type: number
+        bbLower:
+          type: number
+        bbWidth:
+          type: number
+        volumeRatio:
+          type: number
+        zScore:
+          type: number
     StrategyRecommendation:
       type: object
       properties:
@@ -417,114 +469,108 @@ components:
           $ref: '#/components/schemas/FundingAnalysis'
         indicators:
           $ref: '#/components/schemas/TechnicalIndicators'
-    FuturesMarketRegime:
-      type: string
-      enum:
-      - trending
-      - ranging
-      - high_volatility
-      - low_liquidity
-    PositionSizingResponse:
+    PositionSizing:
       type: object
       properties:
-        ok:
-          type: boolean
-        sizing:
-          $ref: '#/components/schemas/PositionSizing'
-        guardrails:
-          type: object
-          properties:
-            maxLeverage:
-              type: integer
-            maxRiskPerTrade:
-              type: string
-            maxPositionValue:
-              type: string
-            note:
-              type: string
-        timestamp:
+        positionSize:
+          type: number
+        positionValueUsd:
+          type: number
+        leverage:
+          type: number
+        marginRequired:
+          type: number
+        riskAmount:
+          type: number
+        riskPercent:
+          type: number
+        stopDistance:
+          type: number
+        rewardRiskRatio:
+          type: number
+    FuturesPortfolioContext:
+      type: object
+      properties:
+        openPositionCount:
           type: integer
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    FuturesTradeSimulation:
-      type: object
-      properties:
-        methodology:
+        sameAssetExposureUsd:
+          type: number
+        sameAssetExposurePct:
+          type: number
+        directionalExposurePct:
+          type: number
+        netDirectionalBias:
           type: string
           enum:
-          - heuristic_preflight
-        holdingWindowHours:
-          type: number
-        entryValueUsd:
-          type: number
-        marginRequiredUsd:
-          type: number
-        marginImpactPct:
-          type: number
-        liquidationPriceEstimate:
-          type: number
+          - net_long
+          - net_short
+          - balanced
+        concentrationWarning:
+          type: string
           nullable: true
-        stopScenarioPnlUsd:
-          type: number
-        targetScenarioPnlUsd:
-          type: number
-        oneAtrMovePnlUsd:
-          type: number
-        estimatedFundingPnl24hUsd:
-          type: number
-        estimatedFundingPnl72hUsd:
-          type: number
-    DustStormWarning:
+    Guardrails:
       type: object
-      required:
-      - kind
-      - message
       properties:
-        kind:
+        maxLeverage:
+          type: integer
+          example: 5
+        maxRiskPerTrade:
           type: string
-          const: dust_storm
-        message:
+          example: 2%
+        maxPositions:
+          type: integer
+        dailyLossLimit:
           type: string
+          example: -3%
+        weeklyLossLimit:
+          type: string
+          example: -7%
+        maxDrawdown:
+          type: string
+          example: -15%
+    FuturesAdaptiveRisk:
+      type: object
+      properties:
+        baseRiskPercent:
+          type: number
+        appliedRiskPercent:
+          type: number
+        confidenceMultiplier:
+          type: number
+        volatilityMultiplier:
+          type: number
+        drawdownMultiplier:
+          type: number
+        portfolioMultiplier:
+          type: number
+        finalRiskMultiplier:
+          type: number
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum:
+          - long_spot_short_perp
+          - short_spot_long_perp
+          - null
     AnalyzeStrategyResponse:
       type: object
       properties:
@@ -549,56 +595,63 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DustStormWarning'
-    PositionSizingRequest:
-      type: object
-      required:
-      - equity
-      - entryPrice
-      - stopPrice
-      properties:
-        equity:
-          type: number
-          description: Account equity in USD
-        entryPrice:
-          type: number
-        stopPrice:
-          type: number
-        riskPercent:
-          type: number
-          maximum: 0.02
-          description: Capped at 2%
-        targetPrice:
-          type: number
-          description: For R:R calculation
-        riskMultiplier:
-          type: number
-          minimum: 0.1
-          maximum: 1.0
-          description: Optional flexibility modifier for risk tolerance. 1.0 keeps the full risk budget; lower values are more conservative.
-    PositionSizing:
-      type: object
-      properties:
-        positionSize:
-          type: number
-        positionValueUsd:
-          type: number
-        leverage:
-          type: number
-        marginRequired:
-          type: number
-        riskAmount:
-          type: number
-        riskPercent:
-          type: number
-        stopDistance:
-          type: number
-        rewardRiskRatio:
-          type: number
+  responses:
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
+x-refined-from:
+- farmdash-agent-api-openapi.yaml
+- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot

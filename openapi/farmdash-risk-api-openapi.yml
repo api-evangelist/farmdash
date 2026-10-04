@@ -1,13 +1,13 @@
 openapi: 3.2.0
 info:
-  title: FarmDash Agent Risk API
+  title: Farmdash Risk API
   version: 2.0.0
-  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss.'
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
+  description: 'Operations tagged Risk across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -21,11 +21,15 @@ paths:
       summary: Simulate a wallet-bound swap intent
       description: 'Mandatory pre-execution simulation gate for Signal Architect. The caller
 
-        submits the `intent_id` returned by `/agents/quote` plus the signing wallet.
+        submits `simulationRequirements.intent_id` (`fd_intent_*`) returned by
 
-        FarmDash simulates the quote intent, caches the result for 60 seconds, and
+        `POST /v1/agent/quote-intent` plus the signing wallet. Do not submit the
 
-        returns a `simulation_id` that `/agents/swap` requires.'
+        top-level `intentId` (`qi_*`), which is the quote-cache/idempotency identity.
+
+        FarmDash simulates the bound execution intent, caches the result for 60 seconds,
+
+        and returns a `simulation_id` that `/agents/swap` requires.'
       tags:
       - Risk
       security:
@@ -37,6 +41,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SwapSimulationRequest'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Simulation report
@@ -56,6 +62,42 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
+  /v1/agent/sybil-audit:
+    get:
+      operationId: getSybilAudit
+      summary: Wallet-cluster Sybil risk scoring (1-10 EVM addresses)
+      description: 'Heuristic defensive audit for timing clusters, shared funding,
+
+        internal transfers, low diversity, and bot-like wallet patterns.
+
+        This is a risk-management signal, NOT a protocol eligibility verdict:
+
+        never call a low score "clean" and never prescribe activity designed
+
+        to change detection outcomes.'
+      tags:
+      - Risk
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      - name: addresses
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Comma-separated EVM addresses (max 10; case-insensitive dedupe).
+      responses:
+        '200':
+          description: Per-wallet Sybil risk findings with data-quality caveats
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
   /v1/agent/risk-sentinel:
     get:
       operationId: getRiskSentinelInfo
@@ -70,6 +112,8 @@ paths:
       security:
       - bearerAuth: []
       - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Usage guide
@@ -108,6 +152,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RiskSentinelRequest'
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
       responses:
         '200':
           description: Risk analysis
@@ -124,26 +170,30 @@ paths:
           $ref: '#/components/responses/PaymentRequired'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
+    servers:
+    - url: https://www.farmdash.one/api
+      description: Production
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
-      schema:
-        type: string
-        format: uuid
-    X-RateLimit-Remaining:
-      description: Remaining requests in the current window
-      schema:
-        type: string
-    X-RateLimit-Reset:
-      description: UTC epoch seconds when the rate limit window resets
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Maximum requests allowed in the current window
-      schema:
-        type: string
   schemas:
+    RouteCandidate:
+      type: object
+      properties:
+        protocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        estimatedOutput:
+          type: string
+        feeAmountUsd:
+          type: number
+        gasEstimateUsd:
+          type: number
+          nullable: true
+        bridgeFeeUsd:
+          type: number
+          nullable: true
+        routeRiskScore:
+          type: number
+        selected:
+          type: boolean
     RiskSentinelRequest:
       type: object
       description: Provide either manual health/net-edge inputs or a full swap-shaped request for route-aware analysis.
@@ -185,8 +235,7 @@ components:
           type: string
           enum:
           - lifi
-          - zerox
-          - x402
+          - relay
         slippage:
           type: number
         expectedUpsideUsd:
@@ -207,6 +256,268 @@ components:
           type: boolean
         safetyMode:
           $ref: '#/components/schemas/SwapSafetyMode'
+    RiskSentinelResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        mode:
+          type: string
+          enum:
+          - manual
+          - quoted
+        selectedProtocol:
+          allOf:
+          - $ref: '#/components/schemas/SupportedProtocol'
+          nullable: true
+        executionAlpha:
+          allOf:
+          - $ref: '#/components/schemas/ExecutionAlphaReport'
+          nullable: true
+        riskReport:
+          allOf:
+          - $ref: '#/components/schemas/SwapRiskReport'
+          nullable: true
+        quotePreview:
+          allOf:
+          - $ref: '#/components/schemas/SwapResult'
+          nullable: true
+        health:
+          allOf:
+          - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        netEdge:
+          allOf:
+          - $ref: '#/components/schemas/NetEdgeAnalysis'
+          nullable: true
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        shouldHalt:
+          type: boolean
+    SwapTxData:
+      type: object
+      required:
+      - to
+      - data
+      - value
+      - chainId
+      properties:
+        to:
+          type: string
+          description: Protocol contract address (NOT FarmDash)
+        data:
+          type: string
+          description: Encoded calldata
+        value:
+          type: string
+          description: Native token value in wei
+        chainId:
+          type: integer
+    PegCheck:
+      type: object
+      properties:
+        tokenAddress:
+          type: string
+        symbol:
+          type: string
+        reference:
+          type: string
+          enum:
+          - USD
+          - ETH
+        priceUsd:
+          type: number
+          nullable: true
+        referencePriceUsd:
+          type: number
+          nullable: true
+        deviationPct:
+          type: number
+          nullable: true
+        alert:
+          type: boolean
+    RiskSeverity:
+      type: string
+      enum:
+      - low
+      - medium
+      - high
+      - critical
+    SwapRiskReport:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFlag'
+        approval:
+          allOf:
+          - $ref: '#/components/schemas/AllowanceStatus'
+          nullable: true
+        pegChecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PegCheck'
+        health:
+          allOf:
+          - $ref: '#/components/schemas/HealthCheck'
+          nullable: true
+        shouldHalt:
+          type: boolean
+        haltReasons:
+          type: array
+          items:
+            type: string
+    HealthCheck:
+      type: object
+      properties:
+        healthFactor:
+          type: number
+          nullable: true
+        liquidationBufferPct:
+          type: number
+          nullable: true
+        alertLevel:
+          type: string
+          enum:
+          - none
+          - warning
+          - critical
+        shouldHalt:
+          type: boolean
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ExecutionAlphaReport:
+      type: object
+      properties:
+        selectedProtocol:
+          $ref: '#/components/schemas/SupportedProtocol'
+        routeReason:
+          type: string
+        mevProtection:
+          type: object
+          properties:
+            safetyMode:
+              $ref: '#/components/schemas/SwapSafetyMode'
+            actualSlippageBps:
+              type: integer
+            maxRecommendedSlippageBps:
+              type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteCandidate'
+        quoteDecay:
+          $ref: '#/components/schemas/QuoteDecayMetrics'
+        netEdge:
+          $ref: '#/components/schemas/NetEdgeAnalysis'
+    SwapSimulationRequest:
+      type: object
+      required:
+      - intent_id
+      - wallet_address
+      properties:
+        intent_id:
+          type: string
+          description: Wallet-bound quote intent returned by /agents/quote
+          example: fd_intent_7f3a
+        wallet_address:
+          type: string
+          pattern: ^0x[a-fA-F0-9]{40}$
+          description: Signing wallet for the simulated execution
     SwapSimulationResponse:
       type: object
       required:
@@ -270,6 +581,62 @@ components:
         required_for_execution:
           type: boolean
           const: true
+    AllowanceStatus:
+      type: object
+      properties:
+        spender:
+          type: string
+          nullable: true
+        allowance:
+          type: string
+          nullable: true
+        requiredAmount:
+          type: string
+        approvalNeeded:
+          type: boolean
+        overApproved:
+          type: boolean
+        source:
+          type: string
+          enum:
+          - onchain
+          - quote_fallback
+          - unavailable
+    SupportedProtocol:
+      type: string
+      enum:
+      - lifi
+      - relay
+      description: Swap quote provider. Automatic routing compares all healthy compatible providers (LI.FI, Relay; 0x paused until reinstated); force one with ?protocol= (deterministic, never silent fallback).
+    RiskFlag:
+      type: object
+      required:
+      - code
+      - category
+      - severity
+      - title
+      - message
+      properties:
+        code:
+          type: string
+        category:
+          type: string
+          enum:
+          - approval
+          - bridge
+          - contract
+          - token
+          - health
+          - execution
+        severity:
+          $ref: '#/components/schemas/RiskSeverity'
+        title:
+          type: string
+        message:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
     SwapResult:
       type: object
       required:
@@ -318,151 +685,11 @@ components:
         confirmUrl:
           type: string
           example: /api/agents/confirm
-    QuoteDecaySeverity:
+    SwapSafetyMode:
       type: string
       enum:
-      - none
-      - low
-      - medium
-      - high
-    RiskSeverity:
-      type: string
-      enum:
-      - low
-      - medium
-      - high
-      - critical
-    RiskSentinelResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        mode:
-          type: string
-          enum:
-          - manual
-          - quoted
-        selectedProtocol:
-          allOf:
-          - $ref: '#/components/schemas/SupportedProtocol'
-          nullable: true
-        executionAlpha:
-          allOf:
-          - $ref: '#/components/schemas/ExecutionAlphaReport'
-          nullable: true
-        riskReport:
-          allOf:
-          - $ref: '#/components/schemas/SwapRiskReport'
-          nullable: true
-        quotePreview:
-          allOf:
-          - $ref: '#/components/schemas/SwapResult'
-          nullable: true
-        health:
-          allOf:
-          - $ref: '#/components/schemas/HealthCheck'
-          nullable: true
-        netEdge:
-          allOf:
-          - $ref: '#/components/schemas/NetEdgeAnalysis'
-          nullable: true
-        flags:
-          type: array
-          items:
-            $ref: '#/components/schemas/RiskFlag'
-        shouldHalt:
-          type: boolean
-    ErrorResponse:
-      type: object
-      required:
-      - error
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-        retryable:
-          type: boolean
-        request_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-    ExecutionAlphaReport:
-      type: object
-      properties:
-        selectedProtocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        routeReason:
-          type: string
-        mevProtection:
-          type: object
-          properties:
-            safetyMode:
-              $ref: '#/components/schemas/SwapSafetyMode'
-            actualSlippageBps:
-              type: integer
-            maxRecommendedSlippageBps:
-              type: integer
-        candidates:
-          type: array
-          items:
-            $ref: '#/components/schemas/RouteCandidate'
-        quoteDecay:
-          $ref: '#/components/schemas/QuoteDecayMetrics'
-        netEdge:
-          $ref: '#/components/schemas/NetEdgeAnalysis'
-    SwapRiskReport:
-      type: object
-      properties:
-        flags:
-          type: array
-          items:
-            $ref: '#/components/schemas/RiskFlag'
-        approval:
-          allOf:
-          - $ref: '#/components/schemas/AllowanceStatus'
-          nullable: true
-        pegChecks:
-          type: array
-          items:
-            $ref: '#/components/schemas/PegCheck'
-        health:
-          allOf:
-          - $ref: '#/components/schemas/HealthCheck'
-          nullable: true
-        shouldHalt:
-          type: boolean
-        haltReasons:
-          type: array
-          items:
-            type: string
-    AllowanceStatus:
-      type: object
-      properties:
-        spender:
-          type: string
-          nullable: true
-        allowance:
-          type: string
-          nullable: true
-        requiredAmount:
-          type: string
-        approvalNeeded:
-          type: boolean
-        overApproved:
-          type: boolean
-        source:
-          type: string
-          enum:
-          - onchain
-          - quote_fallback
-          - unavailable
+      - strict
+      - balanced
     QuoteDecayMetrics:
       type: object
       properties:
@@ -478,152 +705,6 @@ components:
           type: number
         severity:
           $ref: '#/components/schemas/QuoteDecaySeverity'
-    PegCheck:
-      type: object
-      properties:
-        tokenAddress:
-          type: string
-        symbol:
-          type: string
-        reference:
-          type: string
-          enum:
-          - USD
-          - ETH
-        priceUsd:
-          type: number
-          nullable: true
-        referencePriceUsd:
-          type: number
-          nullable: true
-        deviationPct:
-          type: number
-          nullable: true
-        alert:
-          type: boolean
-    SwapTxData:
-      type: object
-      required:
-      - to
-      - data
-      - value
-      - chainId
-      properties:
-        to:
-          type: string
-          description: Protocol contract address (NOT FarmDash)
-        data:
-          type: string
-          description: Encoded calldata
-        value:
-          type: string
-          description: Native token value in wei
-        chainId:
-          type: integer
-    SwapSimulationRequest:
-      type: object
-      required:
-      - intent_id
-      - wallet_address
-      properties:
-        intent_id:
-          type: string
-          description: Wallet-bound quote intent returned by /agents/quote
-          example: fd_intent_7f3a
-        wallet_address:
-          type: string
-          pattern: ^0x[a-fA-F0-9]{40}$
-          description: Signing wallet for the simulated execution
-    SupportedProtocol:
-      type: string
-      enum:
-      - lifi
-      - zerox
-      - x402
-      - okx
-    HealthCheck:
-      type: object
-      properties:
-        healthFactor:
-          type: number
-          nullable: true
-        liquidationBufferPct:
-          type: number
-          nullable: true
-        alertLevel:
-          type: string
-          enum:
-          - none
-          - warning
-          - critical
-        shouldHalt:
-          type: boolean
-    PaymentRequiredError:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: payment_required
-        code:
-          type: string
-          example: payment_required
-        message:
-          type: string
-        retryable:
-          type: boolean
-        direct_upgrade_url:
-          type: string
-          format: uri
-        rate_limit:
-          type: object
-          additionalProperties: true
-        developer_sandbox:
-          type: object
-          additionalProperties: true
-        payment_required:
-          type: object
-          properties:
-            amount:
-              type: string
-              example: 0.01 USDC
-            chain:
-              type: string
-              example: Base
-            destination:
-              type: string
-              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
-            token:
-              type: string
-            chainId:
-              type: integer
-              example: 8453
-    RouteCandidate:
-      type: object
-      properties:
-        protocol:
-          $ref: '#/components/schemas/SupportedProtocol'
-        estimatedOutput:
-          type: string
-        feeAmountUsd:
-          type: number
-        gasEstimateUsd:
-          type: number
-          nullable: true
-        bridgeFeeUsd:
-          type: number
-          nullable: true
-        routeRiskScore:
-          type: number
-        selected:
-          type: boolean
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
     NetEdgeAnalysis:
       type: object
       properties:
@@ -648,36 +729,49 @@ components:
           nullable: true
         enforced:
           type: boolean
-    RiskFlag:
-      type: object
-      required:
-      - code
-      - category
-      - severity
-      - title
-      - message
-      properties:
-        code:
-          type: string
-        category:
-          type: string
-          enum:
-          - approval
-          - bridge
-          - contract
-          - token
-          - health
-          - execution
-        severity:
-          $ref: '#/components/schemas/RiskSeverity'
-        title:
-          type: string
-        message:
-          type: string
-        metadata:
-          type: object
-          additionalProperties: true
+    QuoteDecaySeverity:
+      type: string
+      enum:
+      - none
+      - low
+      - medium
+      - high
+  headers:
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   responses:
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -704,34 +798,30 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    RateLimitExceeded:
-      description: Rate limit exceeded
-      headers:
-        Retry-After:
-          schema:
-            type: integer
-          description: Seconds until rate limit resets
-        X-RateLimit-Limit:
-          $ref: '#/components/headers/X-RateLimit-Limit'
-        X-RateLimit-Remaining:
-          $ref: '#/components/headers/X-RateLimit-Remaining'
-        X-RateLimit-Reset:
-          $ref: '#/components/headers/X-RateLimit-Reset'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     BadRequest:
       description: Invalid parameters
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
+x-refined-from:
+- farmdash-agent-api-openapi.yaml
+- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot
