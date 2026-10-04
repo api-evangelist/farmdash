@@ -524,6 +524,8 @@ apis:
   humanURL: https://www.farmdash.one/agents
   baseURL: https://www.farmdash.one/api
   tags:
+  - Wallets
+  tags_raw:
   - Wallet
   properties:
   - type: OpenAPI
