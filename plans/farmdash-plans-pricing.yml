@@ -118,3 +118,29 @@ usage_based:
     MCP manifest publishes 0.99 as default_overage; the live 402 for sybil_audit returned
     4.99, matching the manifest's per-policy catalogue. Where the two disagree, the runtime
     402 body is authoritative.
+x-canonical:
+  generated: '2026-10-08'
+  vocabulary: all/0-working/economics/plans-canonical.yml
+  models:
+  - hybrid
+  - metered
+  units: []
+  plans:
+  - name: Scout
+    access: other
+    model: metered
+    model_how: derived
+    units: []
+    periods: []
+  - name: Pioneer
+    access: other
+    model: hybrid
+    model_how: derived
+    units: []
+    periods: []
+  - name: Syndicate
+    access: other
+    model: hybrid
+    model_how: derived
+    units: []
+    periods: []
