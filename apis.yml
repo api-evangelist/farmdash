@@ -92,6 +92,8 @@ maintainers:
 image: https://www.farmdash.one/og-wagon-preview.png?v=20260425
 
 common:
+- type: Packages
+  url: packages/farmdash-packages.yml
 - type: AgenticAccess
   url: agentic-access/farmdash-agentic-access.yml
 - type: Spectral
