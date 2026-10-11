@@ -1,13 +1,16 @@
 generated: '2026-08-26'
 method: probed
 source: https://www.farmdash.one/api/v1/agent/sybil-audit (live 402 body, 2026-08-26)
+name: FarmDash Agent Hub API Rate Limits
 secondary_sources:
 - https://www.farmdash.one/agents/openapi.yaml
 - https://www.farmdash.one/.well-known/agent.json
 - https://www.farmdash.one/api/v1/agent/status
 limit_count: 3
 limits:
-- scope: per-ip
+- name: unspecified
+  name: per-ip
+  scope: per-ip
   tier: Scout
   limit: 5
   window: 24h

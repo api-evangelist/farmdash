@@ -1,0 +1,76 @@
+generated: '2026-10-02'
+method: derived
+source: the pre-flight dossier, apis.yml pointers, spec servers, well-known, vendors -- nothing fetched here
+generator: derive-hosts.py
+summary:
+  hosts: 4
+  own: 2
+  other_domain: 0
+  platform: 2
+  roles:
+  - api
+  - other
+  - support
+  - website
+hosts:
+- host: api.farmdash.one
+  found_by:
+  - contract-discovery
+  types: []
+  serves: []
+  registrable_domain: farmdash.one
+  role: api
+  relation: own
+- host: discord.gg
+  found_by:
+  - pointer
+  - vendor-detect
+  types:
+  - Support
+  serves:
+  - community
+  vendor: discord
+  registrable_domain: discord.gg
+  role: support
+  relation: platform
+- host: github.com
+  found_by:
+  - docs-index
+  types: []
+  serves:
+  - docs
+  registrable_domain: github.com
+  role: other
+  relation: platform
+- host: www.farmdash.one
+  found_by:
+  - pointer
+  - apis[]
+  - probed
+  - docs-index
+  - spec-found
+  - contract-discovery
+  - well-known
+  - vendor-detect
+  types:
+  - StatusPage
+  - Security
+  - Website
+  - APIsJSON
+  - Documentation
+  - DeveloperPortal
+  - APIReference
+  - GettingStarted
+  - Pricing
+  - TermsOfService
+  - PrivacyPolicy
+  - ChangeLog
+  serves:
+  - api
+  - docs
+  - spec
+  - hosting
+  vendor: vercel
+  registrable_domain: farmdash.one
+  role: website
+  relation: own

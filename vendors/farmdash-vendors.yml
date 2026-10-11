@@ -1,0 +1,54 @@
+generated: '2026-10-02'
+method: probed
+source: pre-flight dossier (docs platform, portal detections) + CNAME chains and response headers of the hosts apis.yml names
+registry: all/0-working/vendors.yml
+areas_vocabulary:
+- documentation
+- developer-portal
+- api-gateway
+- cdn
+- hosting
+- sdk-generation
+- api-collections
+- status-page
+- support
+- community
+- identity
+- mcp-hosting
+vendors:
+- vendor: discord
+  name: Discord
+  area: community
+  host: discord.gg
+  evidence: https://discord.gg/AR6hVaDj
+  signal: url:discord.gg
+  confidence: high
+  kin_score:
+  - community_present
+- vendor: vercel
+  name: Vercel
+  area: hosting
+  host: www.farmdash.one
+  evidence: 'cname:'
+  signal: docs-platform
+  confidence: medium
+  kin_score: []
+reliance:
+  areas_vendor_served:
+  - community
+  - hosting
+  vendor_count: 2
+  areas_observed: 12
+  share_of_observable_areas: 0.167
+  note: areas where a third party was DETECTED serving this provider; an area absent here was either self-run or not observed, and this script
+    cannot tell those apart
+checked:
+- 'docs-platform: custom'
+- www.farmdash.one (StatusPage)
+- www.farmdash.one (Website)
+- www.farmdash.one (Documentation)
+- www.farmdash.one (DeveloperPortal)
+- www.farmdash.one (APIReference)
+- www.farmdash.one (GettingStarted)
+- discord.gg (Support)
+- www.farmdash.one (baseURL)

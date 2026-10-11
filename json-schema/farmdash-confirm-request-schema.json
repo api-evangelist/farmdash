@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-confirm-request-schema.json",
+  "title": "ConfirmRequest",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/ConfirmRequest",
+  "type": "object",
+  "required": [
+    "sessionId",
+    "agentAddress",
+    "feeEventId",
+    "txHash"
+  ],
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "description": "Owning FarmDash session id (the session that owns the fee event)."
+    },
+    "agentAddress": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Session owner / customer wallet address."
+    },
+    "sessionToken": {
+      "type": "string",
+      "description": "Optional in this raw-HTTP schema: the session credential may be sent in the request body or via the X-FarmDash-Session-Token header. It authenticates the FarmDash session only; it is not wallet signing or transaction authority, and FarmDash never broadcasts the swap on the caller's behalf."
+    },
+    "feeEventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "FarmDash fee-event id associated with the prepared swap."
+    },
+    "txHash": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{64}$",
+      "description": "On-chain transaction hash, which exists only after the customer-controlled wallet broadcast. A transaction hash alone is not confirmation: FarmDash verifies the canonical receipt/finality and the expected fee transfer before durable settlement is recorded."
+    }
+  }
+}

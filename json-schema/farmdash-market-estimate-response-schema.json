@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-market-estimate-response-schema.json",
+  "title": "MarketEstimateResponse",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/MarketEstimateResponse",
+  "type": "object",
+  "required": [
+    "quoteKind",
+    "executionReady",
+    "liquidityConfirmed",
+    "priceUnknown",
+    "feeTierBps",
+    "volumeUnknown",
+    "compatibleProviders",
+    "routeSupported",
+    "sources",
+    "confidence",
+    "observedAt",
+    "cached",
+    "stale",
+    "unsigned",
+    "broadcast_by_farmdash",
+    "execution_boundary",
+    "note"
+  ],
+  "properties": {
+    "quoteKind": {
+      "type": "string",
+      "enum": [
+        "market_estimate"
+      ]
+    },
+    "executionReady": {
+      "type": "boolean",
+      "enum": [
+        false
+      ]
+    },
+    "liquidityConfirmed": {
+      "type": "boolean",
+      "enum": [
+        false
+      ]
+    },
+    "providerAttribution": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "referencePriceUsd": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "estimatedInputUsd": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "estimatedOutputUsd": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "priceUnknown": {
+      "type": "boolean"
+    },
+    "feeTierBps": {
+      "type": "integer"
+    },
+    "volumeUnknown": {
+      "type": "boolean"
+    },
+    "compatibleProviders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "routeSupported": {
+      "type": "boolean"
+    },
+    "liquidityUsd": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "volume24hUsd": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "observedAt": {
+      "type": "string"
+    },
+    "cached": {
+      "type": "boolean"
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unsigned": {
+      "type": "boolean",
+      "enum": [
+        true
+      ]
+    },
+    "broadcast_by_farmdash": {
+      "type": "boolean",
+      "enum": [
+        false
+      ]
+    },
+    "simulation_required": {
+      "type": "boolean"
+    },
+    "simulate_url": {
+      "type": "string"
+    },
+    "execution_boundary": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "simulation_required": {
+          "type": "boolean"
+        },
+        "local_signature_required": {
+          "type": "boolean"
+        },
+        "farmdash_broadcasts_transaction": {
+          "type": "boolean"
+        }
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  }
+}

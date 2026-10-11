@@ -1,0 +1,496 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-firm-quote-response-schema.json",
+  "title": "FirmQuoteResponse",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/FirmQuoteResponse",
+  "type": "object",
+  "required": [
+    "intentId",
+    "quoteKind",
+    "reused",
+    "selectedProvider",
+    "firmQuote",
+    "expiresAt",
+    "executionReady",
+    "simulationRequirements",
+    "attempts",
+    "alternateUsed",
+    "unsigned",
+    "broadcast_by_farmdash",
+    "executionAlpha",
+    "riskReport",
+    "execution_boundary",
+    "note"
+  ],
+  "properties": {
+    "intentId": {
+      "type": "string"
+    },
+    "quoteKind": {
+      "type": "string",
+      "enum": [
+        "firm_quote"
+      ]
+    },
+    "reused": {
+      "type": "boolean"
+    },
+    "marketBenchmark": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "selectedProvider": {
+      "$ref": "#/$defs/SupportedProtocol"
+    },
+    "firmQuote": {
+      "type": "object"
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "executionReady": {
+      "type": "boolean"
+    },
+    "approval": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "simulationRequirements": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "simulate_url": {
+          "type": "string"
+        },
+        "intent_id": {
+          "type": "string",
+          "description": "fd_intent_* execution-simulation identity. Pass this value to /v1/simulate."
+        },
+        "valid_for_execution": {
+          "type": "boolean"
+        },
+        "plan": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "signatures": {
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "alternateUsed": {
+      "type": "boolean"
+    },
+    "unsigned": {
+      "type": "boolean",
+      "enum": [
+        true
+      ]
+    },
+    "broadcast_by_farmdash": {
+      "type": "boolean",
+      "enum": [
+        false
+      ]
+    },
+    "executionAlpha": {
+      "$ref": "#/$defs/ExecutionAlphaReport"
+    },
+    "riskReport": {
+      "$ref": "#/$defs/SwapRiskReport"
+    },
+    "execution_boundary": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "simulation_required": {
+          "type": "boolean"
+        },
+        "local_signature_required": {
+          "type": "boolean"
+        },
+        "farmdash_broadcasts_transaction": {
+          "type": "boolean"
+        }
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "AllowanceStatus": {
+      "type": "object",
+      "properties": {
+        "spender": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allowance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requiredAmount": {
+          "type": "string"
+        },
+        "approvalNeeded": {
+          "type": "boolean"
+        },
+        "overApproved": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "onchain",
+            "quote_fallback",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "ExecutionAlphaReport": {
+      "type": "object",
+      "properties": {
+        "selectedProtocol": {
+          "$ref": "#/$defs/SupportedProtocol"
+        },
+        "routeReason": {
+          "type": "string"
+        },
+        "mevProtection": {
+          "type": "object",
+          "properties": {
+            "safetyMode": {
+              "$ref": "#/$defs/SwapSafetyMode"
+            },
+            "actualSlippageBps": {
+              "type": "integer"
+            },
+            "maxRecommendedSlippageBps": {
+              "type": "integer"
+            }
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RouteCandidate"
+          }
+        },
+        "quoteDecay": {
+          "$ref": "#/$defs/QuoteDecayMetrics"
+        },
+        "netEdge": {
+          "$ref": "#/$defs/NetEdgeAnalysis"
+        }
+      }
+    },
+    "HealthCheck": {
+      "type": "object",
+      "properties": {
+        "healthFactor": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "liquidationBufferPct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "alertLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "warning",
+            "critical"
+          ]
+        },
+        "shouldHalt": {
+          "type": "boolean"
+        }
+      }
+    },
+    "NetEdgeAnalysis": {
+      "type": "object",
+      "properties": {
+        "expectedUpsideUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "protocolFeeUsd": {
+          "type": "number"
+        },
+        "gasUsd": {
+          "type": "number"
+        },
+        "bridgeFeeUsd": {
+          "type": "number"
+        },
+        "riskBufferUsd": {
+          "type": "number"
+        },
+        "totalCostUsd": {
+          "type": "number"
+        },
+        "netEdgeUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "positive": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "enforced": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PegCheck": {
+      "type": "object",
+      "properties": {
+        "tokenAddress": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string",
+          "enum": [
+            "USD",
+            "ETH"
+          ]
+        },
+        "priceUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "referencePriceUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deviationPct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "alert": {
+          "type": "boolean"
+        }
+      }
+    },
+    "QuoteDecayMetrics": {
+      "type": "object",
+      "properties": {
+        "previousObservedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "quoteAgeMs": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "outputDecayBps": {
+          "type": "number"
+        },
+        "gasIncreaseBps": {
+          "type": "number"
+        },
+        "severity": {
+          "$ref": "#/$defs/QuoteDecaySeverity"
+        }
+      }
+    },
+    "QuoteDecaySeverity": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "RiskFlag": {
+      "type": "object",
+      "required": [
+        "code",
+        "category",
+        "severity",
+        "title",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "approval",
+            "bridge",
+            "contract",
+            "token",
+            "health",
+            "execution"
+          ]
+        },
+        "severity": {
+          "$ref": "#/$defs/RiskSeverity"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "RiskSeverity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "RouteCandidate": {
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "$ref": "#/$defs/SupportedProtocol"
+        },
+        "estimatedOutput": {
+          "type": "string"
+        },
+        "feeAmountUsd": {
+          "type": "number"
+        },
+        "gasEstimateUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bridgeFeeUsd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "routeRiskScore": {
+          "type": "number"
+        },
+        "selected": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SupportedProtocol": {
+      "type": "string",
+      "enum": [
+        "lifi",
+        "relay"
+      ],
+      "description": "Swap quote provider. Automatic routing compares all healthy compatible providers (LI.FI, Relay; 0x paused until reinstated); force one with ?protocol= (deterministic, never silent fallback)."
+    },
+    "SwapRiskReport": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RiskFlag"
+          }
+        },
+        "approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AllowanceStatus"
+            }
+          ],
+          "nullable": true
+        },
+        "pegChecks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PegCheck"
+          }
+        },
+        "health": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/HealthCheck"
+            }
+          ],
+          "nullable": true
+        },
+        "shouldHalt": {
+          "type": "boolean"
+        },
+        "haltReasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SwapSafetyMode": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "balanced"
+      ]
+    }
+  }
+}

@@ -1,5 +1,7 @@
 generated: '2026-08-26'
 method: probed
+description: "FarmDash sandbox information"
+docs: "https://www.farmdash.one/agents/openapi.yaml"
 source: https://www.farmdash.one/api/v1/agent/status
 secondary_sources:
 - https://www.farmdash.one/agents/openapi.yaml

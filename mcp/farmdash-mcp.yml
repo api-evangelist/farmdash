@@ -56,7 +56,7 @@ env:
   FARMDASH_BASE_URL:
     required: false
     default: https://www.farmdash.one/api
-tools_count: 84
+tools_count: 90
 resources_count: 0
 tools_have_input_schemas: true
 tool_categories:

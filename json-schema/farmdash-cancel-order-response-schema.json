@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-cancel-order-response-schema.json",
+  "title": "CancelOrderResponse",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/CancelOrderResponse",
+  "type": "object",
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected",
+        "partially_rejected",
+        "unknown"
+      ],
+      "description": "`accepted` is application acknowledgement, not final venue cancellation."
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "response": {
+          "type": "object"
+        }
+      }
+    },
+    "cancellation": {
+      "type": "object",
+      "properties": {
+        "accountAddress": {
+          "type": "string"
+        },
+        "coin": {
+          "type": "string"
+        },
+        "orderIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "count": {
+          "type": "integer"
+        },
+        "perOrder": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "integer"
+              },
+              "status": {}
+            }
+          }
+        }
+      }
+    },
+    "reconciliation": {
+      "type": "object",
+      "description": "Required handoff for final venue cancellation evidence.",
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "enum": [
+            true
+          ]
+        },
+        "endpoint": {
+          "type": "string",
+          "enum": [
+            "/api/v1/agent/futures/reconcile-order"
+          ]
+        },
+        "orderIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "intentHash": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "integer"
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "error": {
+      "type": "string"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DustStormWarning"
+      }
+    }
+  },
+  "$defs": {
+    "DustStormWarning": {
+      "type": "object",
+      "required": [
+        "kind",
+        "message"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "dust_storm"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

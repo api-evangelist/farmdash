@@ -1,0 +1,439 @@
+generated: '2026-10-02'
+method: derived
+generator: derive-vocabulary.py
+source:
+- openapi/farmdash-account-api-openapi.yml
+- openapi/farmdash-autopilot-api-openapi.yml
+- openapi/farmdash-delegation-api-openapi.yml
+- openapi/farmdash-execution-api-openapi.yml
+- openapi/farmdash-history-api-openapi.yml
+vocabulary:
+  name: FarmDash Agent Hub Domain Vocabulary
+  description: 'Terms declared by FarmDash Agent Hub''s own API contract: its resource groups, objects and enumerations, with the contract''s
+    definitions. Derived, not authored.'
+  version: '2026-10-02'
+  terms:
+  - term: Account
+    definition: Hyperliquid account state and risk management
+    tags:
+    - Resource Group
+    source: openapi/farmdash-account-api-openapi.yml
+  - term: Autopilot
+    definition: Policy-bounded loop configuration and execution
+    tags:
+    - Resource Group
+    source: openapi/farmdash-autopilot-api-openapi.yml
+  - term: Delegation
+    definition: Hyperliquid wallet delegation
+    tags:
+    - Resource Group
+    source: openapi/farmdash-delegation-api-openapi.yml
+  - term: Execution
+    definition: Futures order execution and cancellation
+    tags:
+    - Resource Group
+    source: openapi/farmdash-execution-api-openapi.yml
+  - term: History
+    definition: Fee event history and revenue metrics
+    tags:
+    - Resource Group
+    source: openapi/farmdash-history-api-openapi.yml
+  - term: Intelligence
+    definition: Trail Heat protocol data and chain analytics
+    tags:
+    - Resource Group
+    source: openapi/farmdash-intelligence-api-openapi.yml
+  - term: Swap
+    definition: Token swap quotes, execution, and confirmation
+    tags:
+    - Resource Group
+    source: openapi/farmdash-openapi.yaml
+  - term: Research
+    definition: Futures market research — funding rates, technical indicators
+    tags:
+    - Resource Group
+    source: openapi/farmdash-openapi.yaml
+  - term: Strategy
+    definition: Strategy analysis and position sizing
+    tags:
+    - Resource Group
+    source: openapi/farmdash-openapi.yaml
+  - term: Session
+    definition: Bounded session management
+    tags:
+    - Resource Group
+    source: openapi/farmdash-openapi.yaml
+  - term: Risk
+    definition: Pre-trade risk analysis, alerts, and execution guardrails
+    tags:
+    - Resource Group
+    source: openapi/farmdash-openapi.yaml
+  - term: AccountStateResponse
+    definition: 'Object declared by the contract with fields: ok, account, positions, risk, guardrails, timestamp, warnings.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/AccountStateResponse
+  - term: PaymentRequiredError
+    definition: 'Object declared by the contract with fields: ok, error, code, message, retryable, direct_upgrade_url, rate_limit, developer_sandbox,
+      payment_required.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/PaymentRequiredError
+  - term: AccountSummary
+    definition: 'Object declared by the contract with fields: equity, totalNotionalPosition, marginUsed, availableMargin, aggregateLeverage.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/AccountSummary
+  - term: DustStormWarning
+    definition: 'Object declared by the contract with fields: kind, message.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/DustStormWarning
+  - term: FuturesPosition
+    definition: 'Object declared by the contract with fields: coin, size, side, entryPrice, markPrice, unrealizedPnl, returnOnEquity, leverage,
+      leverageType, liquidationPrice, marginUsed.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/FuturesPosition
+  - term: RiskState
+    definition: 'Object declared by the contract with fields: dailyPnl, dailyPnlPct, weeklyPnl, realizedDailyPnl, realizedWeeklyPnl, unrealizedPnl,
+      pnlSource, pnlAsOf, pnlMethodology, drawdown, peakEquity, isTradingHalted. (3 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/RiskState
+  - term: ErrorResponse
+    definition: 'Object declared by the contract with fields: ok, error, code, message, retryable, request_id, details.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/ErrorResponse
+  - term: Guardrails
+    definition: 'Object declared by the contract with fields: maxLeverage, maxRiskPerTrade, maxPositions, dailyLossLimit, weeklyLossLimit, maxDrawdown.'
+    tags:
+    - Object
+    source: openapi/farmdash-account-api-openapi.yml#/components/schemas/Guardrails
+  - term: TrackedPosition
+    definition: 'Object declared by the contract with fields: coin, side, entryPrice, size, leverage, stopLoss, takeProfit, openedAt, strategy,
+      unrealizedPnl.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/TrackedPosition
+  - term: RebalanceContext
+    definition: 'Object declared by the contract with fields: expectedUpsideUsd, bridgeFeeUsd, gasUsd, riskBufferUsd, currentChain, targetChain.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/RebalanceContext
+  - term: AutopilotAction
+    definition: 'Object declared by the contract with fields: type, asset, reason, details, priority.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/AutopilotAction
+  - term: RiskSentinelConfig
+    definition: 'Object declared by the contract with fields: minHealthFactor, minLiquidationBufferPct, maxStablecoinDepegPct.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/RiskSentinelConfig
+  - term: AgentSession
+    definition: 'Object declared by the contract with fields: id, agentAddress, status, delegation, autopilot, activePositions, sessionPnl, peakEquity,
+      tradeCount, lastHeartbeat, createdAt, expiresAt. (1 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/AgentSession
+  - term: SwapSafetyMode
+    definition: 'Enumeration declared by the contract with values: strict, balanced.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/SwapSafetyMode
+  - term: AutopilotConfig
+    definition: 'Object declared by the contract with fields: strategies, assets, maxEquityPct, rebalanceIntervalMin, autoCompound, riskPreference,
+      riskSentinel, executionAlpha.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/AutopilotConfig
+  - term: AgentMeta
+    definition: 'Object declared by the contract with fields: name, version, framework, capabilities.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/AgentMeta
+  - term: AutopilotRiskStatus
+    definition: 'Object declared by the contract with fields: dailyPnlPct, weeklyPnlPct, drawdownPct, openPositions, aggregateLeverage, healthFactor,
+      liquidationBufferPct, stablecoinDepegPct, quoteDecayBps, gasPerActionUsd, alerts, isTradingAllowed. (1 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/AutopilotRiskStatus
+  - term: DelegationRecord
+    definition: 'Object declared by the contract with fields: ownerAddress, apiWalletAddress, verified, verifiedAt.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/DelegationRecord
+  - term: ExecutionAlphaConfig
+    definition: 'Object declared by the contract with fields: mevSafetyMode, maxQuoteDecayBps, maxGasUsdPerAction, requirePositiveNetEdge, minNetEdgeUsd.'
+    tags:
+    - Object
+    source: openapi/farmdash-autopilot-api-openapi.yml#/components/schemas/ExecutionAlphaConfig
+  - term: DelegationResponse
+    definition: 'Object declared by the contract with fields: ok, delegation, message, warning.'
+    tags:
+    - Object
+    source: openapi/farmdash-delegation-api-openapi.yml#/components/schemas/DelegationResponse
+  - term: CancelOrderResponse
+    definition: 'Object declared by the contract with fields: ok, result, cancelled, intentHash, expiresAt, timestamp, error, warnings.'
+    tags:
+    - Object
+    source: openapi/farmdash-execution-api-openapi.yml#/components/schemas/CancelOrderResponse
+  - term: CancelOrderRequest
+    definition: 'Object declared by the contract with fields: agentAddress, coin, orderIds, signedAction, nonce, expiresAt, intentHash, signature.'
+    tags:
+    - Object
+    source: openapi/farmdash-execution-api-openapi.yml#/components/schemas/CancelOrderRequest
+  - term: EIP712Signature
+    definition: 'Object declared by the contract with fields: r, s, v.'
+    tags:
+    - Object
+    source: openapi/farmdash-execution-api-openapi.yml#/components/schemas/EIP712Signature
+  - term: ExecuteOrderResponse
+    definition: 'Object declared by the contract with fields: ok, state, result, order, intentHash, expiresAt, timestamp, error, warnings.'
+    tags:
+    - Object
+    source: openapi/farmdash-execution-api-openapi.yml#/components/schemas/ExecuteOrderResponse
+  - term: ExecuteOrderRequest
+    definition: 'Object declared by the contract with fields: agentAddress, coin, isBuy, size, price, orderType, reduceOnly, leverage, signedAction,
+      nonce, expiresAt, intentHash. (1 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-execution-api-openapi.yml#/components/schemas/ExecuteOrderRequest
+  - term: HistoryResponse
+    definition: 'Object declared by the contract with fields: events, total, limit, offset.'
+    tags:
+    - Object
+    source: openapi/farmdash-history-api-openapi.yml#/components/schemas/HistoryResponse
+  - term: RevenueMetrics
+    definition: 'Object declared by the contract with fields: totalFeeUSD, totalVolumeUSD, totalSwaps, activeAgents.'
+    tags:
+    - Object
+    source: openapi/farmdash-history-api-openapi.yml#/components/schemas/RevenueMetrics
+  - term: FeeEvent
+    definition: 'Object declared by the contract with fields: id, created_at, protocol, from_token, to_token, volume_usd, fee_bps, fee_usd, agent_address,
+      tx_hash, settlement_status, chain_id.'
+    tags:
+    - Object
+    source: openapi/farmdash-history-api-openapi.yml#/components/schemas/FeeEvent
+  - term: SupportedProtocol
+    definition: 'Enumeration declared by the contract with values: lifi, zerox, x402, okx.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-history-api-openapi.yml#/components/schemas/SupportedProtocol
+  - term: ProtocolItem
+    definition: 'Object declared by the contract with fields: protocol_name, discovery_heuristic_score, discovery_methodology, sybil_risk, tvl,
+      category, status, chains, recommended_agent_deploy_link.'
+    tags:
+    - Object
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/ProtocolItem
+  - term: ProtocolsResponse
+    definition: 'Object declared by the contract with fields: tier, count, data, status, message, direct_upgrade_url, total_protocols_available.'
+    tags:
+    - Object
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/ProtocolsResponse
+  - term: ChainBreakdownSummary
+    definition: 'Object declared by the contract with fields: total_chains, total_protocols, dominant_chain, dominant_chain_pct.'
+    tags:
+    - Object
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/ChainBreakdownSummary
+  - term: ChainBreakdownResponse
+    definition: 'Object declared by the contract with fields: tier, status, message, direct_upgrade_url, data.'
+    tags:
+    - Object
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/ChainBreakdownResponse
+  - term: ChainBreakdownItem
+    definition: 'Object declared by the contract with fields: chain, protocol_count, pct_of_total, confirmed_airdrops, points_programs, categories.'
+    tags:
+    - Object
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/ChainBreakdownItem
+  - term: Tier
+    definition: 'Enumeration declared by the contract with values: scout, pioneer, syndicate.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-intelligence-api-openapi.yml#/components/schemas/Tier
+  - term: RiskSeverity
+    definition: 'Enumeration declared by the contract with values: low, medium, high, critical.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-openapi.yaml#/components/schemas/RiskSeverity
+  - term: QuoteDecaySeverity
+    definition: 'Enumeration declared by the contract with values: none, low, medium, high.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-openapi.yaml#/components/schemas/QuoteDecaySeverity
+  - term: SwapTxData
+    definition: 'Object declared by the contract with fields: to, data, value, chainId.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapTxData
+  - term: SwapSimulationRequest
+    definition: 'Object declared by the contract with fields: intent_id, wallet_address.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapSimulationRequest
+  - term: SwapSimulationResponse
+    definition: 'Object declared by the contract with fields: ok, simulation_id, intent_id, success, gas_used, gas_cost_usd, output_amount, price_impact_pct,
+      mev_risk, revert_reason, valid_until, wallet_address. (6 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapSimulationResponse
+  - term: SwapRequest
+    definition: 'Object declared by the contract with fields: fromChainId, toChainId, fromToken, toToken, fromAmount, agentAddress, toAddress,
+      slippage, protocol, volumeHintUSD, expectedUpsideUsd, riskBufferUsd. (8 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapRequest
+  - term: AllowanceStatus
+    definition: 'Object declared by the contract with fields: spender, allowance, requiredAmount, approvalNeeded, overApproved, source.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/AllowanceStatus
+  - term: RiskFlag
+    definition: 'Object declared by the contract with fields: code, category, severity, title, message, metadata.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/RiskFlag
+  - term: PegCheck
+    definition: 'Object declared by the contract with fields: tokenAddress, symbol, reference, priceUsd, referencePriceUsd, deviationPct, alert.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/PegCheck
+  - term: HealthCheck
+    definition: 'Object declared by the contract with fields: healthFactor, liquidationBufferPct, alertLevel, shouldHalt.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/HealthCheck
+  - term: NetEdgeAnalysis
+    definition: 'Object declared by the contract with fields: expectedUpsideUsd, protocolFeeUsd, gasUsd, bridgeFeeUsd, riskBufferUsd, totalCostUsd,
+      netEdgeUsd, positive, enforced.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/NetEdgeAnalysis
+  - term: QuoteDecayMetrics
+    definition: 'Object declared by the contract with fields: previousObservedAt, quoteAgeMs, outputDecayBps, gasIncreaseBps, severity.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/QuoteDecayMetrics
+  - term: RouteCandidate
+    definition: 'Object declared by the contract with fields: protocol, estimatedOutput, feeAmountUsd, gasEstimateUsd, bridgeFeeUsd, routeRiskScore,
+      selected.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/RouteCandidate
+  - term: ExecutionAlphaReport
+    definition: 'Object declared by the contract with fields: selectedProtocol, routeReason, mevProtection, candidates, quoteDecay, netEdge.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/ExecutionAlphaReport
+  - term: SwapRiskReport
+    definition: 'Object declared by the contract with fields: flags, approval, pegChecks, health, shouldHalt, haltReasons.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapRiskReport
+  - term: QuoteResponse
+    definition: 'Object declared by the contract with fields: protocol, estimatedOutput, feeBps, mode, unsigned, broadcast_by_farmdash, feeAmountUSD,
+      gasEstimate, txData, expiresAt, simulation_required, simulation_available. (9 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/QuoteResponse
+  - term: MarketEstimateResponse
+    definition: 'Object declared by the contract with fields: quoteKind, executionReady, liquidityConfirmed, providerAttribution, referencePriceUsd,
+      estimatedInputUsd, estimatedOutputUsd, priceUnknown, feeTierBps, volumeUnknown, compatibleProviders, routeSupported. (15 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/MarketEstimateResponse
+  - term: FirmQuoteResponse
+    definition: 'Object declared by the contract with fields: intentId, quoteKind, reused, marketBenchmark, selectedProvider, firmQuote, expiresAt,
+      executionReady, approval, simulationRequirements, attempts, alternateUsed. (6 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FirmQuoteResponse
+  - term: SwapResult
+    definition: 'Object declared by the contract with fields: protocol, estimatedOutput, feeBps, feeAmountUSD, feeEventId, gasEstimate, txData,
+      expiresAt, allowanceTarget, gasEstimateUsd, bridgeFeeUsd, simulation. (3 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapResult
+  - term: SwapHaltResponse
+    definition: 'Object declared by the contract with fields: error, code, selectedProtocol, executionAlpha, riskReport.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/SwapHaltResponse
+  - term: RiskSentinelRequest
+    definition: Provide either manual health/net-edge inputs or a full swap-shaped request for route-aware analysis.
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/RiskSentinelRequest
+  - term: RiskSentinelResponse
+    definition: 'Object declared by the contract with fields: ok, mode, selectedProtocol, executionAlpha, riskReport, quotePreview, health, netEdge,
+      flags, shouldHalt.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/RiskSentinelResponse
+  - term: ConfirmRequest
+    definition: 'Object declared by the contract with fields: sessionId, agentAddress, sessionToken, feeEventId, txHash.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/ConfirmRequest
+  - term: ConfirmResponse
+    definition: 'Object declared by the contract with fields: ok, feeEventId, settlementStatus, idempotent.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/ConfirmResponse
+  - term: LeaderboardResponse
+    definition: 'Object declared by the contract with fields: ok, source, windowDays, entries.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/LeaderboardResponse
+  - term: ReputationResponse
+    definition: 'Object declared by the contract with fields: ok, reputation, scout_bonus.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/ReputationResponse
+  - term: FundingAnalysis
+    definition: 'Object declared by the contract with fields: coin, fundingRate, annualizedRate, predictedRate, crossVenueDelta, premium, openInterest,
+      isArbOpportunity, arbDirection.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FundingAnalysis
+  - term: TechnicalIndicators
+    definition: 'Object declared by the contract with fields: ema8, ema34, emaCross, rsi, macd, macdSignal, macdHistogram, macdCross, adx, atr,
+      bbUpper, bbMiddle. (4 more)'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/TechnicalIndicators
+  - term: ScanFundingResponse
+    definition: 'Object declared by the contract with fields: ok, tier, arbOpportunities, highFunding, totalScanned, upgradeMessage, timestamp,
+      warnings.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/ScanFundingResponse
+  - term: MarketConditionsResponse
+    definition: 'Object declared by the contract with fields: ok, coin, indicators, strategyHint, timestamp, warnings.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/MarketConditionsResponse
+  - term: FuturesMarketRegime
+    definition: 'Enumeration declared by the contract with values: trending, ranging, high_volatility, low_liquidity.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FuturesMarketRegime
+  - term: FuturesTradeDirection
+    definition: 'Enumeration declared by the contract with values: long, short, neutral.'
+    tags:
+    - Enumeration
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FuturesTradeDirection
+  - term: FuturesStrategyObject
+    definition: 'Object declared by the contract with fields: id, type, market, direction, regime, triggerConditions, entryLogic, exitLogic, riskModel,
+      leverageModel, fallbackLogic, telemetryTracking.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FuturesStrategyObject
+  - term: FuturesAdaptiveRisk
+    definition: 'Object declared by the contract with fields: baseRiskPercent, appliedRiskPercent, confidenceMultiplier, volatilityMultiplier,
+      drawdownMultiplier, portfolioMultiplier, finalRiskMultiplier.'
+    tags:
+    - Object
+    source: openapi/farmdash-openapi.yaml#/components/schemas/FuturesAdaptiveRisk

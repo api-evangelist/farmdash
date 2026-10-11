@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-execute-order-response-schema.json",
+  "title": "ExecuteOrderResponse",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/ExecuteOrderResponse",
+  "type": "object",
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "fully_filled",
+        "partially_filled",
+        "zero_fill",
+        "resting_unfilled",
+        "rejected",
+        "unknown"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "response": {
+          "type": "object"
+        }
+      }
+    },
+    "order": {
+      "type": "object",
+      "properties": {
+        "coin": {
+          "type": "string"
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "buy",
+            "sell"
+          ]
+        },
+        "size": {
+          "type": "string"
+        },
+        "price": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "reduceOnly": {
+          "type": "boolean"
+        },
+        "leverage": {
+          "type": "number"
+        },
+        "leverageStatus": {
+          "type": "string",
+          "enum": [
+            "risk_check_metadata_only"
+          ]
+        },
+        "builderFee": {
+          "type": "object",
+          "properties": {
+            "recipient": {
+              "type": "string"
+            },
+            "venueUnitsTenthsBps": {
+              "type": "number"
+            },
+            "basisPoints": {
+              "type": "number"
+            },
+            "percent": {
+              "type": "number"
+            },
+            "appliesTo": {
+              "type": "string",
+              "enum": [
+                "filled_notional_only"
+              ]
+            },
+            "signedInsideOrderAction": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "intentHash": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "integer"
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "error": {
+      "type": "string"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DustStormWarning"
+      }
+    }
+  },
+  "$defs": {
+    "DustStormWarning": {
+      "type": "object",
+      "required": [
+        "kind",
+        "message"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "dust_storm"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

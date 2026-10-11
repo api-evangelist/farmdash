@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/farmdash/main/json-schema/farmdash-swap-request-schema.json",
+  "title": "SwapRequest",
+  "x-generated": "2026-10-02",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/farmdash-openapi.yaml#/components/schemas/SwapRequest",
+  "type": "object",
+  "required": [
+    "fromChainId",
+    "toChainId",
+    "fromToken",
+    "toToken",
+    "fromAmount",
+    "agentAddress",
+    "toAddress",
+    "simulationId",
+    "nonce",
+    "signature"
+  ],
+  "properties": {
+    "fromChainId": {
+      "type": "integer",
+      "enum": [
+        1,
+        10,
+        137,
+        8453,
+        42161,
+        59144
+      ]
+    },
+    "toChainId": {
+      "type": "integer",
+      "enum": [
+        1,
+        10,
+        137,
+        8453,
+        42161,
+        59144
+      ]
+    },
+    "fromToken": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "toToken": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "fromAmount": {
+      "type": "string",
+      "pattern": "^\\d+$",
+      "description": "Amount in wei"
+    },
+    "agentAddress": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Agent wallet address (signer)"
+    },
+    "toAddress": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Destination wallet for swapped tokens"
+    },
+    "slippage": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 5,
+      "default": 0.5,
+      "description": "Slippage tolerance in percent (capped at 5%)"
+    },
+    "protocol": {
+      "type": "string",
+      "enum": [
+        "lifi",
+        "relay"
+      ]
+    },
+    "volumeHintUSD": {
+      "type": "number",
+      "description": "Advisory telemetry only — never determines the fee tier. Fee BPS uses server-oracle-derived input volume exclusively (50 bps under $10k, 45 bps at $10k+, 40 bps at $100k+, 30 bps at $1M+ combined routing target); unknown volume pays the default tier."
+    },
+    "expectedUpsideUsd": {
+      "type": "number",
+      "description": "Optional upside estimate in USD for positive-net-edge checks"
+    },
+    "riskBufferUsd": {
+      "type": "number",
+      "description": "Optional extra execution-risk buffer in USD"
+    },
+    "healthFactor": {
+      "type": "number",
+      "description": "Optional lending health factor supplied by the caller"
+    },
+    "liquidationBufferPct": {
+      "type": "number",
+      "description": "Optional liquidation-buffer percentage supplied by the caller"
+    },
+    "walletAddress": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Optional wallet address used for on-chain approval checks"
+    },
+    "safetyMode": {
+      "$ref": "#/$defs/SwapSafetyMode",
+      "description": "`strict` halts on severe quote decay, `balanced` downgrades that condition to a warning"
+    },
+    "simulationId": {
+      "type": "string",
+      "description": "Fresh successful simulation_id from POST /v1/simulate"
+    },
+    "intentId": {
+      "type": "string",
+      "description": "Optional qi_* quote-cache/idempotency identity; must match the simulation when supplied. Do not pass this value to /v1/simulate."
+    },
+    "nonce": {
+      "type": "string",
+      "description": "Current timestamp in milliseconds (60s window)"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{130}$",
+      "description": "EIP-191 personal_sign of the v1 versioned payload"
+    }
+  },
+  "$defs": {
+    "SwapSafetyMode": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "balanced"
+      ]
+    }
+  }
+}

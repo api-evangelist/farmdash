@@ -1,0 +1,1622 @@
+{
+  "@context": {
+    "@vocab": "https://farmdash.one/schema#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "farmdash": "https://farmdash.one/schema#",
+    "AccountStateResponse": "farmdash:AccountStateResponse",
+    "ok": {
+      "@id": "farmdash:ok",
+      "@type": "xsd:boolean"
+    },
+    "account": {
+      "@id": "farmdash:account",
+      "@type": "@id"
+    },
+    "positions": {
+      "@id": "farmdash:positions",
+      "@container": "@list"
+    },
+    "risk": {
+      "@id": "farmdash:risk",
+      "@type": "@id"
+    },
+    "guardrails": {
+      "@id": "farmdash:guardrails",
+      "@type": "@id"
+    },
+    "timestamp": {
+      "@id": "farmdash:timestamp",
+      "@type": "xsd:integer"
+    },
+    "warnings": {
+      "@id": "farmdash:warnings",
+      "@container": "@list"
+    },
+    "PaymentRequiredError": "farmdash:PaymentRequiredError",
+    "error": {
+      "@id": "farmdash:error",
+      "@type": "xsd:string"
+    },
+    "code": {
+      "@id": "farmdash:code",
+      "@type": "xsd:string"
+    },
+    "message": {
+      "@id": "farmdash:message",
+      "@type": "xsd:string"
+    },
+    "retryable": {
+      "@id": "farmdash:retryable",
+      "@type": "xsd:boolean"
+    },
+    "direct_upgrade_url": {
+      "@id": "farmdash:direct_upgrade_url",
+      "@type": "@id"
+    },
+    "rate_limit": {
+      "@id": "farmdash:rate_limit"
+    },
+    "developer_sandbox": {
+      "@id": "farmdash:developer_sandbox"
+    },
+    "payment_required": {
+      "@id": "farmdash:payment_required"
+    },
+    "AccountSummary": "farmdash:AccountSummary",
+    "equity": {
+      "@id": "farmdash:equity",
+      "@type": "xsd:string"
+    },
+    "totalNotionalPosition": {
+      "@id": "farmdash:totalNotionalPosition",
+      "@type": "xsd:string"
+    },
+    "marginUsed": {
+      "@id": "farmdash:marginUsed",
+      "@type": "xsd:string"
+    },
+    "availableMargin": {
+      "@id": "farmdash:availableMargin",
+      "@type": "xsd:string"
+    },
+    "aggregateLeverage": {
+      "@id": "farmdash:aggregateLeverage",
+      "@type": "xsd:string"
+    },
+    "DustStormWarning": "farmdash:DustStormWarning",
+    "kind": {
+      "@id": "farmdash:kind",
+      "@type": "xsd:string"
+    },
+    "FuturesPosition": "farmdash:FuturesPosition",
+    "coin": {
+      "@id": "farmdash:coin",
+      "@type": "xsd:string"
+    },
+    "size": {
+      "@id": "farmdash:size",
+      "@type": "xsd:decimal"
+    },
+    "side": {
+      "@id": "farmdash:side",
+      "@type": "xsd:string"
+    },
+    "entryPrice": {
+      "@id": "farmdash:entryPrice",
+      "@type": "xsd:decimal"
+    },
+    "markPrice": {
+      "@id": "farmdash:markPrice",
+      "@type": "xsd:decimal"
+    },
+    "unrealizedPnl": {
+      "@id": "farmdash:unrealizedPnl",
+      "@type": "xsd:decimal"
+    },
+    "returnOnEquity": {
+      "@id": "farmdash:returnOnEquity",
+      "@type": "xsd:decimal"
+    },
+    "leverage": {
+      "@id": "farmdash:leverage",
+      "@type": "xsd:decimal"
+    },
+    "leverageType": {
+      "@id": "farmdash:leverageType",
+      "@type": "xsd:string"
+    },
+    "liquidationPrice": {
+      "@id": "farmdash:liquidationPrice",
+      "@type": "xsd:decimal"
+    },
+    "RiskState": "farmdash:RiskState",
+    "dailyPnl": {
+      "@id": "farmdash:dailyPnl",
+      "@type": "xsd:string"
+    },
+    "dailyPnlPct": {
+      "@id": "farmdash:dailyPnlPct",
+      "@type": "xsd:string"
+    },
+    "weeklyPnl": {
+      "@id": "farmdash:weeklyPnl",
+      "@type": "xsd:string"
+    },
+    "realizedDailyPnl": {
+      "@id": "farmdash:realizedDailyPnl",
+      "@type": "xsd:string"
+    },
+    "realizedWeeklyPnl": {
+      "@id": "farmdash:realizedWeeklyPnl",
+      "@type": "xsd:string"
+    },
+    "pnlSource": {
+      "@id": "farmdash:pnlSource",
+      "@type": "xsd:string"
+    },
+    "pnlAsOf": {
+      "@id": "farmdash:pnlAsOf",
+      "@type": "xsd:integer"
+    },
+    "pnlMethodology": {
+      "@id": "farmdash:pnlMethodology",
+      "@type": "xsd:string"
+    },
+    "drawdown": {
+      "@id": "farmdash:drawdown",
+      "@type": "xsd:string"
+    },
+    "peakEquity": {
+      "@id": "farmdash:peakEquity",
+      "@type": "xsd:string"
+    },
+    "isTradingHalted": {
+      "@id": "farmdash:isTradingHalted",
+      "@type": "xsd:boolean"
+    },
+    "haltReason": {
+      "@id": "farmdash:haltReason",
+      "@type": "xsd:string"
+    },
+    "isReducedSize": {
+      "@id": "farmdash:isReducedSize",
+      "@type": "xsd:boolean"
+    },
+    "openPositionCount": {
+      "@id": "farmdash:openPositionCount",
+      "@type": "xsd:integer"
+    },
+    "ErrorResponse": "farmdash:ErrorResponse",
+    "request_id": {
+      "@id": "farmdash:request_id",
+      "@type": "xsd:string"
+    },
+    "details": {
+      "@id": "farmdash:details"
+    },
+    "Guardrails": "farmdash:Guardrails",
+    "maxLeverage": {
+      "@id": "farmdash:maxLeverage",
+      "@type": "xsd:integer"
+    },
+    "maxRiskPerTrade": {
+      "@id": "farmdash:maxRiskPerTrade",
+      "@type": "xsd:string"
+    },
+    "maxPositions": {
+      "@id": "farmdash:maxPositions",
+      "@type": "xsd:integer"
+    },
+    "dailyLossLimit": {
+      "@id": "farmdash:dailyLossLimit",
+      "@type": "xsd:string"
+    },
+    "weeklyLossLimit": {
+      "@id": "farmdash:weeklyLossLimit",
+      "@type": "xsd:string"
+    },
+    "maxDrawdown": {
+      "@id": "farmdash:maxDrawdown",
+      "@type": "xsd:string"
+    },
+    "TrackedPosition": "farmdash:TrackedPosition",
+    "stopLoss": {
+      "@id": "farmdash:stopLoss",
+      "@type": "xsd:decimal"
+    },
+    "takeProfit": {
+      "@id": "farmdash:takeProfit",
+      "@type": "xsd:decimal"
+    },
+    "openedAt": {
+      "@id": "farmdash:openedAt",
+      "@type": "xsd:dateTime"
+    },
+    "strategy": {
+      "@id": "farmdash:strategy",
+      "@type": "xsd:string"
+    },
+    "RebalanceContext": "farmdash:RebalanceContext",
+    "expectedUpsideUsd": {
+      "@id": "farmdash:expectedUpsideUsd",
+      "@type": "xsd:decimal"
+    },
+    "bridgeFeeUsd": {
+      "@id": "farmdash:bridgeFeeUsd",
+      "@type": "xsd:decimal"
+    },
+    "gasUsd": {
+      "@id": "farmdash:gasUsd",
+      "@type": "xsd:decimal"
+    },
+    "riskBufferUsd": {
+      "@id": "farmdash:riskBufferUsd",
+      "@type": "xsd:decimal"
+    },
+    "currentChain": {
+      "@id": "farmdash:currentChain",
+      "@type": "xsd:string"
+    },
+    "targetChain": {
+      "@id": "farmdash:targetChain",
+      "@type": "xsd:string"
+    },
+    "AutopilotAction": "farmdash:AutopilotAction",
+    "type": {
+      "@id": "farmdash:type",
+      "@type": "xsd:string"
+    },
+    "asset": {
+      "@id": "farmdash:asset",
+      "@type": "xsd:string"
+    },
+    "reason": {
+      "@id": "farmdash:reason",
+      "@type": "xsd:string"
+    },
+    "priority": {
+      "@id": "farmdash:priority",
+      "@type": "xsd:string"
+    },
+    "RiskSentinelConfig": "farmdash:RiskSentinelConfig",
+    "minHealthFactor": {
+      "@id": "farmdash:minHealthFactor",
+      "@type": "xsd:decimal"
+    },
+    "minLiquidationBufferPct": {
+      "@id": "farmdash:minLiquidationBufferPct",
+      "@type": "xsd:decimal"
+    },
+    "maxStablecoinDepegPct": {
+      "@id": "farmdash:maxStablecoinDepegPct",
+      "@type": "xsd:decimal"
+    },
+    "AgentSession": "farmdash:AgentSession",
+    "id": {
+      "@id": "farmdash:id",
+      "@type": "xsd:string"
+    },
+    "agentAddress": {
+      "@id": "farmdash:agentAddress",
+      "@type": "xsd:string"
+    },
+    "status": {
+      "@id": "farmdash:status",
+      "@type": "xsd:string"
+    },
+    "delegation": {
+      "@id": "farmdash:delegation",
+      "@type": "@id"
+    },
+    "autopilot": {
+      "@id": "farmdash:autopilot",
+      "@type": "@id"
+    },
+    "activePositions": {
+      "@id": "farmdash:activePositions",
+      "@container": "@list"
+    },
+    "sessionPnl": {
+      "@id": "farmdash:sessionPnl",
+      "@type": "xsd:decimal"
+    },
+    "tradeCount": {
+      "@id": "farmdash:tradeCount",
+      "@type": "xsd:integer"
+    },
+    "lastHeartbeat": {
+      "@id": "farmdash:lastHeartbeat",
+      "@type": "xsd:dateTime"
+    },
+    "createdAt": {
+      "@id": "farmdash:createdAt",
+      "@type": "xsd:dateTime"
+    },
+    "expiresAt": {
+      "@id": "farmdash:expiresAt",
+      "@type": "xsd:dateTime"
+    },
+    "agentMeta": {
+      "@id": "farmdash:agentMeta",
+      "@type": "@id"
+    },
+    "SwapSafetyMode": "farmdash:SwapSafetyMode",
+    "AutopilotConfig": "farmdash:AutopilotConfig",
+    "strategies": {
+      "@id": "farmdash:strategies",
+      "@container": "@list"
+    },
+    "assets": {
+      "@id": "farmdash:assets",
+      "@container": "@list"
+    },
+    "maxEquityPct": {
+      "@id": "farmdash:maxEquityPct",
+      "@type": "xsd:decimal"
+    },
+    "rebalanceIntervalMin": {
+      "@id": "farmdash:rebalanceIntervalMin",
+      "@type": "xsd:integer"
+    },
+    "autoCompound": {
+      "@id": "farmdash:autoCompound",
+      "@type": "xsd:boolean"
+    },
+    "riskPreference": {
+      "@id": "farmdash:riskPreference",
+      "@type": "xsd:string"
+    },
+    "riskSentinel": {
+      "@id": "farmdash:riskSentinel",
+      "@type": "@id"
+    },
+    "executionAlpha": {
+      "@id": "farmdash:executionAlpha",
+      "@type": "@id"
+    },
+    "AgentMeta": "farmdash:AgentMeta",
+    "name": {
+      "@id": "farmdash:name",
+      "@type": "xsd:string"
+    },
+    "version": {
+      "@id": "farmdash:version",
+      "@type": "xsd:string"
+    },
+    "framework": {
+      "@id": "farmdash:framework",
+      "@type": "xsd:string"
+    },
+    "capabilities": {
+      "@id": "farmdash:capabilities",
+      "@container": "@list"
+    },
+    "AutopilotRiskStatus": "farmdash:AutopilotRiskStatus",
+    "weeklyPnlPct": {
+      "@id": "farmdash:weeklyPnlPct",
+      "@type": "xsd:decimal"
+    },
+    "drawdownPct": {
+      "@id": "farmdash:drawdownPct",
+      "@type": "xsd:decimal"
+    },
+    "openPositions": {
+      "@id": "farmdash:openPositions",
+      "@type": "xsd:integer"
+    },
+    "healthFactor": {
+      "@id": "farmdash:healthFactor",
+      "@type": "xsd:decimal"
+    },
+    "liquidationBufferPct": {
+      "@id": "farmdash:liquidationBufferPct",
+      "@type": "xsd:decimal"
+    },
+    "stablecoinDepegPct": {
+      "@id": "farmdash:stablecoinDepegPct",
+      "@type": "xsd:decimal"
+    },
+    "quoteDecayBps": {
+      "@id": "farmdash:quoteDecayBps",
+      "@type": "xsd:decimal"
+    },
+    "gasPerActionUsd": {
+      "@id": "farmdash:gasPerActionUsd",
+      "@type": "xsd:decimal"
+    },
+    "alerts": {
+      "@id": "farmdash:alerts",
+      "@container": "@list"
+    },
+    "isTradingAllowed": {
+      "@id": "farmdash:isTradingAllowed",
+      "@type": "xsd:boolean"
+    },
+    "DelegationRecord": "farmdash:DelegationRecord",
+    "ownerAddress": {
+      "@id": "farmdash:ownerAddress",
+      "@type": "xsd:string"
+    },
+    "apiWalletAddress": {
+      "@id": "farmdash:apiWalletAddress",
+      "@type": "xsd:string"
+    },
+    "verified": {
+      "@id": "farmdash:verified",
+      "@type": "xsd:boolean"
+    },
+    "verifiedAt": {
+      "@id": "farmdash:verifiedAt",
+      "@type": "xsd:dateTime"
+    },
+    "ExecutionAlphaConfig": "farmdash:ExecutionAlphaConfig",
+    "mevSafetyMode": {
+      "@id": "farmdash:mevSafetyMode",
+      "@type": "@id"
+    },
+    "maxQuoteDecayBps": {
+      "@id": "farmdash:maxQuoteDecayBps",
+      "@type": "xsd:decimal"
+    },
+    "maxGasUsdPerAction": {
+      "@id": "farmdash:maxGasUsdPerAction",
+      "@type": "xsd:decimal"
+    },
+    "requirePositiveNetEdge": {
+      "@id": "farmdash:requirePositiveNetEdge",
+      "@type": "xsd:boolean"
+    },
+    "minNetEdgeUsd": {
+      "@id": "farmdash:minNetEdgeUsd",
+      "@type": "xsd:decimal"
+    },
+    "DelegationResponse": "farmdash:DelegationResponse",
+    "warning": {
+      "@id": "farmdash:warning",
+      "@type": "xsd:string"
+    },
+    "CancelOrderResponse": "farmdash:CancelOrderResponse",
+    "result": {
+      "@id": "farmdash:result"
+    },
+    "cancelled": {
+      "@id": "farmdash:cancelled"
+    },
+    "intentHash": {
+      "@id": "farmdash:intentHash",
+      "@type": "xsd:string"
+    },
+    "CancelOrderRequest": "farmdash:CancelOrderRequest",
+    "orderIds": {
+      "@id": "farmdash:orderIds",
+      "@container": "@list"
+    },
+    "signedAction": {
+      "@id": "farmdash:signedAction"
+    },
+    "nonce": {
+      "@id": "farmdash:nonce",
+      "@type": "xsd:integer"
+    },
+    "signature": {
+      "@id": "farmdash:signature",
+      "@type": "@id"
+    },
+    "EIP712Signature": "farmdash:EIP712Signature",
+    "r": {
+      "@id": "farmdash:r",
+      "@type": "xsd:string"
+    },
+    "s": {
+      "@id": "farmdash:s",
+      "@type": "xsd:string"
+    },
+    "v": {
+      "@id": "farmdash:v",
+      "@type": "xsd:integer"
+    },
+    "ExecuteOrderResponse": "farmdash:ExecuteOrderResponse",
+    "state": {
+      "@id": "farmdash:state",
+      "@type": "xsd:string"
+    },
+    "order": {
+      "@id": "farmdash:order"
+    },
+    "ExecuteOrderRequest": "farmdash:ExecuteOrderRequest",
+    "isBuy": {
+      "@id": "farmdash:isBuy",
+      "@type": "xsd:boolean"
+    },
+    "price": {
+      "@id": "farmdash:price",
+      "@type": "xsd:string"
+    },
+    "orderType": {
+      "@id": "farmdash:orderType",
+      "@type": "xsd:string"
+    },
+    "reduceOnly": {
+      "@id": "farmdash:reduceOnly",
+      "@type": "xsd:boolean"
+    },
+    "HistoryResponse": "farmdash:HistoryResponse",
+    "events": {
+      "@id": "farmdash:events",
+      "@container": "@list"
+    },
+    "total": {
+      "@id": "farmdash:total",
+      "@type": "xsd:integer"
+    },
+    "limit": {
+      "@id": "farmdash:limit",
+      "@type": "xsd:integer"
+    },
+    "offset": {
+      "@id": "farmdash:offset",
+      "@type": "xsd:integer"
+    },
+    "RevenueMetrics": "farmdash:RevenueMetrics",
+    "totalFeeUSD": {
+      "@id": "farmdash:totalFeeUSD",
+      "@type": "xsd:decimal"
+    },
+    "totalVolumeUSD": {
+      "@id": "farmdash:totalVolumeUSD",
+      "@type": "xsd:decimal"
+    },
+    "totalSwaps": {
+      "@id": "farmdash:totalSwaps",
+      "@type": "xsd:integer"
+    },
+    "activeAgents": {
+      "@id": "farmdash:activeAgents",
+      "@type": "xsd:integer"
+    },
+    "FeeEvent": "farmdash:FeeEvent",
+    "created_at": {
+      "@id": "farmdash:created_at",
+      "@type": "xsd:dateTime"
+    },
+    "protocol": {
+      "@id": "farmdash:protocol",
+      "@type": "@id"
+    },
+    "from_token": {
+      "@id": "farmdash:from_token",
+      "@type": "xsd:string"
+    },
+    "to_token": {
+      "@id": "farmdash:to_token",
+      "@type": "xsd:string"
+    },
+    "volume_usd": {
+      "@id": "farmdash:volume_usd",
+      "@type": "xsd:decimal"
+    },
+    "fee_bps": {
+      "@id": "farmdash:fee_bps",
+      "@type": "xsd:integer"
+    },
+    "fee_usd": {
+      "@id": "farmdash:fee_usd",
+      "@type": "xsd:decimal"
+    },
+    "agent_address": {
+      "@id": "farmdash:agent_address",
+      "@type": "xsd:string"
+    },
+    "tx_hash": {
+      "@id": "farmdash:tx_hash",
+      "@type": "xsd:string"
+    },
+    "settlement_status": {
+      "@id": "farmdash:settlement_status",
+      "@type": "xsd:string"
+    },
+    "chain_id": {
+      "@id": "farmdash:chain_id",
+      "@type": "xsd:integer"
+    },
+    "SupportedProtocol": "farmdash:SupportedProtocol",
+    "ProtocolItem": "farmdash:ProtocolItem",
+    "protocol_name": {
+      "@id": "farmdash:protocol_name",
+      "@type": "xsd:string"
+    },
+    "discovery_heuristic_score": {
+      "@id": "farmdash:discovery_heuristic_score"
+    },
+    "discovery_methodology": {
+      "@id": "farmdash:discovery_methodology",
+      "@type": "xsd:string"
+    },
+    "sybil_risk": {
+      "@id": "farmdash:sybil_risk",
+      "@type": "xsd:string"
+    },
+    "tvl": {
+      "@id": "farmdash:tvl",
+      "@type": "xsd:string"
+    },
+    "category": {
+      "@id": "farmdash:category",
+      "@type": "xsd:string"
+    },
+    "chains": {
+      "@id": "farmdash:chains",
+      "@container": "@list"
+    },
+    "recommended_agent_deploy_link": {
+      "@id": "farmdash:recommended_agent_deploy_link",
+      "@type": "@id"
+    },
+    "ProtocolsResponse": "farmdash:ProtocolsResponse",
+    "tier": {
+      "@id": "farmdash:tier",
+      "@type": "@id"
+    },
+    "count": {
+      "@id": "farmdash:count",
+      "@type": "xsd:integer"
+    },
+    "data": {
+      "@id": "farmdash:data",
+      "@container": "@list"
+    },
+    "total_protocols_available": {
+      "@id": "farmdash:total_protocols_available",
+      "@type": "xsd:integer"
+    },
+    "ChainBreakdownSummary": "farmdash:ChainBreakdownSummary",
+    "total_chains": {
+      "@id": "farmdash:total_chains",
+      "@type": "xsd:integer"
+    },
+    "total_protocols": {
+      "@id": "farmdash:total_protocols"
+    },
+    "dominant_chain": {
+      "@id": "farmdash:dominant_chain",
+      "@type": "xsd:string"
+    },
+    "dominant_chain_pct": {
+      "@id": "farmdash:dominant_chain_pct"
+    },
+    "ChainBreakdownResponse": "farmdash:ChainBreakdownResponse",
+    "ChainBreakdownItem": "farmdash:ChainBreakdownItem",
+    "chain": {
+      "@id": "farmdash:chain",
+      "@type": "xsd:string"
+    },
+    "protocol_count": {
+      "@id": "farmdash:protocol_count"
+    },
+    "pct_of_total": {
+      "@id": "farmdash:pct_of_total"
+    },
+    "confirmed_airdrops": {
+      "@id": "farmdash:confirmed_airdrops"
+    },
+    "points_programs": {
+      "@id": "farmdash:points_programs"
+    },
+    "categories": {
+      "@id": "farmdash:categories",
+      "@container": "@list"
+    },
+    "Tier": "farmdash:Tier",
+    "RiskSeverity": "farmdash:RiskSeverity",
+    "QuoteDecaySeverity": "farmdash:QuoteDecaySeverity",
+    "SwapTxData": "farmdash:SwapTxData",
+    "to": {
+      "@id": "farmdash:to",
+      "@type": "xsd:string"
+    },
+    "value": {
+      "@id": "farmdash:value",
+      "@type": "xsd:string"
+    },
+    "chainId": {
+      "@id": "farmdash:chainId",
+      "@type": "xsd:integer"
+    },
+    "SwapSimulationRequest": "farmdash:SwapSimulationRequest",
+    "intent_id": {
+      "@id": "farmdash:intent_id",
+      "@type": "xsd:string"
+    },
+    "wallet_address": {
+      "@id": "farmdash:wallet_address",
+      "@type": "xsd:string"
+    },
+    "SwapSimulationResponse": "farmdash:SwapSimulationResponse",
+    "simulation_id": {
+      "@id": "farmdash:simulation_id",
+      "@type": "xsd:string"
+    },
+    "success": {
+      "@id": "farmdash:success",
+      "@type": "xsd:boolean"
+    },
+    "gas_used": {
+      "@id": "farmdash:gas_used",
+      "@type": "xsd:decimal"
+    },
+    "gas_cost_usd": {
+      "@id": "farmdash:gas_cost_usd",
+      "@type": "xsd:decimal"
+    },
+    "output_amount": {
+      "@id": "farmdash:output_amount",
+      "@type": "xsd:string"
+    },
+    "price_impact_pct": {
+      "@id": "farmdash:price_impact_pct",
+      "@type": "xsd:decimal"
+    },
+    "mev_risk": {
+      "@id": "farmdash:mev_risk",
+      "@type": "xsd:string"
+    },
+    "revert_reason": {
+      "@id": "farmdash:revert_reason",
+      "@type": "xsd:string"
+    },
+    "valid_until": {
+      "@id": "farmdash:valid_until",
+      "@type": "xsd:dateTime"
+    },
+    "selected_protocol": {
+      "@id": "farmdash:selected_protocol",
+      "@type": "@id"
+    },
+    "tx_fingerprint": {
+      "@id": "farmdash:tx_fingerprint",
+      "@type": "xsd:string"
+    },
+    "request_fingerprint": {
+      "@id": "farmdash:request_fingerprint",
+      "@type": "xsd:string"
+    },
+    "provider": {
+      "@id": "farmdash:provider",
+      "@type": "xsd:string"
+    },
+    "cached": {
+      "@id": "farmdash:cached",
+      "@type": "xsd:boolean"
+    },
+    "required_for_execution": {
+      "@id": "farmdash:required_for_execution",
+      "@type": "xsd:boolean"
+    },
+    "SwapRequest": "farmdash:SwapRequest",
+    "fromChainId": {
+      "@id": "farmdash:fromChainId",
+      "@type": "xsd:integer"
+    },
+    "toChainId": {
+      "@id": "farmdash:toChainId",
+      "@type": "xsd:integer"
+    },
+    "fromToken": {
+      "@id": "farmdash:fromToken",
+      "@type": "xsd:string"
+    },
+    "toToken": {
+      "@id": "farmdash:toToken",
+      "@type": "xsd:string"
+    },
+    "fromAmount": {
+      "@id": "farmdash:fromAmount",
+      "@type": "xsd:string"
+    },
+    "toAddress": {
+      "@id": "farmdash:toAddress",
+      "@type": "xsd:string"
+    },
+    "slippage": {
+      "@id": "farmdash:slippage",
+      "@type": "xsd:decimal"
+    },
+    "volumeHintUSD": {
+      "@id": "farmdash:volumeHintUSD",
+      "@type": "xsd:decimal"
+    },
+    "walletAddress": {
+      "@id": "farmdash:walletAddress",
+      "@type": "xsd:string"
+    },
+    "safetyMode": {
+      "@id": "farmdash:safetyMode",
+      "@type": "@id"
+    },
+    "simulationId": {
+      "@id": "farmdash:simulationId",
+      "@type": "xsd:string"
+    },
+    "intentId": {
+      "@id": "farmdash:intentId",
+      "@type": "xsd:string"
+    },
+    "AllowanceStatus": "farmdash:AllowanceStatus",
+    "spender": {
+      "@id": "farmdash:spender",
+      "@type": "xsd:string"
+    },
+    "allowance": {
+      "@id": "farmdash:allowance",
+      "@type": "xsd:string"
+    },
+    "requiredAmount": {
+      "@id": "farmdash:requiredAmount",
+      "@type": "xsd:string"
+    },
+    "approvalNeeded": {
+      "@id": "farmdash:approvalNeeded",
+      "@type": "xsd:boolean"
+    },
+    "overApproved": {
+      "@id": "farmdash:overApproved",
+      "@type": "xsd:boolean"
+    },
+    "source": {
+      "@id": "farmdash:source",
+      "@type": "xsd:string"
+    },
+    "RiskFlag": "farmdash:RiskFlag",
+    "severity": {
+      "@id": "farmdash:severity",
+      "@type": "@id"
+    },
+    "title": {
+      "@id": "farmdash:title",
+      "@type": "xsd:string"
+    },
+    "metadata": {
+      "@id": "farmdash:metadata"
+    },
+    "PegCheck": "farmdash:PegCheck",
+    "tokenAddress": {
+      "@id": "farmdash:tokenAddress",
+      "@type": "xsd:string"
+    },
+    "symbol": {
+      "@id": "farmdash:symbol",
+      "@type": "xsd:string"
+    },
+    "reference": {
+      "@id": "farmdash:reference",
+      "@type": "xsd:string"
+    },
+    "priceUsd": {
+      "@id": "farmdash:priceUsd",
+      "@type": "xsd:decimal"
+    },
+    "referencePriceUsd": {
+      "@id": "farmdash:referencePriceUsd",
+      "@type": "xsd:decimal"
+    },
+    "deviationPct": {
+      "@id": "farmdash:deviationPct",
+      "@type": "xsd:decimal"
+    },
+    "alert": {
+      "@id": "farmdash:alert",
+      "@type": "xsd:boolean"
+    },
+    "HealthCheck": "farmdash:HealthCheck",
+    "alertLevel": {
+      "@id": "farmdash:alertLevel",
+      "@type": "xsd:string"
+    },
+    "shouldHalt": {
+      "@id": "farmdash:shouldHalt",
+      "@type": "xsd:boolean"
+    },
+    "NetEdgeAnalysis": "farmdash:NetEdgeAnalysis",
+    "protocolFeeUsd": {
+      "@id": "farmdash:protocolFeeUsd",
+      "@type": "xsd:decimal"
+    },
+    "totalCostUsd": {
+      "@id": "farmdash:totalCostUsd",
+      "@type": "xsd:decimal"
+    },
+    "netEdgeUsd": {
+      "@id": "farmdash:netEdgeUsd",
+      "@type": "xsd:decimal"
+    },
+    "positive": {
+      "@id": "farmdash:positive",
+      "@type": "xsd:boolean"
+    },
+    "enforced": {
+      "@id": "farmdash:enforced",
+      "@type": "xsd:boolean"
+    },
+    "QuoteDecayMetrics": "farmdash:QuoteDecayMetrics",
+    "previousObservedAt": {
+      "@id": "farmdash:previousObservedAt",
+      "@type": "xsd:integer"
+    },
+    "quoteAgeMs": {
+      "@id": "farmdash:quoteAgeMs",
+      "@type": "xsd:integer"
+    },
+    "outputDecayBps": {
+      "@id": "farmdash:outputDecayBps",
+      "@type": "xsd:decimal"
+    },
+    "gasIncreaseBps": {
+      "@id": "farmdash:gasIncreaseBps",
+      "@type": "xsd:decimal"
+    },
+    "RouteCandidate": "farmdash:RouteCandidate",
+    "estimatedOutput": {
+      "@id": "farmdash:estimatedOutput",
+      "@type": "xsd:string"
+    },
+    "feeAmountUsd": {
+      "@id": "farmdash:feeAmountUsd",
+      "@type": "xsd:decimal"
+    },
+    "gasEstimateUsd": {
+      "@id": "farmdash:gasEstimateUsd",
+      "@type": "xsd:decimal"
+    },
+    "routeRiskScore": {
+      "@id": "farmdash:routeRiskScore",
+      "@type": "xsd:decimal"
+    },
+    "selected": {
+      "@id": "farmdash:selected",
+      "@type": "xsd:boolean"
+    },
+    "ExecutionAlphaReport": "farmdash:ExecutionAlphaReport",
+    "selectedProtocol": {
+      "@id": "farmdash:selectedProtocol",
+      "@type": "@id"
+    },
+    "routeReason": {
+      "@id": "farmdash:routeReason",
+      "@type": "xsd:string"
+    },
+    "mevProtection": {
+      "@id": "farmdash:mevProtection"
+    },
+    "candidates": {
+      "@id": "farmdash:candidates",
+      "@container": "@list"
+    },
+    "quoteDecay": {
+      "@id": "farmdash:quoteDecay",
+      "@type": "@id"
+    },
+    "netEdge": {
+      "@id": "farmdash:netEdge",
+      "@type": "@id"
+    },
+    "SwapRiskReport": "farmdash:SwapRiskReport",
+    "flags": {
+      "@id": "farmdash:flags",
+      "@container": "@list"
+    },
+    "approval": {
+      "@id": "farmdash:approval"
+    },
+    "pegChecks": {
+      "@id": "farmdash:pegChecks",
+      "@container": "@list"
+    },
+    "health": {
+      "@id": "farmdash:health"
+    },
+    "haltReasons": {
+      "@id": "farmdash:haltReasons",
+      "@container": "@list"
+    },
+    "QuoteResponse": "farmdash:QuoteResponse",
+    "feeBps": {
+      "@id": "farmdash:feeBps",
+      "@type": "xsd:integer"
+    },
+    "mode": {
+      "@id": "farmdash:mode",
+      "@type": "xsd:string"
+    },
+    "unsigned": {
+      "@id": "farmdash:unsigned",
+      "@type": "xsd:boolean"
+    },
+    "broadcast_by_farmdash": {
+      "@id": "farmdash:broadcast_by_farmdash",
+      "@type": "xsd:boolean"
+    },
+    "feeAmountUSD": {
+      "@id": "farmdash:feeAmountUSD",
+      "@type": "xsd:string"
+    },
+    "gasEstimate": {
+      "@id": "farmdash:gasEstimate",
+      "@type": "xsd:string"
+    },
+    "txData": {
+      "@id": "farmdash:txData",
+      "@type": "@id"
+    },
+    "simulation_required": {
+      "@id": "farmdash:simulation_required",
+      "@type": "xsd:boolean"
+    },
+    "simulation_available": {
+      "@id": "farmdash:simulation_available",
+      "@type": "xsd:boolean"
+    },
+    "intent_expires_at": {
+      "@id": "farmdash:intent_expires_at",
+      "@type": "xsd:dateTime"
+    },
+    "simulate_url": {
+      "@id": "farmdash:simulate_url",
+      "@type": "xsd:string"
+    },
+    "allowanceTarget": {
+      "@id": "farmdash:allowanceTarget",
+      "@type": "xsd:string"
+    },
+    "riskReport": {
+      "@id": "farmdash:riskReport",
+      "@type": "@id"
+    },
+    "note": {
+      "@id": "farmdash:note",
+      "@type": "xsd:string"
+    },
+    "MarketEstimateResponse": "farmdash:MarketEstimateResponse",
+    "quoteKind": {
+      "@id": "farmdash:quoteKind",
+      "@type": "xsd:string"
+    },
+    "executionReady": {
+      "@id": "farmdash:executionReady",
+      "@type": "xsd:boolean"
+    },
+    "liquidityConfirmed": {
+      "@id": "farmdash:liquidityConfirmed",
+      "@type": "xsd:boolean"
+    },
+    "providerAttribution": {
+      "@id": "farmdash:providerAttribution",
+      "@type": "xsd:string"
+    },
+    "estimatedInputUsd": {
+      "@id": "farmdash:estimatedInputUsd",
+      "@type": "xsd:decimal"
+    },
+    "estimatedOutputUsd": {
+      "@id": "farmdash:estimatedOutputUsd",
+      "@type": "xsd:decimal"
+    },
+    "priceUnknown": {
+      "@id": "farmdash:priceUnknown",
+      "@type": "xsd:boolean"
+    },
+    "feeTierBps": {
+      "@id": "farmdash:feeTierBps",
+      "@type": "xsd:integer"
+    },
+    "volumeUnknown": {
+      "@id": "farmdash:volumeUnknown",
+      "@type": "xsd:boolean"
+    },
+    "compatibleProviders": {
+      "@id": "farmdash:compatibleProviders",
+      "@container": "@list"
+    },
+    "routeSupported": {
+      "@id": "farmdash:routeSupported",
+      "@type": "xsd:boolean"
+    },
+    "liquidityUsd": {
+      "@id": "farmdash:liquidityUsd",
+      "@type": "xsd:decimal"
+    },
+    "volume24hUsd": {
+      "@id": "farmdash:volume24hUsd",
+      "@type": "xsd:decimal"
+    },
+    "sources": {
+      "@id": "farmdash:sources",
+      "@container": "@list"
+    },
+    "confidence": {
+      "@id": "farmdash:confidence",
+      "@type": "xsd:string"
+    },
+    "observedAt": {
+      "@id": "farmdash:observedAt",
+      "@type": "xsd:string"
+    },
+    "stale": {
+      "@id": "farmdash:stale",
+      "@type": "xsd:boolean"
+    },
+    "attempts": {
+      "@id": "farmdash:attempts",
+      "@container": "@list"
+    },
+    "execution_boundary": {
+      "@id": "farmdash:execution_boundary"
+    },
+    "FirmQuoteResponse": "farmdash:FirmQuoteResponse",
+    "reused": {
+      "@id": "farmdash:reused",
+      "@type": "xsd:boolean"
+    },
+    "marketBenchmark": {
+      "@id": "farmdash:marketBenchmark"
+    },
+    "selectedProvider": {
+      "@id": "farmdash:selectedProvider",
+      "@type": "@id"
+    },
+    "firmQuote": {
+      "@id": "farmdash:firmQuote"
+    },
+    "simulationRequirements": {
+      "@id": "farmdash:simulationRequirements"
+    },
+    "alternateUsed": {
+      "@id": "farmdash:alternateUsed",
+      "@type": "xsd:boolean"
+    },
+    "SwapResult": "farmdash:SwapResult",
+    "feeEventId": {
+      "@id": "farmdash:feeEventId",
+      "@type": "xsd:string"
+    },
+    "simulation": {
+      "@id": "farmdash:simulation"
+    },
+    "confirmUrl": {
+      "@id": "farmdash:confirmUrl",
+      "@type": "xsd:string"
+    },
+    "SwapHaltResponse": "farmdash:SwapHaltResponse",
+    "RiskSentinelRequest": "farmdash:RiskSentinelRequest",
+    "enforcePositive": {
+      "@id": "farmdash:enforcePositive",
+      "@type": "xsd:boolean"
+    },
+    "RiskSentinelResponse": "farmdash:RiskSentinelResponse",
+    "quotePreview": {
+      "@id": "farmdash:quotePreview"
+    },
+    "ConfirmRequest": "farmdash:ConfirmRequest",
+    "sessionId": {
+      "@id": "farmdash:sessionId",
+      "@type": "xsd:string"
+    },
+    "sessionToken": {
+      "@id": "farmdash:sessionToken",
+      "@type": "xsd:string"
+    },
+    "txHash": {
+      "@id": "farmdash:txHash",
+      "@type": "xsd:string"
+    },
+    "ConfirmResponse": "farmdash:ConfirmResponse",
+    "settlementStatus": {
+      "@id": "farmdash:settlementStatus",
+      "@type": "xsd:string"
+    },
+    "idempotent": {
+      "@id": "farmdash:idempotent",
+      "@type": "xsd:boolean"
+    },
+    "LeaderboardResponse": "farmdash:LeaderboardResponse",
+    "windowDays": {
+      "@id": "farmdash:windowDays",
+      "@type": "xsd:integer"
+    },
+    "entries": {
+      "@id": "farmdash:entries",
+      "@container": "@list"
+    },
+    "ReputationResponse": "farmdash:ReputationResponse",
+    "reputation": {
+      "@id": "farmdash:reputation"
+    },
+    "scout_bonus": {
+      "@id": "farmdash:scout_bonus"
+    },
+    "FundingAnalysis": "farmdash:FundingAnalysis",
+    "fundingRate": {
+      "@id": "farmdash:fundingRate",
+      "@type": "xsd:decimal"
+    },
+    "annualizedRate": {
+      "@id": "farmdash:annualizedRate",
+      "@type": "xsd:decimal"
+    },
+    "predictedRate": {
+      "@id": "farmdash:predictedRate",
+      "@type": "xsd:decimal"
+    },
+    "crossVenueDelta": {
+      "@id": "farmdash:crossVenueDelta",
+      "@type": "xsd:decimal"
+    },
+    "premium": {
+      "@id": "farmdash:premium",
+      "@type": "xsd:decimal"
+    },
+    "openInterest": {
+      "@id": "farmdash:openInterest",
+      "@type": "xsd:decimal"
+    },
+    "isArbOpportunity": {
+      "@id": "farmdash:isArbOpportunity",
+      "@type": "xsd:boolean"
+    },
+    "arbDirection": {
+      "@id": "farmdash:arbDirection",
+      "@type": "xsd:string"
+    },
+    "TechnicalIndicators": "farmdash:TechnicalIndicators",
+    "ema8": {
+      "@id": "farmdash:ema8",
+      "@type": "xsd:decimal"
+    },
+    "ema34": {
+      "@id": "farmdash:ema34",
+      "@type": "xsd:decimal"
+    },
+    "emaCross": {
+      "@id": "farmdash:emaCross",
+      "@type": "xsd:string"
+    },
+    "rsi": {
+      "@id": "farmdash:rsi",
+      "@type": "xsd:decimal"
+    },
+    "macd": {
+      "@id": "farmdash:macd",
+      "@type": "xsd:decimal"
+    },
+    "macdSignal": {
+      "@id": "farmdash:macdSignal",
+      "@type": "xsd:decimal"
+    },
+    "macdHistogram": {
+      "@id": "farmdash:macdHistogram",
+      "@type": "xsd:decimal"
+    },
+    "macdCross": {
+      "@id": "farmdash:macdCross",
+      "@type": "xsd:string"
+    },
+    "adx": {
+      "@id": "farmdash:adx",
+      "@type": "xsd:decimal"
+    },
+    "atr": {
+      "@id": "farmdash:atr",
+      "@type": "xsd:decimal"
+    },
+    "bbUpper": {
+      "@id": "farmdash:bbUpper",
+      "@type": "xsd:decimal"
+    },
+    "bbMiddle": {
+      "@id": "farmdash:bbMiddle",
+      "@type": "xsd:decimal"
+    },
+    "bbLower": {
+      "@id": "farmdash:bbLower",
+      "@type": "xsd:decimal"
+    },
+    "bbWidth": {
+      "@id": "farmdash:bbWidth",
+      "@type": "xsd:decimal"
+    },
+    "volumeRatio": {
+      "@id": "farmdash:volumeRatio",
+      "@type": "xsd:decimal"
+    },
+    "zScore": {
+      "@id": "farmdash:zScore",
+      "@type": "xsd:decimal"
+    },
+    "ScanFundingResponse": "farmdash:ScanFundingResponse",
+    "arbOpportunities": {
+      "@id": "farmdash:arbOpportunities",
+      "@container": "@list"
+    },
+    "highFunding": {
+      "@id": "farmdash:highFunding",
+      "@container": "@list"
+    },
+    "totalScanned": {
+      "@id": "farmdash:totalScanned",
+      "@type": "xsd:integer"
+    },
+    "upgradeMessage": {
+      "@id": "farmdash:upgradeMessage",
+      "@type": "xsd:string"
+    },
+    "MarketConditionsResponse": "farmdash:MarketConditionsResponse",
+    "indicators": {
+      "@id": "farmdash:indicators",
+      "@type": "@id"
+    },
+    "strategyHint": {
+      "@id": "farmdash:strategyHint",
+      "@type": "xsd:string"
+    },
+    "FuturesMarketRegime": "farmdash:FuturesMarketRegime",
+    "FuturesTradeDirection": "farmdash:FuturesTradeDirection",
+    "FuturesStrategyObject": "farmdash:FuturesStrategyObject",
+    "market": {
+      "@id": "farmdash:market",
+      "@type": "xsd:string"
+    },
+    "direction": {
+      "@id": "farmdash:direction",
+      "@type": "@id"
+    },
+    "regime": {
+      "@id": "farmdash:regime",
+      "@type": "@id"
+    },
+    "triggerConditions": {
+      "@id": "farmdash:triggerConditions",
+      "@container": "@list"
+    },
+    "entryLogic": {
+      "@id": "farmdash:entryLogic",
+      "@type": "xsd:string"
+    },
+    "exitLogic": {
+      "@id": "farmdash:exitLogic",
+      "@type": "xsd:string"
+    },
+    "riskModel": {
+      "@id": "farmdash:riskModel"
+    },
+    "leverageModel": {
+      "@id": "farmdash:leverageModel"
+    },
+    "fallbackLogic": {
+      "@id": "farmdash:fallbackLogic",
+      "@container": "@list"
+    },
+    "telemetryTracking": {
+      "@id": "farmdash:telemetryTracking",
+      "@container": "@list"
+    },
+    "FuturesAdaptiveRisk": "farmdash:FuturesAdaptiveRisk",
+    "baseRiskPercent": {
+      "@id": "farmdash:baseRiskPercent",
+      "@type": "xsd:decimal"
+    },
+    "appliedRiskPercent": {
+      "@id": "farmdash:appliedRiskPercent",
+      "@type": "xsd:decimal"
+    },
+    "confidenceMultiplier": {
+      "@id": "farmdash:confidenceMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "volatilityMultiplier": {
+      "@id": "farmdash:volatilityMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "drawdownMultiplier": {
+      "@id": "farmdash:drawdownMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "portfolioMultiplier": {
+      "@id": "farmdash:portfolioMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "finalRiskMultiplier": {
+      "@id": "farmdash:finalRiskMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "FuturesTradeSimulation": "farmdash:FuturesTradeSimulation",
+    "methodology": {
+      "@id": "farmdash:methodology",
+      "@type": "xsd:string"
+    },
+    "holdingWindowHours": {
+      "@id": "farmdash:holdingWindowHours",
+      "@type": "xsd:decimal"
+    },
+    "entryValueUsd": {
+      "@id": "farmdash:entryValueUsd",
+      "@type": "xsd:decimal"
+    },
+    "marginRequiredUsd": {
+      "@id": "farmdash:marginRequiredUsd",
+      "@type": "xsd:decimal"
+    },
+    "marginImpactPct": {
+      "@id": "farmdash:marginImpactPct",
+      "@type": "xsd:decimal"
+    },
+    "liquidationPriceEstimate": {
+      "@id": "farmdash:liquidationPriceEstimate",
+      "@type": "xsd:decimal"
+    },
+    "stopScenarioPnlUsd": {
+      "@id": "farmdash:stopScenarioPnlUsd",
+      "@type": "xsd:decimal"
+    },
+    "targetScenarioPnlUsd": {
+      "@id": "farmdash:targetScenarioPnlUsd",
+      "@type": "xsd:decimal"
+    },
+    "oneAtrMovePnlUsd": {
+      "@id": "farmdash:oneAtrMovePnlUsd",
+      "@type": "xsd:decimal"
+    },
+    "estimatedFundingPnl24hUsd": {
+      "@id": "farmdash:estimatedFundingPnl24hUsd",
+      "@type": "xsd:decimal"
+    },
+    "estimatedFundingPnl72hUsd": {
+      "@id": "farmdash:estimatedFundingPnl72hUsd",
+      "@type": "xsd:decimal"
+    },
+    "FuturesPortfolioContext": "farmdash:FuturesPortfolioContext",
+    "sameAssetExposureUsd": {
+      "@id": "farmdash:sameAssetExposureUsd",
+      "@type": "xsd:decimal"
+    },
+    "sameAssetExposurePct": {
+      "@id": "farmdash:sameAssetExposurePct",
+      "@type": "xsd:decimal"
+    },
+    "directionalExposurePct": {
+      "@id": "farmdash:directionalExposurePct",
+      "@type": "xsd:decimal"
+    },
+    "netDirectionalBias": {
+      "@id": "farmdash:netDirectionalBias",
+      "@type": "xsd:string"
+    },
+    "concentrationWarning": {
+      "@id": "farmdash:concentrationWarning",
+      "@type": "xsd:string"
+    },
+    "StrategyRecommendation": "farmdash:StrategyRecommendation",
+    "recommendedStrategy": {
+      "@id": "farmdash:recommendedStrategy",
+      "@type": "xsd:string"
+    },
+    "marketRegime": {
+      "@id": "farmdash:marketRegime",
+      "@type": "@id"
+    },
+    "entry": {
+      "@id": "farmdash:entry",
+      "@type": "xsd:decimal"
+    },
+    "positionSize": {
+      "@id": "farmdash:positionSize",
+      "@type": "xsd:decimal"
+    },
+    "riskPercent": {
+      "@id": "farmdash:riskPercent",
+      "@type": "xsd:decimal"
+    },
+    "reasoning": {
+      "@id": "farmdash:reasoning",
+      "@container": "@list"
+    },
+    "noTradeReason": {
+      "@id": "farmdash:noTradeReason",
+      "@type": "xsd:string"
+    },
+    "strategyObject": {
+      "@id": "farmdash:strategyObject",
+      "@type": "@id"
+    },
+    "adaptiveRisk": {
+      "@id": "farmdash:adaptiveRisk",
+      "@type": "@id"
+    },
+    "portfolioContext": {
+      "@id": "farmdash:portfolioContext",
+      "@type": "@id"
+    },
+    "trailHeatCrossRef": {
+      "@id": "farmdash:trailHeatCrossRef"
+    },
+    "fundingAnalysis": {
+      "@id": "farmdash:fundingAnalysis",
+      "@type": "@id"
+    },
+    "AnalyzeStrategyResponse": "farmdash:AnalyzeStrategyResponse",
+    "recommendation": {
+      "@id": "farmdash:recommendation",
+      "@type": "@id"
+    },
+    "PositionSizingRequest": "farmdash:PositionSizingRequest",
+    "stopPrice": {
+      "@id": "farmdash:stopPrice",
+      "@type": "xsd:decimal"
+    },
+    "targetPrice": {
+      "@id": "farmdash:targetPrice",
+      "@type": "xsd:decimal"
+    },
+    "riskMultiplier": {
+      "@id": "farmdash:riskMultiplier",
+      "@type": "xsd:decimal"
+    },
+    "PositionSizing": "farmdash:PositionSizing",
+    "positionValueUsd": {
+      "@id": "farmdash:positionValueUsd",
+      "@type": "xsd:decimal"
+    },
+    "marginRequired": {
+      "@id": "farmdash:marginRequired",
+      "@type": "xsd:decimal"
+    },
+    "riskAmount": {
+      "@id": "farmdash:riskAmount",
+      "@type": "xsd:decimal"
+    },
+    "stopDistance": {
+      "@id": "farmdash:stopDistance",
+      "@type": "xsd:decimal"
+    },
+    "rewardRiskRatio": {
+      "@id": "farmdash:rewardRiskRatio",
+      "@type": "xsd:decimal"
+    },
+    "PositionSizingResponse": "farmdash:PositionSizingResponse",
+    "sizing": {
+      "@id": "farmdash:sizing",
+      "@type": "@id"
+    },
+    "OnboardResponse": "farmdash:OnboardResponse",
+    "welcome": {
+      "@id": "farmdash:welcome",
+      "@type": "xsd:string"
+    },
+    "quickStart": {
+      "@id": "farmdash:quickStart"
+    },
+    "security": {
+      "@id": "farmdash:security"
+    },
+    "autonomousWorkflow": {
+      "@id": "farmdash:autonomousWorkflow"
+    },
+    "discovery": {
+      "@id": "farmdash:discovery"
+    },
+    "pricing": {
+      "@id": "farmdash:pricing"
+    }
+  },
+  "@type": "schema:Dataset",
+  "schema:name": "FarmDash Agent Hub API JSON-LD context",
+  "schema:description": "A JSON-LD @context for the objects FarmDash Agent Hub's own API contract declares: one class per component schema, one property per declared field, typed from the contract. Derived by script (derive-json-ld.py, 2026-10-02) from openapi/farmdash-account-api-openapi.yml, openapi/farmdash-autopilot-api-openapi.yml, openapi/farmdash-delegation-api-openapi.yml.",
+  "dcterms:created": "2026-10-02",
+  "dcterms:source": [
+    "openapi/farmdash-account-api-openapi.yml",
+    "openapi/farmdash-autopilot-api-openapi.yml",
+    "openapi/farmdash-delegation-api-openapi.yml",
+    "openapi/farmdash-execution-api-openapi.yml",
+    "openapi/farmdash-history-api-openapi.yml"
+  ]
+}

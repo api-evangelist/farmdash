@@ -1,6 +1,7 @@
 generated: '2026-08-26'
 method: probed
 source: https://www.farmdash.one/api/v1/agent/status
+name: FarmDash Agent Hub API Plans
 secondary_sources:
 - https://www.farmdash.one/.well-known/mcp.json
 - https://www.farmdash.one/.well-known/agent.json
