@@ -1,7 +1,7 @@
 {
   "provider": "farmdash",
   "sources": [
-    "_original/farmdash-agent-api-openapi.yaml"
+    "_original/farmdash-openapi.yml"
   ],
   "outputs": [
     "farmdash-account-api-openapi.yml",
@@ -27,37 +27,16 @@
   "errors": [],
   "warnings": [],
   "notes": [
-    "3 archived document(s) dropped as subsets of other archived documents",
     "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
-    "farmdash-agent-api-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
-    "farmdash-agent-api-openapi.yaml: tagged paths POST /v1/agent/futures/reconcile-order -> Agent",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: Agent",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: ExecutionAuthority",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: Planning",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: Proof",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: Reputation",
-    "farmdash-agent-api-openapi.yaml: declared missing tag: Wallet",
-    "apis.yml register: written (+2 apis, 18 total)"
+    "farmdash-openapi.yml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
+    "farmdash-openapi.yml: tagged paths POST /v1/agent/futures/reconcile-order -> Agent",
+    "farmdash-openapi.yml: declared missing tag: Agent",
+    "farmdash-openapi.yml: declared missing tag: ExecutionAuthority",
+    "farmdash-openapi.yml: declared missing tag: Planning",
+    "farmdash-openapi.yml: declared missing tag: Proof",
+    "farmdash-openapi.yml: declared missing tag: Reputation",
+    "farmdash-openapi.yml: declared missing tag: Wallet",
+    "apis.yml register: already-registered"
   ],
-  "skipped": [
-    "_original/farmdash-swap-openapi.yaml: archived document superseded by a larger archived document",
-    "_original/farmdash-swap-openapi.json: archived document superseded by a larger archived document",
-    "_original/farmdash-futures-openapi.yaml: archived document superseded by a larger archived document",
-    "farmdash-account-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-autopilot-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-delegation-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-execution-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-executionauthority-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-history-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-intelligence-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-planning-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-proof-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-reputation-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-research-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-risk-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-session-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-strategy-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-swap-api-openapi.yml: previously refined output, superseded by openapi/_original/",
-    "farmdash-wallet-api-openapi.yml: previously refined output, superseded by openapi/_original/"
-  ]
+  "skipped": []
 }

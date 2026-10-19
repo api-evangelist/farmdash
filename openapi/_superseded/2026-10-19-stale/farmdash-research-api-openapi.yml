@@ -1,0 +1,708 @@
+openapi: 3.2.0
+info:
+  title: FarmDash Agent Research API
+  version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication & Credential Lifecycle
+
+    | Tier | Price | Auth | Rate Limit | Key Prefix | Entitlements | Best for |
+
+    |------|-------|------|------------|------------|--------------|----------|
+
+    | Scout | Free | None | 30 req / 24 h per IP | `fd_scout_free` | Keyless public discovery and quotes | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | `fd_pio_` | Premium research, full Trail Heat, wallet analytics, sybil audits | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | `fd_syn_` | All Pioneer features plus advanced control tooling, bounded autopilot, webhooks, unrestricted CORS | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    ### Paid Entitlement & Key Issuance Sequence:
+
+    1. **Pay**: Transfer USDC ($39.99/mo for Pioneer, $199/mo for Syndicate) on Base, Arbitrum, Optimism, Polygon, Ethereum, or Linea to the FarmDash treasury.
+
+    2. **Verify**: Post transaction hash and wallet to `verify-payment` to record on-chain confirmation in `users` and `payment_events`.
+
+    3. **Sign Proof**: Sign an EIP-712 `ApiKeyRequest` with the paying wallet (domain: `FarmDash`, intent: `Issue FarmDash API key`, single-use `nonce`).
+
+    4. **Receive Credential**: Post the signed payload to `/api/v1/agent/api-key`. The credential tier is server-authoritative, derived exclusively from your active paid subscription (client input cannot downgrade or elevate your tier). The plaintext key is returned exactly once; FarmDash stores only a SHA-256 hash.
+
+    5. **Authenticate**: Send `Authorization: Bearer <KEY>` on all requests. Daily limits reset every 24 hours (`X-RateLimit-Remaining`). Keys expire with your 30-day subscription; expired keys return HTTP 402 Payment Required. Higher-tier Syndicate capabilities (`advanced_control`) remain blocked for Pioneer subscribers.
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, FarmDash returns HTTP 402 with
+
+    `code: free_quota_exhausted`, `instruction: STOP_RETRYING`, the UTC reset time,
+
+    upgrade URL, and x402 payment instructions. Repeating the same unpaid request does
+
+    not restore access and continued automated retries may result in temporary or
+
+    permanent blocking. To unlock one additional request, send
+
+    `X-Payment-Proof: 0x<txHash>` (or the x402 `PAYMENT-SIGNATURE`) for the
+
+    route-specific USDC payment. The configured default overage is 0.01 USDC;
+
+    premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+    Canonicalization is mandatory: lowercase every `0x`-prefixed field before joining, including
+
+    token contract addresses as well as agent/destination addresses. Sign the exact resulting UTF-8
+
+    string with EIP-191/personal_sign. A 428 simulation-gate response occurs before signature
+
+    verification and therefore does not prove a signature is valid.
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Do not use discovery GET `/agents/quote` to create execution state. POST
+
+    `/v1/agent/quote-intent` with exact parameters, real wallet and idempotency key. Its top-level
+
+    `intentId` is a `qi_*` quote-cache/idempotency identity; simulate with the separate
+
+    `simulationRequirements.intent_id` (`fd_intent_*`). Then POST `/v1/simulate` with that
+
+    `fd_intent_*` and wallet before calling `/agents/swap`.
+
+    OpenAPI paths are relative to `https://www.farmdash.one/api`: `/agents/quote` means
+
+    `https://www.farmdash.one/api/agents/quote`.
+
+    For LI.FI native ETH routes, use the zero-address token sentinel rather than the WETH contract.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
+  contact:
+    name: FarmDash Engineering
+    url: https://www.farmdash.one/agents
+  license:
+    name: MIT
+servers:
+- url: https://www.farmdash.one/api
+  description: Production
+tags:
+- name: Research
+  description: Futures market research — funding rates, technical indicators
+paths:
+  /v1/agent/futures/scan-funding:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
+    get:
+      operationId: scanFundingRates
+      summary: Scan Hyperliquid funding rates for arb opportunities
+      description: 'Returns current and predicted funding rates across all Hyperliquid perp
+
+        markets. Cross-references with Binance and Bybit to identify arbitrage.
+
+        Scout: top 3 with encrypted rates. Pioneer/Syndicate: full data.
+
+        '
+      tags:
+      - Research
+      security:
+      - bearerAuth: []
+      - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      responses:
+        '200':
+          description: Funding rate scan
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanFundingResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '502':
+          description: Typed Hyperliquid funding provider degradation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/agent/futures/market-conditions:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
+    get:
+      operationId: getMarketConditions
+      summary: Get technical indicators for an asset
+      description: 'Returns EMA-8/34, RSI-14, MACD(12,26,9), ATR-14, Bollinger Bands(20,2),
+
+        ADX-14, volume ratio, and Z-score using 4h candles.
+
+        Includes a strategy hint based on indicator confluence.
+
+        '
+      tags:
+      - Research
+      security:
+      - bearerAuth: []
+      - {}
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      - name: coin
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Asset symbol (ETH, BTC, SOL, HYPE)
+      responses:
+        '200':
+          description: Technical indicators
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketConditionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '502':
+          description: Typed Hyperliquid candle provider degradation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+    X-FarmDash-Client:
+      name: X-FarmDash-Client
+      in: header
+      required: false
+      description: Optional untrusted analytics client hint; never security evidence.
+      schema:
+        type: string
+        enum:
+        - mcp
+        - ts_agent_kit
+        - python_agent_kit
+        - public_client
+        - webapp
+    X-FarmDash-Client-Version:
+      name: X-FarmDash-Client-Version
+      in: header
+      required: false
+      description: Optional analytics client version; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Skill-Version:
+      name: X-FarmDash-Skill-Version
+      in: header
+      required: false
+      description: Optional event-touch analytics skill version, alongside X-ClawHub-Skill; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Installation-ID:
+      name: X-FarmDash-Installation-ID
+      in: header
+      required: false
+      description: Optional analytics-only locally generated UUIDv4 installation hint. Stored only as a domain-separated salted hash. Not authentication, principal proof, quota, payment, wallet ownership, delegation or transaction authority. Omission changes no functionality.
+      schema:
+        type: string
+        format: uuid
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+        X-RateLimit-Limit:
+          $ref: '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          $ref: '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          $ref: '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PaymentRequired:
+      description: Free-tier limit exceeded — x402 payment required
+      headers:
+        X-Payment-Required:
+          schema:
+            type: string
+        X-Payment-Address:
+          schema:
+            type: string
+          description: Treasury wallet (USDC on Base)
+        X-Payment-Token:
+          schema:
+            type: string
+          description: USDC contract on Base
+        X-Payment-Amount:
+          schema:
+            type: string
+          description: Amount in token decimals (990000 = 0.99 USDC)
+        X-Payment-Chain-Id:
+          schema:
+            type: string
+          description: 8453 (Base)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+  schemas:
+    Tier:
+      type: string
+      enum:
+      - scout
+      - pioneer
+      - syndicate
+    PaymentRequiredError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: payment_required
+        code:
+          type: string
+          description: '`free_quota_exhausted` when the shared Scout allowance is spent; otherwise `payment_required`.'
+          example: free_quota_exhausted
+        message:
+          type: string
+        instruction:
+          type: string
+          enum:
+          - STOP_RETRYING
+          description: Present when an exhausted free caller must not repeat the same unpaid request.
+        retry_same_request:
+          type: boolean
+          example: false
+        next_action:
+          type: string
+          example: Wait for your quota reset, upgrade your plan, or use x402 paid access.
+        quota:
+          type: object
+          properties:
+            tier:
+              type: string
+              example: scout
+            remaining:
+              type: integer
+              example: 0
+            reset_at:
+              type: string
+              format: date-time
+        abuse_notice:
+          type: string
+          example: Repeated automated requests while quota is exhausted may result in temporary or permanent API blocking.
+        retryable:
+          type: boolean
+        upgrade_url:
+          type: string
+          format: uri
+        direct_upgrade_url:
+          type: string
+          format: uri
+        rate_limit:
+          type: object
+          additionalProperties: true
+        developer_sandbox:
+          type: object
+          additionalProperties: true
+        payment_required:
+          type: object
+          properties:
+            amount:
+              type: string
+              example: 0.01 USDC
+            chain:
+              type: string
+              example: Base
+            destination:
+              type: string
+              example: '0xb0Ed0d7bca24BBaD635B977C2efbE06742e33377'
+            token:
+              type: string
+            chainId:
+              type: integer
+              example: 8453
+    DustStormWarning:
+      type: object
+      required:
+      - kind
+      - message
+      properties:
+        kind:
+          type: string
+          const: dust_storm
+        message:
+          type: string
+    TechnicalIndicators:
+      type: object
+      properties:
+        ema8:
+          type: number
+        ema34:
+          type: number
+        emaCross:
+          type: string
+          enum:
+          - bullish
+          - bearish
+          - neutral
+        rsi:
+          type: number
+        macd:
+          type: number
+        macdSignal:
+          type: number
+        macdHistogram:
+          type: number
+        macdCross:
+          type: string
+          enum:
+          - bullish_cross
+          - bearish_cross
+          - neutral
+        adx:
+          type: number
+        atr:
+          type: number
+        bbUpper:
+          type: number
+        bbMiddle:
+          type: number
+        bbLower:
+          type: number
+        bbWidth:
+          type: number
+        volumeRatio:
+          type: number
+        zScore:
+          type: number
+    FundingAnalysis:
+      type: object
+      properties:
+        coin:
+          type: string
+        fundingRate:
+          type: number
+        annualizedRate:
+          type: number
+        predictedRate:
+          type: number
+        crossVenueDelta:
+          type: number
+        premium:
+          type: number
+        openInterest:
+          type: number
+        isArbOpportunity:
+          type: boolean
+        arbDirection:
+          type: string
+          nullable: true
+          enum:
+          - long_spot_short_perp
+          - short_spot_long_perp
+          - null
+    MarketConditionsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        coin:
+          type: string
+        indicators:
+          $ref: '#/components/schemas/TechnicalIndicators'
+        strategyHint:
+          type: string
+          enum:
+          - momentum_long
+          - momentum_short
+          - mean_reversion
+          - no_trade
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ScanFundingResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/Tier'
+        arbOpportunities:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        highFunding:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingAnalysis'
+        totalScanned:
+          type: integer
+        upgradeMessage:
+          type: string
+        timestamp:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DustStormWarning'
+  headers:
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window
+      schema:
+        type: string
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window
+      schema:
+        type: string
+    X-RateLimit-Reset:
+      description: UTC epoch seconds when the rate limit window resets
+      schema:
+        type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Pioneer or Syndicate API key
+x-agent-use-cases:
+- id: bounded-autopilot
+  name: Bounded Autopilot
+  tier: Syndicate
+  cadence: Every 5 minutes
+  purpose: Run an always-on loop inside explicit budgets, allowlists, cooldowns, quote freshness, and local-signing requirements.
+  primaryTools:
+  - agent_onboard
+  - create_session
+  - configure_autopilot
+  - autopilot_cycle
+  - session_heartbeat
+  stopConditions:
+  - Budget, allowlist, cooldown, quote freshness, or risk bound is violated.
+  - Required local EIP-191 or EIP-712 signature is missing.
+  - Realized performance degrades enough to require analysis_only mode.
+- id: airdrop-rotation
+  name: Airdrop Rotation Desk
+  tier: Pioneer
+  cadence: Daily or event-driven
+  purpose: Watch Trail Heat, snapshots, multiplier changes, wallet health, and costs before entering, waiting, rotating, or exiting.
+  primaryTools:
+  - get_trail_heat
+  - get_historical_trailheat
+  - get_agent_events
+  - simulate_points
+  - get_swap_quote
+  - simulate_swap_execution
+  stopConditions:
+  - Expected point edge is unclear or negative after fees and gas.
+  - Sybil risk exceeds the configured threshold.
+  - User constraints do not allow the target chain or protocol.
+- id: cross-chain-roi
+  name: Cross-Chain ROI Gate
+  tier: Pioneer
+  cadence: Before any bridge
+  purpose: Bridge only when net expected edge remains positive after bridge fee, gas, slippage, and execution risk buffer.
+  primaryTools:
+  - get_chain_breakdown
+  - get_wallet_balances
+  - get_token_prices
+  - get_swap_quote
+  - simulate_swap_execution
+  - optimize_portfolio
+  stopConditions:
+  - netEdgeUsd is not positive.
+  - Quote age exceeds the configured freshness limit.
+  - Target chain is not allowlisted.
+- id: perps-hedge
+  name: Perps Hedge Co-Pilot
+  tier: Syndicate
+  cadence: Before exposure changes
+  purpose: Evaluate whether a farming position needs a Hyperliquid hedge, with no_trade as a valid outcome.
+  primaryTools:
+  - scan_funding_rates
+  - scan_market_conditions
+  - get_futures_account
+  - analyze_futures_strategy
+  - calculate_position_size
+  stopConditions:
+  - Research gate expires.
+  - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
+  - Daily loss or drawdown limit is reached.
+x-farmdash-capability-truth:
+  spot.USER_SIGNED:
+    status: operational
+    prerequisite: Healthy execution governor, quote provider, RPC and durable receipt store; customer signs and submits.
+  spot.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Owner-signed EVM grant, exact simulation/calldata binding, durable budget and customer-local signer authority.
+  futures.USER_SIGNED:
+    status: operational
+    prerequisite: Venue account ownership, local action signature, builder approval, risk/research gates and durable order control.
+  futures.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Authenticated owner-bound futures policy, authorized local API-wallet signature, durable nonce/budget/order controls.
+  solana.USER_SIGNED:
+    status: operational
+    prerequisite: Native Jupiter/RPC route, durable preparation and finality store; customer signs and broadcasts.
+  solana.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Native owner-signed Solana policy; local key must be an actual required transaction signer. Policy creates no on-chain authority.
+  ERC4337_SERVER_SUBMISSION:
+    status: preparation_only
+    prerequisite: Qualified tenant/account authorization and session-key policy enforcement on public forwarding, configured bundler, durable claims and verified receipt integration.
+  GENERIC_SERVER_INTENT_EXECUTION:
+    status: preparation_only
+    prerequisite: Trusted executable adapter, exact signed-transaction binding and canonical receipt verifier.
+  MEE:
+    status: preparation_only
+    prerequisite: Production coordinator and authoritative source/destination receipt verifier.
+  ACP:
+    status: deployment_prerequisite
+    prerequisite: AcpReadinessService paidWorkflowReady, evaluator/client identities, migrations, funding/finality workers and Base RPC.
