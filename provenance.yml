@@ -9,6 +9,9 @@ artifacts:
   a2a/farmdash-agent-card.json:
     method: unknown
     evidence: no authorship recorded
+  agentic-access/farmdash-agentic-access.yml:
+    method: generated
+    evidence: declared in the artifact
   authentication/farmdash-authentication.yml:
     method: searched
     evidence: declared in the artifact
@@ -30,115 +33,34 @@ artifacts:
   front-door-ai/2026-09-17.yml:
     method: unknown
     evidence: no authorship recorded
-  kin/checks-2026-09-24T161608.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-26T215308.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-27T094438.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-27T103455.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-27T123021.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-27T132314.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-27T140727.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-28T221322.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-29T213958.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-29T230545.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-30T203505.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-30T220315.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-08-31T223420.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-01T063623.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-01T210448.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-01T222808.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-02T211804.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-02T224043.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-03T161828.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-03T174231.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-04T062714.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-04T212454.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-04T224856.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-05T055819.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-05T072335.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-05T144739.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-05T195450.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-05T211839.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-06T011047.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-06T211804.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-06T224210.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-07T200636.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-07T213054.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-08T214843.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-08T232836.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-10T204815.yml:
-    method: generated
-    evidence: Kin Score snapshot written by score.rb
-  kin/score-2026-09-10T222408.yml:
+  hosts/farmdash-hosts.yml:
+    method: derived
+    evidence: declared in the artifact
+  integrations/farmdash-integration-edges.yml:
+    method: searched
+    evidence: declared in the artifact
+  json-ld/farmdash-context.jsonld:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-cancel-order-response-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-confirm-request-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-execute-order-response-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-firm-quote-response-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-market-estimate-response-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  json-schema/farmdash-swap-request-schema.json:
+    method: unknown
+    evidence: no authorship recorded
+  kin/checks-2026-10-11T110117.yml:
     method: generated
     evidence: Kin Score snapshot written by score.rb
   kin/score-2026-09-12T062655.yml:
@@ -222,6 +144,21 @@ artifacts:
   kin/score-2026-09-24T161608.yml:
     method: generated
     evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-09-25T210408.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-09-25T232841.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-10-03T000835.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-10-03T024842.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-10-11T110117.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
   lifecycle/farmdash-lifecycle.yml:
     method: searched
     evidence: declared in the artifact
@@ -232,6 +169,9 @@ artifacts:
     method: searched
     evidence: 'derive-llms-provenance.py: harvested'
   llms/farmdash-ai.txt:
+    method: searched
+    evidence: 'derive-llms-provenance.py: harvested'
+  llms/farmdash-llms-provenance.yml:
     method: searched
     evidence: 'derive-llms-provenance.py: harvested'
   llms/farmdash-llms.txt:
@@ -245,9 +185,24 @@ artifacts:
     evidence: declared in the artifact
   openapi/_original/farmdash-agent-api-openapi.yaml:
     method: harvested
-    evidence: found in openapi/_original/; the fetch URL and bytes were not recorded, so byte-identity
-      to the provider's source is unverified
+    evidence: fetched from https://www.farmdash.one/agents/openapi.yaml (sha256 96310281f58c, fetched
+      2026-10-19)
+  openapi/_original/farmdash-futures-openapi.yaml:
+    method: harvested
+    evidence: fetched from https://www.farmdash.one/agents/futures/openapi.yaml (sha256 9988ce5ce65f,
+      fetched 2026-10-19)
+  openapi/_original/farmdash-swap-openapi.json:
+    method: harvested
+    evidence: fetched from https://www.farmdash.one/agents/swap/openapi.json (sha256 29ec94d515b5, fetched
+      2026-10-19)
+  openapi/_original/farmdash-swap-openapi.yaml:
+    method: harvested
+    evidence: fetched from https://www.farmdash.one/agents/swap/openapi.yaml (sha256 fe596aded485, fetched
+      2026-10-19)
   openapi/farmdash-account-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-agent-api-openapi.yml:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   openapi/farmdash-autopilot-api-openapi.yml:
@@ -259,10 +214,25 @@ artifacts:
   openapi/farmdash-execution-api-openapi.yml:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-executionauthority-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   openapi/farmdash-history-api-openapi.yml:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   openapi/farmdash-intelligence-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-payments-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-planning-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-proof-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-reputation-api-openapi.yml:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   openapi/farmdash-research-api-openapi.yml:
@@ -280,18 +250,24 @@ artifacts:
   openapi/farmdash-swap-api-openapi.yml:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
+  openapi/farmdash-wallet-api-openapi.yml:
+    method: derived
+    evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   overlays/farmdash-agent-api-overlay.yaml:
     method: generated
     evidence: declared in the artifact
   packages/farmdash-packages.yml:
-    method: searched
-    evidence: declared in the artifact
+    method: unknown
+    evidence: no authorship recorded
   plans/farmdash-plans-pricing.yml:
     method: unknown
     evidence: no authorship recorded
   rate-limits/farmdash-rate-limits.yml:
     method: unknown
     evidence: no authorship recorded
+  rules/farmdash-rules.yml:
+    method: generated
+    evidence: declared in the artifact
   sandbox/farmdash-sandbox.yml:
     method: unknown
     evidence: no authorship recorded
@@ -299,19 +275,55 @@ artifacts:
     method: unknown
     evidence: no authorship recorded
   skills/_index.yml:
-    method: generated
+    method: searched
     evidence: declared in the artifact
+  skills/farmdash-autonomous-operator.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-camp-guard.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-futures-strategist.md:
+    method: unknown
+    evidence: no authorship recorded
   skills/farmdash-guarded-futures.md:
     method: generated
     evidence: declared in the artifact
+  skills/farmdash-hedge-warden.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-ledger-keeper.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-signal-architect.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-supply-master.md:
+    method: unknown
+    evidence: no authorship recorded
   skills/farmdash-trail-heat-research.md:
     method: generated
     evidence: declared in the artifact
+  skills/farmdash-trail-intelligence.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-trail-marshal.md:
+    method: unknown
+    evidence: no authorship recorded
+  skills/farmdash-wagon-steward.md:
+    method: unknown
+    evidence: no authorship recorded
   skills/farmdash-x402-payment.md:
     method: generated
     evidence: declared in the artifact
   skills/farmdash-zero-custody-swap.md:
     method: generated
+    evidence: declared in the artifact
+  vendors/farmdash-vendors.yml:
+    method: unknown
+    evidence: no authorship recorded
+  vocabulary/farmdash-vocabulary.yml:
+    method: derived
     evidence: declared in the artifact
   well-known/farmdash-ai-plugin.json:
     method: unknown

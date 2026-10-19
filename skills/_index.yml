@@ -1,33 +1,144 @@
-generated: '2026-08-26'
-method: generated
-source: openapi/farmdash-agent-api-openapi.yaml
-note: >-
-  Four packaged Agent Skills mirroring FarmDash's four marquee flows. Every operationId
-  referenced was grepped from the published OpenAPI; none is invented. FarmDash advertises
-  "OpenClaw agent skills" on /agents but publishes no skill files at a fetchable path and no
-  AGENTS.md was found, so these are generated from the contract rather than harvested.
+generated: '2026-10-19'
+method: searched
+publisher: FarmDash
+source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills
+source_commit: 8f12d77e885b088817fce7e8d3462eb3153dbea7
+license: MIT
+note: The ten OpenClaw skill contracts FarmDash publishes (llms.txt "Open Agent Skills (10, MIT, Keyless Trial)";
+  openClawSkillCount 10 in /product-inventory.json and /api/v1/agent/status), each SKILL.md saved verbatim from
+  the provider repository on 2026-10-19 on FarmDash's correction (apis.io check d1c27b23). Versions match the build-derived
+  inventory. These replace the four skills API Evangelist generated from the contract on 2026-08-26, when no skill
+  files were found at a fetchable path; those four files are kept and listed under x-ae-generated.
 skills:
-- name: farmdash-zero-custody-swap
-  file: farmdash-zero-custody-swap.md
-  description: Quote, mandatory simulation, EIP-191 user-signed execution, on-chain confirmation.
-  operations: [getSwapQuote, simulateSwapExecution, executeSwap, confirmSwap, getSwapHistory, analyzeRiskSentinel]
-  consequence: irreversible
-  human_approval_required: true
-- name: farmdash-trail-heat-research
-  file: farmdash-trail-heat-research.md
-  description: Canonical vs editorial scoring, evidence states, Dust Storm handling.
-  operations: [getLiveTrailHeat, getProtocolCatalog, getChainBreakdown, getTokenPrices, getAgentStatus]
-  consequence: read-only
-  human_approval_required: false
-- name: farmdash-guarded-futures
-  file: farmdash-guarded-futures.md
-  description: Hyperliquid funding scan through guarded EIP-712 order placement and cancellation.
-  operations: [scanFundingRates, getMarketConditions, getAccountState, analyzeStrategy, calculatePositionSize, executeOrder, cancelOrder]
-  consequence: high
-  human_approval_required: true
-- name: farmdash-x402-payment
-  file: farmdash-x402-payment.md
-  description: Handling the 402 challenge that 24 of 27 operations can return.
-  operations: [getSwapQuote, getProtocolCatalog, getLiveTrailHeat, simulateSwapExecution, executeSwap]
-  consequence: spends-money
-  human_approval_required: true
+- name: farmdash-autonomous-operator
+  file: farmdash-autonomous-operator.md
+  title: FarmDash Autonomous Operator
+  version: 2.1.2
+  description: 'Use to run supervised autopilot cycles under a bounded, revocable session grant: intents, policy
+    checks, approvals, receipts. Execution stays preview-gated.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-autonomous-operator/SKILL.md
+  tool_count: 41
+- name: farmdash-camp-guard
+  file: farmdash-camp-guard.md
+  title: FarmDash Camp Guard
+  version: 1.1.2
+  description: 'Use for pre-sign safety: allowance audits, route/health sentinel checks, policy scan of unsigned
+    transactions. Verdicts only; never signs or broadcasts.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-camp-guard/SKILL.md
+  tool_count: 3
+- name: farmdash-futures-strategist
+  file: farmdash-futures-strategist.md
+  title: FarmDash Futures Strategist
+  version: 3.4.0
+  description: 'Hyperliquid perps strategist: market scans, funding rates, position sizing, and user-signed EIP-712
+    order execution & cancellation with drawdown guardrails.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-futures-strategist/SKILL.md
+  tool_count: 10
+- name: farmdash-hedge-warden
+  file: farmdash-hedge-warden.md
+  title: FarmDash Hedge Warden
+  version: 1.1.2
+  description: 'Use when sizing a hedge for existing DeFi exposure: delta-neutral recommendations with explicit
+    bounds and risk notes. Advisory only; never trades itself.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-hedge-warden/SKILL.md
+  tool_count: 1
+- name: farmdash-ledger-keeper
+  file: farmdash-ledger-keeper.md
+  title: FarmDash Ledger Keeper
+  version: 1.1.2
+  description: 'Use for accounting exports from on-chain activity: realized PnL, ledger CSV, history summaries.
+    Derived read-only from public chains; reconcile before filing.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-ledger-keeper/SKILL.md
+  tool_count: 2
+- name: farmdash-signal-architect
+  file: farmdash-signal-architect.md
+  title: FarmDash Signal Architect
+  version: 4.2.1
+  description: 'OpenClaw DeFi execution with FarmDash''s 84-tool MCP server: LI.FI and Relay swaps, simulation,
+    zero-custody settlement verification.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-signal-architect/SKILL.md
+  tool_count: 23
+- name: farmdash-supply-master
+  file: farmdash-supply-master.md
+  title: FarmDash Supply Master
+  version: 1.1.2
+  description: Use when comparing lending and yield pools by net expected APY, TVL depth, stablecoin and impermanent-loss
+    risk. Read-only; deposits need user-signed approval.
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-supply-master/SKILL.md
+  tool_count: 1
+- name: farmdash-trail-intelligence
+  file: farmdash-trail-intelligence.md
+  title: FarmDash Trail Intelligence
+  version: 3.1.3
+  description: Read-only DeFi intelligence for opportunity research, portfolio diagnostics, allocation analysis,
+    route previews, Trail Heat, and Sybil review. Never executes.
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-trail-intelligence/SKILL.md
+  tool_count: 15
+- name: farmdash-trail-marshal
+  file: farmdash-trail-marshal.md
+  title: FarmDash Trail Marshal
+  version: 1.1.2
+  description: 'Use when composing multi-step DeFi workflows from FarmDash tools: plan, run, inspect supervised
+    pipelines. Wallet steps stay policy-gated, preview-only.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-trail-marshal/SKILL.md
+  tool_count: 4
+- name: farmdash-wagon-steward
+  file: farmdash-wagon-steward.md
+  title: FarmDash Wagon Steward
+  version: 0.7.2
+  description: 'Use when watching a DeFi portfolio: balances, position health, idle capital, drift. Read-only; never
+    rebalances or moves funds without your signature.'
+  source: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/blob/main/farmdash-wagon-steward/SKILL.md
+  tool_count: 3
+x-ae-generated:
+  generated: '2026-08-26'
+  method: generated
+  source: openapi/farmdash-agent-api-openapi.yaml
+  skills:
+  - name: farmdash-zero-custody-swap
+    file: farmdash-zero-custody-swap.md
+    description: Quote, mandatory simulation, EIP-191 user-signed execution, on-chain confirmation.
+    operations:
+    - getSwapQuote
+    - simulateSwapExecution
+    - executeSwap
+    - confirmSwap
+    - getSwapHistory
+    - analyzeRiskSentinel
+    consequence: irreversible
+    human_approval_required: true
+  - name: farmdash-trail-heat-research
+    file: farmdash-trail-heat-research.md
+    description: Canonical vs editorial scoring, evidence states, Dust Storm handling.
+    operations:
+    - getLiveTrailHeat
+    - getProtocolCatalog
+    - getChainBreakdown
+    - getTokenPrices
+    - getAgentStatus
+    consequence: read-only
+    human_approval_required: false
+  - name: farmdash-guarded-futures
+    file: farmdash-guarded-futures.md
+    description: Hyperliquid funding scan through guarded EIP-712 order placement and cancellation.
+    operations:
+    - scanFundingRates
+    - getMarketConditions
+    - getAccountState
+    - analyzeStrategy
+    - calculatePositionSize
+    - executeOrder
+    - cancelOrder
+    consequence: high
+    human_approval_required: true
+  - name: farmdash-x402-payment
+    file: farmdash-x402-payment.md
+    description: Handling the 402 challenge that 24 of 27 operations can return.
+    operations:
+    - getSwapQuote
+    - getProtocolCatalog
+    - getLiveTrailHeat
+    - simulateSwapExecution
+    - executeSwap
+    consequence: spends-money
+    human_approval_required: true

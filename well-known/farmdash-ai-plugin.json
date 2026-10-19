@@ -2,7 +2,7 @@
   "schema_version": "v1",
   "name_for_model": "FarmDash_Signal_Architect",
   "name_for_human": "FarmDash",
-  "description_for_model": "FarmDash v4.4 is the intelligence and control layer for DeFi agents and serious airdrop farmers. It provides Trail Heat scoring for the live 81-protocol opportunity dataset, wallet intelligence, Sybil-risk audits, points simulation, portfolio optimization context, swap quotes, mandatory pre-execution simulation, user-signed swap transaction payloads, Hyperliquid research and guarded order workflows, x402 one-off payments, MCP discovery, A2A discovery, OpenAPI specs, OpenClaw skills, and the agent-kit SDK. FarmDash does not request seed phrases or raw wallet private keys. State-changing flows require local wallet signatures or explicit bounded delegation where supported; provider-backed delegations remain subject to their configured bounds. Control Room is a Pioneer+ preview surface: demo rows are fixtures, authenticated session rows can load receipts, and local pause/revoke controls do not pause or revoke live execution until backend control endpoints are connected. API tiers: Scout is free with 5 req/24h; Pioneer is $39.99/mo USDC with 1,500 req/day and full Trail Heat data; Syndicate is $199/mo USDC with 50K req/day, unrestricted CORS, webhooks, high-volume agent workflows, and advanced control/session tooling for teams and serious agents. Responses include rate-limit and request-correlation headers where supported. Dust Storm handling returns typed errors or previously validated stale data with warnings, never fabricated certainty or synthetic zeroes.",
+  "description_for_model": "FarmDash v4.4 is the intelligence and control layer for DeFi agents and serious airdrop farmers. It provides Trail Heat scoring for the live 77-protocol curated opportunity catalog (live fresh/stale evidence states served by /api/v1/trail-heat), wallet intelligence, Sybil-risk audits, points simulation, portfolio optimization context, swap quotes, mandatory pre-execution simulation, user-signed swap transaction payloads, Hyperliquid research and guarded order workflows, x402 one-off payments, MCP discovery, A2A discovery, OpenAPI specs, OpenClaw skills, and the agent-kit SDK. FarmDash does not request seed phrases or raw wallet private keys. State-changing flows require local wallet signatures or explicit bounded delegation where supported; provider-backed delegations remain subject to their configured bounds. Control Room is a Pioneer+ surface for managing bounded agent sessions: authenticated session rows reflect live receipt data, and pause/revoke controls enforce real session state changes through connected backend endpoints. API tiers: Scout is free with 30 req/24h; Pioneer is $39.99/mo USDC with 1,500 req/day and full Trail Heat data; Syndicate is $199/mo USDC with 50K req/day, unrestricted CORS, webhooks, high-volume agent workflows, and advanced control/session tooling for teams and serious agents. Responses include rate-limit and request-correlation headers where supported. Dust Storm handling returns typed errors or previously validated stale data with warnings, never fabricated certainty or synthetic zeroes.",
   "description_for_human": "FarmDash is a zero-custody DeFi intelligence and control layer for agents and serious airdrop farmers: Trail Heat, wallet intelligence, swap routing, x402 payments, OpenAPI, MCP, OpenClaw skills, and Syndicate operator tooling.",
   "api": {
     "type": "openapi",
@@ -134,19 +134,15 @@
       "webhooks"
     ]
   },
-  "sdk": {
-    "package": "@farmdash/agent-kit",
-    "source": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/agent-kit",
-    "features": [
-      "TypeScript client",
-      "60+ Zod runtime validation schemas",
-      "automatic retry",
-      "LRU cache with ETag",
-      "Dust Storm fallback"
-    ]
+  "developer_resources": {
+    "agent_hub": "https://www.farmdash.one/agents",
+    "openapi_spec": "https://www.farmdash.one/agents/openapi.yaml",
+    "api_catalog": "https://www.farmdash.one/apis.json",
+    "mcp_manifest": "https://www.farmdash.one/.well-known/mcp.json",
+    "llms_txt": "https://www.farmdash.one/llms.txt"
   },
   "contact": {
-    "email": "farmdashone@proton.me",
+    "email": "michael@farmdash.one",
     "twitter": "@FarmDashone",
     "discord": "https://discord.gg/AR6hVaDj"
   }

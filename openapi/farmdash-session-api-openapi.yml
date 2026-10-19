@@ -1,13 +1,155 @@
 openapi: 3.2.0
 info:
-  title: Farmdash Session API
+  title: FarmDash Agent Session API
   version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication & Credential Lifecycle
+
+    | Tier | Price | Auth | Rate Limit | Key Prefix | Entitlements | Best for |
+
+    |------|-------|------|------------|------------|--------------|----------|
+
+    | Scout | Free | None | 30 req / 24 h per IP | `fd_scout_free` | Keyless public discovery and quotes | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | `fd_pio_` | Premium research, full Trail Heat, wallet analytics, sybil audits | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | `fd_syn_` | All Pioneer features plus advanced control tooling, bounded autopilot, webhooks, unrestricted CORS | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    ### Paid Entitlement & Key Issuance Sequence:
+
+    1. **Pay**: Transfer USDC ($39.99/mo for Pioneer, $199/mo for Syndicate) on Base, Arbitrum, Optimism, Polygon, Ethereum, or Linea to the FarmDash treasury.
+
+    2. **Verify**: Post transaction hash and wallet to `verify-payment` to record on-chain confirmation in `users` and `payment_events`.
+
+    3. **Sign Proof**: Sign an EIP-712 `ApiKeyRequest` with the paying wallet (domain: `FarmDash`, intent: `Issue FarmDash API key`, single-use `nonce`).
+
+    4. **Receive Credential**: Post the signed payload to `/api/v1/agent/api-key`. The credential tier is server-authoritative, derived exclusively from your active paid subscription (client input cannot downgrade or elevate your tier). The plaintext key is returned exactly once; FarmDash stores only a SHA-256 hash.
+
+    5. **Authenticate**: Send `Authorization: Bearer <KEY>` on all requests. Daily limits reset every 24 hours (`X-RateLimit-Remaining`). Keys expire with your 30-day subscription; expired keys return HTTP 402 Payment Required. Higher-tier Syndicate capabilities (`advanced_control`) remain blocked for Pioneer subscribers.
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, FarmDash returns HTTP 402 with
+
+    `code: free_quota_exhausted`, `instruction: STOP_RETRYING`, the UTC reset time,
+
+    upgrade URL, and x402 payment instructions. Repeating the same unpaid request does
+
+    not restore access and continued automated retries may result in temporary or
+
+    permanent blocking. To unlock one additional request, send
+
+    `X-Payment-Proof: 0x<txHash>` (or the x402 `PAYMENT-SIGNATURE`) for the
+
+    route-specific USDC payment. The configured default overage is 0.01 USDC;
+
+    premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+    Canonicalization is mandatory: lowercase every `0x`-prefixed field before joining, including
+
+    token contract addresses as well as agent/destination addresses. Sign the exact resulting UTF-8
+
+    string with EIP-191/personal_sign. A 428 simulation-gate response occurs before signature
+
+    verification and therefore does not prove a signature is valid.
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Do not use discovery GET `/agents/quote` to create execution state. POST
+
+    `/v1/agent/quote-intent` with exact parameters, real wallet and idempotency key. Its top-level
+
+    `intentId` is a `qi_*` quote-cache/idempotency identity; simulate with the separate
+
+    `simulationRequirements.intent_id` (`fd_intent_*`). Then POST `/v1/simulate` with that
+
+    `fd_intent_*` and wallet before calling `/agents/swap`.
+
+    OpenAPI paths are relative to `https://www.farmdash.one/api`: `/agents/quote` means
+
+    `https://www.farmdash.one/api/agents/quote`.
+
+    For LI.FI native ETH routes, use the zero-address token sentinel rather than the WETH contract.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
-  description: 'Operations tagged Session across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -16,12 +158,19 @@ tags:
   description: Bounded session management
 paths:
   /v1/agent/onboard:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
     get:
       operationId: getOnboardingGuide
       summary: Get bounded agent onboarding guide
       description: 'Returns setup checklist, capability map, security model, and workflow loop.
 
-        No auth required — entry point for new agents.'
+        No auth required — entry point for new agents.
+
+        '
       tags:
       - Session
       parameters:
@@ -36,10 +185,222 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OnboardResponse'
-    servers:
-    - url: https://www.farmdash.one/api
-      description: Production
+  /v1/agent/virtuals-acp:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
+    post:
+      operationId: virtualsAcpTenderAction
+      summary: Customer-owned zero-custody ACP tender workflow
+      description: 'TollBooth commercial access/rate limits apply; a paid bearer key is optional.
+
+        Every supported action requires sessionId, agentAddress and a valid session
+
+        capability: sessionToken in the body or X-FarmDash-Session-Token header.
+
+        A nonempty header takes precedence over the body token. Authentication requires
+
+        an unexpired non-terminal session (active or paused), bound to the agent or a registered team member.
+
+        A session token authenticates the tenant; it is not customer-wallet signing authority.
+
+
+        The public capability remains preparation_only: API access payment does not
+
+        enable execution. Selection grants none_selection_only authority and V2
+
+        preparation returns a non-spendable none_draft_only draft. FarmDash cannot
+
+        spend the customer ACP wallet. A customer-owned connector creates/funds jobs
+
+        locally only after the exact fresh customer-wallet EIP-712 approval and all
+
+        applicable runtime prerequisites. This contract is not live qualification.
+
+
+        create_tender is the legacy V1 draft flow; it returns 503
+
+        acp_v1_creation_disabled unless V1 creation is explicitly enabled. It requires
+
+        an evaluator configuration, serializable task and a fresh authoritative
+
+        simulation (428 simulation_not_found_or_expired otherwise).
+
+        select_provider_plan_v2 and prepare_tender_v2 require the enabled V2 rollout
+
+        cohort and ready migrations. Selection additionally requires the authoritative
+
+        evaluator adapter, Base RPC, registry, stake/identity ingestion and identity
+
+        salt. Preparation requires evaluator identity, an unexpired unconsumed
+
+        tenant/session-bound selectionId, matching provider-plan commitments, and
+
+        tenant-bound authoritative simulation evidence. Optional providers must match
+
+        the selection exactly; they do not override it. V2 accepts a local task hash,
+
+        not plaintext task or caller-supplied economic baselines.
+
+
+        authorize_tender and authorize_tender_v2 require the exact locally signed
+
+        fresh V1 or Base-domain V2 tender approval, respectively. V2 also requires
+
+        unexpired analysis evidence, matching providerSelectionId, fresh independent
+
+        provider readiness and every paid-workflow prerequisite; incomplete deployment
+
+        readiness returns 503 acp_v2_paid_workflow_unready. Neither preparation nor
+
+        commercial payment bypasses those gates or grants swap/futures execution.
+
+        cancel_tender cancels only a non-spendable draft. get_tender reads owned state.
+
+        bind_job requires an authorized tender and a verified live OPEN job matching
+
+        client, role provider and evaluator. reserve_funding_v2 requires an authorized
+
+        V2 tender and that exact job budget; authority remains customer_wallet_only.
+
+        record_funding_submission_v2 records hashes for an owned V2 reservation;
+
+        submitted is not funding confirmation or evaluation availability.
+
+        evaluate_tender requires jobs_created or settling state and authoritative
+
+        committed evidence; it may queue/process evaluator settlement, not customer
+
+        wallet spending. Dependencies/state conflicts fail closed.
+
+
+        Removed shared-wallet SDK actions (browse_agents, initiate_job, respond_to_job,
+
+        pay_and_accept_requirement, deliver_job, get_job_by_id, get_active_jobs,
+
+        get_completed_jobs, get_cancelled_jobs, get_memo_by_id) are not accepted tender
+
+        variants. After valid session authentication they return 410
+
+        acp_legacy_shared_wallet_operation_removed, never shared-wallet execution.
+
+        '
+      tags:
+      - Session
+      security:
+      - {}
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/X-ClawHub-Skill'
+      - name: X-FarmDash-Session-Token
+        in: header
+        required: false
+        description: Required capability if sessionToken is omitted; a nonempty trimmed header overrides the body token. Not wallet authority.
+        schema:
+          type: string
+          minLength: 32
+          maxLength: 256
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VirtualsAcpRequest'
+      responses:
+        '200':
+          description: Action-dependent result — selected plan, owned state, authorization, cancellation, funding reservation/submission, or evaluation. Submission alone is not funding confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpResult'
+        '201':
+          description: Non-spendable draft plus approval_typed_data (create/prepare) or verified job binding (bind_job); not permission to spend the customer wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpResult'
+        '202':
+          description: evaluate_tender settlement processing in progress; not final settlement proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpResult'
+        '400':
+          description: invalid_request (unknown action, missing fields or strict-schema violation), invalid_tender_task, provider-selection mismatch, or rejected approval nonce
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '401':
+          description: Missing or invalid session capability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '403':
+          description: Session access/owner denied, V2 rollout cohort denied, selection tenant/session mismatch or invalid exact wallet approval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '404':
+          description: Session, owned tender or provider selection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '409':
+          description: Tender/version/state/selection conflict, job not OPEN, budget mismatch, authorization or cancellation conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '410':
+          description: acp_legacy_shared_wallet_operation_removed — authenticated legacy SDK action is permanently removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '422':
+          description: Evidence/disclosure/provider or committed-state validation failure; acp_tender_operation_failed otherwise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '428':
+          description: Fresh authoritative simulation, unexpired V2 analysis evidence or independent provider readiness required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '429':
+          description: Paid caller TollBooth quota exceeded; abbreviated object-valued error with code and message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '500':
+          description: acp_unreachable_action_state — unexpected dispatch state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
+        '503':
+          description: V1 creation disabled, V2 disabled/migrations/provider-selection/paid-workflow unready, evaluator unconfigured or dependency unavailable. No customer-wallet authority exercised.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualsAcpError'
   /v1/agent/session:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
     get:
       operationId: findSession
       summary: Find active session for an agent
@@ -85,7 +446,9 @@ paths:
 
         in the JSON body or the `X-FarmDash-Session-Token` header.
 
-        Pioneer+ required.'
+        Pioneer+ required.
+
+        '
       tags:
       - Session
       security:
@@ -160,200 +523,150 @@ paths:
           description: Session owner or token verification failed
         '402':
           $ref: '#/components/responses/PaymentRequired'
-    servers:
-    - url: https://www.farmdash.one/api
-      description: Production
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+    X-FarmDash-Client:
+      name: X-FarmDash-Client
+      in: header
+      required: false
+      description: Optional untrusted analytics client hint; never security evidence.
+      schema:
+        type: string
+        enum:
+        - mcp
+        - ts_agent_kit
+        - python_agent_kit
+        - public_client
+        - webapp
+    X-FarmDash-Client-Version:
+      name: X-FarmDash-Client-Version
+      in: header
+      required: false
+      description: Optional analytics client version; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Skill-Version:
+      name: X-FarmDash-Skill-Version
+      in: header
+      required: false
+      description: Optional event-touch analytics skill version, alongside X-ClawHub-Skill; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Installation-ID:
+      name: X-FarmDash-Installation-ID
+      in: header
+      required: false
+      description: Optional analytics-only locally generated UUIDv4 installation hint. Stored only as a domain-separated salted hash. Not authentication, principal proof, quota, payment, wallet ownership, delegation or transaction authority. Omission changes no functionality.
       schema:
         type: string
         format: uuid
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
   schemas:
-    TrackedPosition:
+    VirtualsAcpReserveFundingV2Request:
       type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
       properties:
-        coin:
+        action:
           type: string
-        side:
-          type: string
-          enum:
-          - long
-          - short
-        entryPrice:
-          type: number
-        size:
-          type: number
-        leverage:
-          type: number
-        stopLoss:
-          type: number
-          nullable: true
-        takeProfit:
-          type: number
-          nullable: true
-        openedAt:
-          type: string
-          format: date-time
-        strategy:
-          type: string
-        unrealizedPnl:
-          type: number
-    AutopilotConfig:
-      type: object
-      properties:
-        strategies:
-          type: array
-          items:
-            type: string
-            enum:
-            - funding_arb
-            - momentum
-            - mean_reversion
-            - portfolio_rebalance
-            - full_auto
-        assets:
-          type: array
-          items:
-            type: string
-        maxEquityPct:
-          type: number
-        rebalanceIntervalMin:
-          type: integer
-        autoCompound:
-          type: boolean
-        riskPreference:
-          type: string
-          enum:
-          - conservative
-          - balanced
-          - aggressive
-        riskSentinel:
-          $ref: '#/components/schemas/RiskSentinelConfig'
-        executionAlpha:
-          $ref: '#/components/schemas/ExecutionAlphaConfig'
-    AgentSession:
-      type: object
-      properties:
-        id:
-          type: string
+          const: reserve_funding_v2
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
         agentAddress:
-          type: string
-        status:
-          type: string
-          enum:
-          - active
-          - paused
-          - halted
-          - expired
-        delegation:
-          $ref: '#/components/schemas/DelegationRecord'
-        autopilot:
-          $ref: '#/components/schemas/AutopilotConfig'
-        activePositions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackedPosition'
-        sessionPnl:
-          type: number
-        peakEquity:
-          type: number
-        tradeCount:
-          type: integer
-        lastHeartbeat:
-          type: string
-          format: date-time
-        createdAt:
-          type: string
-          format: date-time
-        expiresAt:
-          type: string
-          format: date-time
-        agentMeta:
-          $ref: '#/components/schemas/AgentMeta'
-    ExecutionAlphaConfig:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpReserveFundingV2Params'
+    VirtualsAcpResult:
       type: object
-      properties:
-        mevSafetyMode:
-          $ref: '#/components/schemas/SwapSafetyMode'
-        maxQuoteDecayBps:
-          type: number
-        maxGasUsdPerAction:
-          type: number
-        requirePositiveNetEdge:
-          type: boolean
-        minNetEdgeUsd:
-          type: number
-    OnboardResponse:
-      type: object
+      required:
+      - ok
+      additionalProperties: true
+      description: Open action-dependent success envelope, not a request schema. Fields vary by action; an ok response is not customer-wallet spend authority, execution proof or final settlement proof.
       properties:
         ok:
           type: boolean
-        welcome:
+          const: true
+        tender:
+          type: object
+          additionalProperties: true
+          description: Owned public tender commitment/state when returned
+        spend_authority:
           type: string
-        version:
-          type: string
-        quickStart:
-          type: object
-          properties:
-            summary:
-              type: string
-            steps:
-              type: array
-              items:
-                type: object
-                properties:
-                  step:
-                    type: integer
-                  name:
-                    type: string
-                  description:
-                    type: string
-                  action:
-                    type: string
-                  endpoint:
-                    type: string
-                    nullable: true
-                  required:
-                    type: boolean
-        capabilities:
-          type: object
-        security:
-          type: object
-        autonomousWorkflow:
-          type: object
-        discovery:
-          type: object
-        pricing:
-          type: object
-    RiskSentinelConfig:
-      type: object
-      properties:
-        minHealthFactor:
-          type: number
-        minLiquidationBufferPct:
-          type: number
-        maxStablecoinDepegPct:
-          type: number
-    DelegationRecord:
-      type: object
-      properties:
-        ownerAddress:
-          type: string
-        apiWalletAddress:
-          type: string
-        verified:
+          enum:
+          - none_selection_only
+          - none_draft_only
+          - customer_wallet_only
+        funding_confirmed:
           type: boolean
-        verifiedAt:
+          const: false
+          description: record_funding_submission_v2 only; submission does not confirm funding
+        evaluation_available:
+          type: boolean
+          const: false
+          description: record_funding_submission_v2 only; await authoritative confirmation
+    VirtualsAcpCreateTenderParams:
+      type: object
+      additionalProperties: false
+      required:
+      - idempotencyKey
+      - task
+      - simulationId
+      - expectedOutputAmount
+      - expectedGasUsdCents
+      - expectedYieldUsdCents
+      - maxPaymentUnits
+      - providers
+      - approvalNonce
+      - approvalExpiresAt
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 16
+          maxLength: 200
+        task:
+          description: JSON-serializable value whose JSON encoding length is greater than 1 and at most 16,384 characters; omitted task is rejected by canSerializeTask. FarmDash retains only its commitment hash; plaintext stays with the connector.
+        simulationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expectedOutputAmount:
+          type: string
+          pattern: ^\d+(?:\.\d+)?$
+          description: Positive decimal string; runtime additionally requires numeric value greater than zero
+          x-exclusive-minimum-decimal: '0'
+        expectedGasUsdCents:
+          $ref: '#/components/schemas/VirtualsAcpPostgresBigint'
+        expectedYieldUsdCents:
+          $ref: '#/components/schemas/VirtualsAcpPostgresBigint'
+        maxPaymentUnits:
+          $ref: '#/components/schemas/VirtualsAcpUint256'
+        providers:
+          $ref: '#/components/schemas/VirtualsAcpProviderSet'
+        approvalNonce:
+          $ref: '#/components/schemas/VirtualsAcpNonce'
+        approvalExpiresAt:
           type: string
           format: date-time
-          nullable: true
-    SwapSafetyMode:
-      type: string
-      enum:
-      - strict
-      - balanced
+          description: UTC datetime ending in Z; offsets are rejected by the runtime validator
     PaymentRequiredError:
       type: object
       properties:
@@ -426,6 +739,492 @@ components:
             chainId:
               type: integer
               example: 8453
+    AgentSession:
+      type: object
+      properties:
+        id:
+          type: string
+        agentAddress:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - halted
+          - expired
+        delegation:
+          $ref: '#/components/schemas/DelegationRecord'
+        autopilot:
+          $ref: '#/components/schemas/AutopilotConfig'
+        activePositions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackedPosition'
+        sessionPnl:
+          type: number
+        peakEquity:
+          type: number
+        tradeCount:
+          type: integer
+        lastHeartbeat:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        agentMeta:
+          $ref: '#/components/schemas/AgentMeta'
+    VirtualsAcpAuthorizeTenderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: authorize_tender
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpAuthorizeTenderParams'
+    AutopilotConfig:
+      type: object
+      properties:
+        strategies:
+          type: array
+          items:
+            type: string
+            enum:
+            - funding_arb
+            - momentum
+            - mean_reversion
+            - portfolio_rebalance
+            - full_auto
+        assets:
+          type: array
+          items:
+            type: string
+        maxEquityPct:
+          type: number
+        rebalanceIntervalMin:
+          type: integer
+        autoCompound:
+          type: boolean
+        riskPreference:
+          type: string
+          enum:
+          - conservative
+          - balanced
+          - aggressive
+        riskSentinel:
+          $ref: '#/components/schemas/RiskSentinelConfig'
+        executionAlpha:
+          $ref: '#/components/schemas/ExecutionAlphaConfig'
+    ExecutionAlphaConfig:
+      type: object
+      properties:
+        mevSafetyMode:
+          $ref: '#/components/schemas/SwapSafetyMode'
+        maxQuoteDecayBps:
+          type: number
+        maxGasUsdPerAction:
+          type: number
+        requirePositiveNetEdge:
+          type: boolean
+        minNetEdgeUsd:
+          type: number
+    OnboardResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        welcome:
+          type: string
+        version:
+          type: string
+        quickStart:
+          type: object
+          properties:
+            summary:
+              type: string
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  step:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  action:
+                    type: string
+                  endpoint:
+                    type: string
+                    nullable: true
+                  required:
+                    type: boolean
+        capabilities:
+          type: object
+        security:
+          type: object
+        autonomousWorkflow:
+          type: object
+        discovery:
+          type: object
+        pricing:
+          type: object
+    RiskSentinelConfig:
+      type: object
+      properties:
+        minHealthFactor:
+          type: number
+        minLiquidationBufferPct:
+          type: number
+        maxStablecoinDepegPct:
+          type: number
+    VirtualsAcpError:
+      type: object
+      required:
+      - ok
+      - error
+      properties:
+        ok:
+          type: boolean
+          const: false
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            status:
+              type: integer
+            retryable:
+              type: boolean
+            request_id:
+              type: string
+            details:
+              description: Optional validation or runtime prerequisite details
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+    VirtualsAcpDisclosureManifest:
+      type: object
+      additionalProperties: false
+      required:
+      - schemaVersion
+      - categories
+      - secretScan
+      description: When secretScan is overridden, overrideReasonHash is required; when passed, overrideReasonHash must be absent. Categories are deduplicated/sorted and recipients are server-derived from the selected providers, never caller-controlled.
+      properties:
+        schemaVersion:
+          type: string
+          const: farmdash-acp-disclosure/v1
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items:
+            type: string
+            enum:
+            - transaction_intent
+            - token_addresses
+            - wallet_address
+            - amounts
+            - calldata
+            - strategy_context
+            - proprietary_context
+            - personal_data
+            - credentials_override
+        secretScan:
+          type: string
+          enum:
+          - passed
+          - overridden
+        overrideReasonHash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+      allOf:
+      - if:
+          properties:
+            secretScan:
+              const: overridden
+        then:
+          required:
+          - overrideReasonHash
+        else:
+          not:
+            required:
+            - overrideReasonHash
+    VirtualsAcpAuthorizeTenderV2Request:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: authorize_tender_v2
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpAuthorizeTenderV2Params'
+    VirtualsAcpGetTenderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: get_tender
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpTenderSelector'
+    VirtualsAcpBindJobParams:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      - role
+      - onchainJobId
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+        role:
+          type: string
+          enum:
+          - solidity_auditor
+          - defi_economist
+          - sentiment_analyst
+        onchainJobId:
+          $ref: '#/components/schemas/VirtualsAcpPositiveUint256'
+    VirtualsAcpTenderSelector:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+    VirtualsAcpPrepareTenderV2Request:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: prepare_tender_v2
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpPrepareTenderV2Params'
+    VirtualsAcpSelectProviderPlanV2Request:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: select_provider_plan_v2
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpSelectProviderPlanV2Params'
+    VirtualsAcpPrepareTenderV2Params:
+      type: object
+      additionalProperties: false
+      required:
+      - idempotencyKey
+      - selectionId
+      - taskCommitmentHash
+      - simulationId
+      - maxPaymentUnits
+      - disclosureManifest
+      - approvalNonce
+      - approvalExpiresAt
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 16
+          maxLength: 200
+        selectionId:
+          type: string
+          format: uuid
+        taskCommitmentHash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        simulationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        maxPaymentUnits:
+          $ref: '#/components/schemas/VirtualsAcpPositiveUint256'
+        providers:
+          $ref: '#/components/schemas/VirtualsAcpProviderSet'
+          description: Optional compatibility assertion; must exactly match the server selection, not override it
+        disclosureManifest:
+          $ref: '#/components/schemas/VirtualsAcpDisclosureManifest'
+        approvalNonce:
+          $ref: '#/components/schemas/VirtualsAcpNonce'
+        approvalExpiresAt:
+          type: string
+          format: date-time
+          description: UTC datetime ending in Z; offsets are rejected by the runtime validator
+    VirtualsAcpSessionToken:
+      type: string
+      minLength: 32
+      maxLength: 256
+      description: Valid session capability; alternatively use X-FarmDash-Session-Token header. Required for tenant authentication, not wallet authority.
+    VirtualsAcpBindJobRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: bind_job
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpBindJobParams'
+    TrackedPosition:
+      type: object
+      properties:
+        coin:
+          type: string
+        side:
+          type: string
+          enum:
+          - long
+          - short
+        entryPrice:
+          type: number
+        size:
+          type: number
+        leverage:
+          type: number
+        stopLoss:
+          type: number
+          nullable: true
+        takeProfit:
+          type: number
+          nullable: true
+        openedAt:
+          type: string
+          format: date-time
+        strategy:
+          type: string
+        unrealizedPnl:
+          type: number
+    SwapSafetyMode:
+      type: string
+      enum:
+      - strict
+      - balanced
+    VirtualsAcpTenderId:
+      type: string
+      pattern: ^fdat_[A-Za-z0-9_-]{8,59}$
+    VirtualsAcpCreateTenderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: create_tender
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpCreateTenderParams'
+    VirtualsAcpProviderSet:
+      type: object
+      additionalProperties: false
+      required:
+      - solidity_auditor
+      - defi_economist
+      - sentiment_analyst
+      description: Three EVM specialist addresses; runtime requires distinct addresses after lowercase normalization
+      properties:
+        solidity_auditor:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        defi_economist:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sentiment_analyst:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+    VirtualsAcpSessionId:
+      type: string
+      minLength: 1
+      maxLength: 200
     AgentMeta:
       type: object
       properties:
@@ -439,16 +1238,226 @@ components:
           type: array
           items:
             type: string
-  parameters:
-    X-ClawHub-Skill:
-      name: X-ClawHub-Skill
-      in: header
-      required: false
-      schema:
-        type: string
-        pattern: ^[a-zA-Z0-9-]{1,128}$
-        example: farmdash-signal-architect
-      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+    VirtualsAcpNonce:
+      type: string
+      pattern: ^\d{10,20}$
+      description: Fresh millisecond timestamp; approval verification also enforces freshness, expiry and atomic nonce consumption
+    VirtualsAcpPostgresBigint:
+      type: string
+      pattern: ^\d{1,78}$
+      x-maximum-decimal: '9223372036854775807'
+      description: Nonnegative decimal integer string; runtime additionally rejects values above PostgreSQL bigint maximum 9223372036854775807. Extension records the application-level bound.
+    VirtualsAcpCancelTenderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: cancel_tender
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpTenderSelector'
+    VirtualsAcpApprovalSignature:
+      type: string
+      maxLength: 16386
+      pattern: ^0x[0-9a-fA-F]+$
+      description: Locally signed exact customer-wallet EIP-712 approval returned by draft preparation
+    VirtualsAcpReserveFundingV2Params:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      - role
+      - onchainJobId
+      - amountUnits
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+        role:
+          type: string
+          enum:
+          - solidity_auditor
+          - defi_economist
+          - sentiment_analyst
+        onchainJobId:
+          $ref: '#/components/schemas/VirtualsAcpPositiveUint256'
+        amountUnits:
+          $ref: '#/components/schemas/VirtualsAcpPositiveUint256'
+    DelegationRecord:
+      type: object
+      properties:
+        ownerAddress:
+          type: string
+        apiWalletAddress:
+          type: string
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    VirtualsAcpUint256:
+      type: string
+      pattern: ^\d{1,78}$
+      x-maximum-decimal: '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+      description: Nonnegative decimal integer string; runtime additionally rejects values above uint256 maximum (2^256 - 1). The x-maximum-decimal extension records that application-level bound, not a JSON Schema numeric maximum on a string.
+    VirtualsAcpEvaluateTenderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: evaluate_tender
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpTenderSelector'
+    VirtualsAcpRecordFundingSubmissionV2Params:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      - reservationId
+      - transactionHashes
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+        reservationId:
+          type: string
+          format: uuid
+        transactionHashes:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: string
+            pattern: ^0x[a-fA-F0-9]{64}$
+    VirtualsAcpRequest:
+      discriminator:
+        propertyName: action
+        mapping:
+          create_tender: '#/components/schemas/VirtualsAcpCreateTenderRequest'
+          select_provider_plan_v2: '#/components/schemas/VirtualsAcpSelectProviderPlanV2Request'
+          prepare_tender_v2: '#/components/schemas/VirtualsAcpPrepareTenderV2Request'
+          authorize_tender: '#/components/schemas/VirtualsAcpAuthorizeTenderRequest'
+          authorize_tender_v2: '#/components/schemas/VirtualsAcpAuthorizeTenderV2Request'
+          cancel_tender: '#/components/schemas/VirtualsAcpCancelTenderRequest'
+          bind_job: '#/components/schemas/VirtualsAcpBindJobRequest'
+          reserve_funding_v2: '#/components/schemas/VirtualsAcpReserveFundingV2Request'
+          record_funding_submission_v2: '#/components/schemas/VirtualsAcpRecordFundingSubmissionV2Request'
+          evaluate_tender: '#/components/schemas/VirtualsAcpEvaluateTenderRequest'
+          get_tender: '#/components/schemas/VirtualsAcpGetTenderRequest'
+      oneOf:
+      - $ref: '#/components/schemas/VirtualsAcpCreateTenderRequest'
+      - $ref: '#/components/schemas/VirtualsAcpSelectProviderPlanV2Request'
+      - $ref: '#/components/schemas/VirtualsAcpPrepareTenderV2Request'
+      - $ref: '#/components/schemas/VirtualsAcpAuthorizeTenderRequest'
+      - $ref: '#/components/schemas/VirtualsAcpAuthorizeTenderV2Request'
+      - $ref: '#/components/schemas/VirtualsAcpCancelTenderRequest'
+      - $ref: '#/components/schemas/VirtualsAcpBindJobRequest'
+      - $ref: '#/components/schemas/VirtualsAcpReserveFundingV2Request'
+      - $ref: '#/components/schemas/VirtualsAcpRecordFundingSubmissionV2Request'
+      - $ref: '#/components/schemas/VirtualsAcpEvaluateTenderRequest'
+      - $ref: '#/components/schemas/VirtualsAcpGetTenderRequest'
+    VirtualsAcpAuthorizeTenderV2Params:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      - providerSelectionId
+      - nonce
+      - expiresAt
+      - signature
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+        providerSelectionId:
+          type: string
+          format: uuid
+        nonce:
+          $ref: '#/components/schemas/VirtualsAcpNonce'
+        expiresAt:
+          type: string
+          format: date-time
+          description: UTC datetime ending in Z; offsets are rejected by the runtime validator
+        signature:
+          $ref: '#/components/schemas/VirtualsAcpApprovalSignature'
+    VirtualsAcpAuthorizeTenderParams:
+      type: object
+      additionalProperties: false
+      required:
+      - tenderId
+      - nonce
+      - expiresAt
+      - signature
+      properties:
+        tenderId:
+          $ref: '#/components/schemas/VirtualsAcpTenderId'
+        nonce:
+          $ref: '#/components/schemas/VirtualsAcpNonce'
+        expiresAt:
+          type: string
+          format: date-time
+          description: UTC datetime ending in Z; offsets are rejected by the runtime validator
+        signature:
+          $ref: '#/components/schemas/VirtualsAcpApprovalSignature'
+    VirtualsAcpSelectProviderPlanV2Params:
+      type: object
+      additionalProperties: false
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 16
+          maxLength: 200
+          description: Accepted optional input; selection handler does not consume it
+    VirtualsAcpRecordFundingSubmissionV2Request:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - sessionId
+      - agentAddress
+      - params
+      properties:
+        action:
+          type: string
+          const: record_funding_submission_v2
+        sessionId:
+          $ref: '#/components/schemas/VirtualsAcpSessionId'
+        agentAddress:
+          $ref: '#/components/schemas/VirtualsAcpAddress'
+        sessionToken:
+          $ref: '#/components/schemas/VirtualsAcpSessionToken'
+        params:
+          $ref: '#/components/schemas/VirtualsAcpRecordFundingSubmissionV2Params'
+    VirtualsAcpPositiveUint256:
+      type: string
+      pattern: ^\d{1,78}$
+      x-exclusive-minimum-decimal: '0'
+      x-maximum-decimal: '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+      description: Positive decimal integer string; runtime additionally enforces 0 < value <= 2^256 - 1. Extensions record application-level numeric bounds on strings. Funding amounts are raw Base USDC units (6 decimals).
+    VirtualsAcpAddress:
+      type: string
+      pattern: ^0x[a-fA-F0-9]{40}$
   responses:
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
@@ -476,14 +1485,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
-x-refined-from:
-- farmdash-agent-api-openapi.yaml
-- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot
@@ -547,3 +1559,34 @@ x-agent-use-cases:
   - Research gate expires.
   - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
   - Daily loss or drawdown limit is reached.
+x-farmdash-capability-truth:
+  spot.USER_SIGNED:
+    status: operational
+    prerequisite: Healthy execution governor, quote provider, RPC and durable receipt store; customer signs and submits.
+  spot.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Owner-signed EVM grant, exact simulation/calldata binding, durable budget and customer-local signer authority.
+  futures.USER_SIGNED:
+    status: operational
+    prerequisite: Venue account ownership, local action signature, builder approval, risk/research gates and durable order control.
+  futures.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Authenticated owner-bound futures policy, authorized local API-wallet signature, durable nonce/budget/order controls.
+  solana.USER_SIGNED:
+    status: operational
+    prerequisite: Native Jupiter/RPC route, durable preparation and finality store; customer signs and broadcasts.
+  solana.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Native owner-signed Solana policy; local key must be an actual required transaction signer. Policy creates no on-chain authority.
+  ERC4337_SERVER_SUBMISSION:
+    status: preparation_only
+    prerequisite: Qualified tenant/account authorization and session-key policy enforcement on public forwarding, configured bundler, durable claims and verified receipt integration.
+  GENERIC_SERVER_INTENT_EXECUTION:
+    status: preparation_only
+    prerequisite: Trusted executable adapter, exact signed-transaction binding and canonical receipt verifier.
+  MEE:
+    status: preparation_only
+    prerequisite: Production coordinator and authoritative source/destination receipt verifier.
+  ACP:
+    status: deployment_prerequisite
+    prerequisite: AcpReadinessService paidWorkflowReady, evaluator/client identities, migrations, funding/finality workers and Base RPC.

@@ -1,0 +1,248 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FarmDash Signal Architect Swap API",
+    "description": "Zero-custody compatibility-swap quote, simulation, and transaction-preparation API. Released routing providers are LI.FI and Relay. 0x is operator-paused until reinstated and is never primary or fallback. x402 is HTTP machine-payment/access infrastructure, not a swap provider. FarmDash does not broadcast compatibility transactions; the customer wallet controls signing and submission.",
+    "version": "1.2.0",
+    "contact": {
+      "name": "FarmDash Protocol",
+      "url": "https://www.farmdash.one"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://www.farmdash.one/api",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/agents/quote": {
+      "parameters": [{"$ref":"#/components/parameters/X-FarmDash-Installation-ID"},{"$ref":"#/components/parameters/X-FarmDash-Client"},{"$ref":"#/components/parameters/X-FarmDash-Client-Version"},{"$ref":"#/components/parameters/X-FarmDash-Skill-Version"}],
+      "get": {
+        "summary": "Get Swap Quote",
+        "description": "Discovery endpoint. By default this returns a provider-neutral market estimate and never creates executable simulation state merely because walletAddress is supplied. For execution, POST /v1/agent/quote-intent. That response returns top-level intentId (qi_*, quote-cache/idempotency identity) plus simulationRequirements.intent_id (fd_intent_*, the /v1/simulate input). Re-call this GET with the qi_* intentId plus identical params to retrieve the stored firm quote.",
+        "operationId": "getSwapQuote",
+        "tags": ["Swap"],
+        "parameters": [
+          {"name":"fromChainId","in":"query","required":true,"schema":{"type":"integer"}},
+          {"name":"toChainId","in":"query","required":true,"schema":{"type":"integer"}},
+          {"name":"fromToken","in":"query","required":true,"schema":{"type":"string"}},
+          {"name":"toToken","in":"query","required":true,"schema":{"type":"string"}},
+          {"name":"fromAmount","in":"query","required":true,"schema":{"type":"string"}},
+          {
+            "name":"protocol",
+            "in":"query",
+            "required":false,
+            "schema":{"type":"string","enum":["lifi","relay"]},
+            "description":"Force a released compatibility provider (LI.FI or Relay). 0x is operator-paused and cannot be forced."
+          },
+          {"name":"walletAddress","in":"query","required":false,"schema":{"type":"string"},"description":"Optional discovery context. Supplying walletAddress alone does not create execution/simulation state; use POST /v1/agent/quote-intent."},
+          {"name":"toAddress","in":"query","required":false,"schema":{"type":"string"},"description":"Destination wallet for output tokens."},
+          {"name":"slippage","in":"query","required":false,"schema":{"type":"number","minimum":0.01,"maximum":5},"description":"Slippage tolerance in percent. Must match the stored firm intent when intentId is supplied."},
+          {"name":"intentId","in":"query","required":false,"schema":{"type":"string","pattern":"^qi_"},"description":"qi_* quote-cache/idempotency identity from POST /v1/agent/quote-intent. With otherwise identical parameters, serves the stored firm quote without a new provider call."}
+        ],
+        "responses": {
+          "200": {
+            "description": "Discovery market estimate or stored firm quote",
+            "content": {"application/json":{"schema":{"oneOf":[{"$ref":"#/components/schemas/MarketEstimateResponse"},{"$ref":"#/components/schemas/FirmQuoteIntentResponse"}]}}}
+          },
+          "402": {
+            "description": "API access/payment requirement. x402 here is not a swap provider."
+          }
+        }
+      }
+    },
+    "/v1/agent/quote-intent": {
+      "parameters": [{"$ref":"#/components/parameters/X-FarmDash-Installation-ID"},{"$ref":"#/components/parameters/X-FarmDash-Client"},{"$ref":"#/components/parameters/X-FarmDash-Client-Version"},{"$ref":"#/components/parameters/X-FarmDash-Skill-Version"}],
+      "post": {
+        "summary": "Create Execution Quote Intent",
+        "description": "Execution entrypoint. Requires exact chain/token/amount params, real wallet/destination, slippage, and idempotency key. Response carries intentId=qi_* for quote cache/idempotency and simulationRequirements.intent_id=fd_intent_* for /v1/simulate. FarmDash does not sign or broadcast.",
+        "operationId": "createQuoteIntent",
+        "tags": ["Swap"],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json":{"schema":{
+            "type":"object",
+            "required":["fromChainId","toChainId","fromToken","toToken","fromAmount","walletAddress","toAddress","slippage","idempotencyKey"],
+            "properties":{
+              "fromChainId":{"type":"integer"},
+              "toChainId":{"type":"integer"},
+              "fromToken":{"type":"string"},
+              "toToken":{"type":"string"},
+              "fromAmount":{"type":"string"},
+              "walletAddress":{"type":"string"},
+              "toAddress":{"type":"string"},
+              "slippage":{"type":"number"},
+              "protocol":{"type":"string","enum":["lifi","relay"]},
+              "idempotencyKey":{"type":"string"}
+            }
+          }}}
+        },
+        "responses": {
+          "201": {"description":"New firm quote intent","content":{"application/json":{"schema":{"$ref":"#/components/schemas/FirmQuoteIntentResponse"}}}},
+          "200": {"description":"Identical intent reused","content":{"application/json":{"schema":{"$ref":"#/components/schemas/FirmQuoteIntentResponse"}}}},
+          "400": {"description":"Invalid request"},
+          "402": {"description":"API access payment required"},
+          "409": {"description":"Idempotency key conflict"},
+          "413": {"description":"Request body too large"},
+          "429": {"description":"Rate limit or execution-governor budget"},
+          "502": {"description":"Typed live quote provider degradation"}
+        }
+      }
+    },
+    "/v1/simulate": {
+      "parameters": [{"$ref":"#/components/parameters/X-FarmDash-Installation-ID"},{"$ref":"#/components/parameters/X-FarmDash-Client"},{"$ref":"#/components/parameters/X-FarmDash-Client-Version"},{"$ref":"#/components/parameters/X-FarmDash-Skill-Version"}],
+      "post": {
+        "summary": "Simulate Swap Intent",
+        "description": "Mandatory authoritative preflight. Submit simulationRequirements.intent_id (fd_intent_*) returned by POST /v1/agent/quote-intent plus the signing wallet. Do not submit top-level qi_* intentId. API/payment failures remain unavailable states and are not relabeled as blockchain reverts.",
+        "operationId": "simulateSwap",
+        "tags": ["Swap"],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json":{"schema":{"$ref":"#/components/schemas/SwapSimulationRequest"}}}
+        },
+        "responses": {
+          "200": {"description":"Simulation result","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SwapSimulationResponse"}}}},
+          "402": {"description":"API access/payment gate; preflight was not run"}
+        }
+      }
+    },
+    "/agents/swap": {
+      "parameters": [{"$ref":"#/components/parameters/X-FarmDash-Installation-ID"},{"$ref":"#/components/parameters/X-FarmDash-Client"},{"$ref":"#/components/parameters/X-FarmDash-Client-Version"},{"$ref":"#/components/parameters/X-FarmDash-Skill-Version"}],
+      "post": {
+        "summary": "Prepare Signed Swap Transaction",
+        "description": "Validate a fresh successful simulation plus EIP-191 customer-wallet signature and return the exact prepared LI.FI or Relay transaction payload. FarmDash does not broadcast. Signing payload is v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}; lowercase every 0x-prefixed field before joining, including token addresses. A 428 simulation-gate response occurs before signature verification. For LI.FI native ETH use 0x0000000000000000000000000000000000000000 rather than WETH.",
+        "operationId": "executeSwap",
+        "tags": ["Swap"],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json":{"schema":{"$ref":"#/components/schemas/SwapRequest"}}}
+        },
+        "responses": {
+          "200": {
+            "description": "Prepared customer-broadcast transaction payload; not submission or confirmation evidence",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/SwapQuote"}}}
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {"X-FarmDash-Installation-ID":{"name":"X-FarmDash-Installation-ID","in":"header","required":false,"description":"Optional analytics-only locally generated UUIDv4 installation hint. Stored only as a domain-separated salted hash. Not authentication, principal proof, quota, payment, wallet ownership, delegation or transaction authority. Omission changes no functionality.","schema":{"type":"string","format":"uuid","pattern":"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"}},"X-FarmDash-Client":{"name":"X-FarmDash-Client","in":"header","required":false,"description":"Optional untrusted analytics client hint; never security evidence.","schema":{"type":"string","enum":["mcp","ts_agent_kit","python_agent_kit","public_client","webapp"]}},"X-FarmDash-Client-Version":{"name":"X-FarmDash-Client-Version","in":"header","required":false,"description":"Optional analytics client version; never security evidence.","schema":{"type":"string","maxLength":64,"pattern":"^[A-Za-z0-9._+-]{1,64}$"}},"X-FarmDash-Skill-Version":{"name":"X-FarmDash-Skill-Version","in":"header","required":false,"description":"Optional event-touch analytics skill version, alongside X-ClawHub-Skill; never security evidence.","schema":{"type":"string","maxLength":64,"pattern":"^[A-Za-z0-9._+-]{1,64}$"}}},
+    "schemas": {
+      "MarketEstimateResponse": {
+        "type": "object",
+        "required": ["quoteKind","executionReady","liquidityConfirmed","priceUnknown","feeTierBps","volumeUnknown","compatibleProviders","routeSupported","sources","confidence","observedAt","cached","stale","unsigned","broadcast_by_farmdash"],
+        "properties": {
+          "quoteKind": {"type":"string","enum":["market_estimate"]},
+          "executionReady": {"type":"boolean","enum":[false]},
+          "liquidityConfirmed": {"type":"boolean","enum":[false]},
+          "providerAttribution": {"type":"string","nullable":true},
+          "referencePriceUsd": {"type":"number","nullable":true},
+          "estimatedInputUsd": {"type":"number","nullable":true},
+          "estimatedOutputUsd": {"type":"number","nullable":true},
+          "priceUnknown": {"type":"boolean"},
+          "feeTierBps": {"type":"integer"},
+          "volumeUnknown": {"type":"boolean"},
+          "compatibleProviders": {"type":"array","items":{"type":"string"}},
+          "routeSupported": {"type":"boolean"},
+          "sources": {"type":"array","items":{"type":"string"}},
+          "confidence": {"type":"string","enum":["high","medium","low"]},
+          "observedAt": {"type":"string"},
+          "cached": {"type":"boolean"},
+          "stale": {"type":"boolean"},
+          "unsigned": {"type":"boolean","enum":[true]},
+          "broadcast_by_farmdash": {"type":"boolean","enum":[false]}
+        }
+      },
+      "FirmQuoteIntentResponse": {
+        "type": "object",
+        "required": ["intentId","quoteKind","selectedProvider","firmQuote","executionReady","simulationRequirements","unsigned","broadcast_by_farmdash"],
+        "properties": {
+          "intentId": {"type":"string","pattern":"^qi_","description":"Quote-cache/idempotency identity; not the simulation input."},
+          "quoteKind": {"type":"string","enum":["firm_quote"]},
+          "reused": {"type":"boolean"},
+          "selectedProvider": {"type":"string","enum":["lifi","relay"]},
+          "firmQuote": {"type":"object","additionalProperties":true},
+          "executionReady": {"type":"boolean"},
+          "simulationRequirements": {
+            "type":"object",
+            "required":["required","simulate_url","intent_id","valid_for_execution"],
+            "properties":{
+              "required":{"type":"boolean"},
+              "simulate_url":{"type":"string"},
+              "intent_id":{"type":"string","pattern":"^fd_intent_","description":"Execution-simulation identity; pass to /v1/simulate."},
+              "valid_for_execution":{"type":"boolean"}
+            }
+          },
+          "unsigned":{"type":"boolean","enum":[true]},
+          "broadcast_by_farmdash":{"type":"boolean","enum":[false]}
+        }
+      },
+      "SwapRequest": {
+        "type": "object",
+        "required": ["fromChainId","toChainId","fromToken","toToken","fromAmount","agentAddress","toAddress","simulationId","signature","nonce"],
+        "properties": {
+          "fromChainId": {"type":"integer"},
+          "toChainId": {"type":"integer"},
+          "fromToken": {"type":"string"},
+          "toToken": {"type":"string"},
+          "fromAmount": {"type":"string"},
+          "agentAddress": {"type":"string","description":"Customer wallet address that signs the preparation request."},
+          "toAddress": {"type":"string"},
+          "simulationId": {"type":"string","description":"Fresh successful simulation_id from /api/v1/simulate."},
+          "intentId": {"type":"string"},
+          "slippage": {"type":"number"},
+          "protocol": {"type":"string","enum":["lifi","relay"]},
+          "signature": {"type":"string"},
+          "nonce": {"type":"string"}
+        }
+      },
+      "SwapSimulationRequest": {
+        "type": "object",
+        "required": ["intent_id","wallet_address"],
+        "properties": {
+          "intent_id": {"type":"string"},
+          "wallet_address": {"type":"string"}
+        }
+      },
+      "SwapSimulationResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {"type":"boolean"},
+          "simulation_id": {"type":"string"},
+          "intent_id": {"type":"string"},
+          "success": {"type":"boolean"},
+          "gas_used": {"type":"number"},
+          "gas_cost_usd": {"type":"number"},
+          "output_amount": {"type":"string"},
+          "mev_risk": {"type":"string","enum":["low","medium","high"]},
+          "revert_reason": {"type":"string","nullable":true},
+          "valid_until": {"type":"string","format":"date-time"}
+        }
+      },
+      "SwapQuote": {
+        "type": "object",
+        "properties": {
+          "protocol": {"type":"string","enum":["lifi","relay"],"description":"Provider that produced this quote. Only released providers are ever selected; 0x is operator-paused."},
+          "estimatedOutput": {"type":"string"},
+          "feeBps": {"type":"integer"},
+          "feeAmountUSD": {"type":"string"},
+          "gasEstimate": {"type":"string"},
+          "txData": {
+            "type": "object",
+            "description": "Prepared transaction payload for the customer wallet to sign/broadcast.",
+            "properties": {
+              "to": {"type":"string"},
+              "data": {"type":"string"},
+              "value": {"type":"string"},
+              "chainId": {"type":"integer"}
+            }
+          },
+          "expiresAt": {"type":"integer"},
+          "note": {"type":"string"}
+        }
+      }
+    }
+  }
+}

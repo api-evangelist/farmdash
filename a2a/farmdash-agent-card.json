@@ -1,9 +1,20 @@
 {
   "name": "FarmDash",
-  "description": "FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. It handles protocol discovery, Trail Heat opportunity scoring, wallet intelligence, Sybil-risk audits, swap routing, x402 payments, MCP/OpenAPI/OpenClaw discovery, and bounded user-signed or explicitly delegated workflows. FarmDash does not request seed phrases or raw wallet private keys. Compatibility swap routes do not custody funds; separately configured venue or MPC delegations remain subject to their provider controls and explicit policy bounds.",
+  "description": "FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. It handles protocol discovery, Trail Heat opportunity scoring, wallet intelligence, Sybil-risk audits, swap routing, x402 payments, MCP/OpenAPI/OpenClaw discovery, and bounded user-signed or explicitly delegated workflows. FarmDash does not request seed phrases or raw wallet private keys. Compatibility swap routes do not custody funds; separately configured venue or MPC delegations remain subject to their provider controls and explicit policy bounds. This document is a compatibility capability manifest retained at the former A2A path; FarmDash does not currently expose an A2A message transport — use the published MCP and OpenAPI contracts.",
   "url": "https://www.farmdash.one",
+  "status_url": "https://www.farmdash.one/status",
+  "status_api": "https://www.farmdash.one/api/v1/agent/status",
   "version": "4.4.0",
-  "protocol_version": "0.2.0",
+  "manifest_type": "farmdash-agent-capabilities/v1",
+  "a2a_transport": {
+    "available": false,
+    "reason": "No A2A message transport is currently exposed. This legacy path is retained for compatibility only.",
+    "current_standard_card_published": false,
+    "integration_alternatives": [
+      "https://www.farmdash.one/.well-known/mcp.json",
+      "https://www.farmdash.one/agents/openapi.yaml"
+    ]
+  },
   "capabilities": {
     "streaming": false,
     "pushNotifications": true,
@@ -39,7 +50,7 @@
     {
       "id": "signal-architect",
       "name": "Signal Architect",
-      "description": "Cross-chain token swap routing via Li.Fi, 0x, and x402 protocols. Get wallet-bound quotes, simulate before execution, prepare user-signed transaction payloads, confirm with on-chain tx hash, and track history. FarmDash does not custody funds on these routes; execution occurs through the selected protocol after customer-controlled signing. Fees are 45 bps by default, 35 bps at $10K cumulative volume, and 25 bps at $100K. Versioned signature payload (v1 prefix).",
+      "description": "Cross-chain compatibility-swap transaction preparation through released LI.FI and Relay providers. x402 is machine-payment/access infrastructure, not a swap routing provider. Get wallet-bound quotes, simulate before preparation, return customer-signed transaction payloads, verify canonical receipts, and track history. FarmDash does not custody funds or broadcast these compatibility transactions. Fees are a combined routing target of 50 bps under $10K, 40 bps at $10K+, 35 bps at $100K+, 20 bps at $1M+ (LI.FI 25 bps platform component deducted, not stacked; gas/slippage excluded). Versioned signature payload (v1 prefix).",
       "tags": [
         "defi",
         "swap",
@@ -110,7 +121,7 @@
     {
       "id": "autonomous-operator",
       "name": "Bounded Operator",
-      "description": "Session, delegation, webhook, and autopilot tooling for supervised DeFi agent workflows. Create bounded sessions, verify delegation boundaries, configure guarded strategies, and receive recommended actions with policy, simulation, approval, and receipt context. Control Room is currently a preview surface until backend pause/revoke endpoints are connected.",
+      "description": "Session, delegation, webhook, and autopilot tooling for supervised DeFi agent workflows. Create bounded sessions, verify delegation boundaries, configure guarded strategies, and receive recommended actions with policy, simulation, approval, and receipt context. Session pause, key revocation, and policy enforcement are active and enforced by the backend.",
       "tags": [
         "bounded",
         "operator",
@@ -179,26 +190,23 @@
     "mcp_manifest": "https://www.farmdash.one/.well-known/mcp.json",
     "ai_plugin": "https://www.farmdash.one/.well-known/ai-plugin.json",
     "openapi_spec": "https://www.farmdash.one/agents/openapi.yaml",
+    "api_catalog": "https://www.farmdash.one/apis.json",
     "llms_txt": "https://www.farmdash.one/llms.txt",
     "agent_report": "https://www.farmdash.one/agent-report.md"
   },
-  "sdk": {
-    "package": "@farmdash/agent-kit",
-    "source": "https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/agent-kit",
-    "features": [
-      "TypeScript client",
-      "Zod runtime validation schemas",
-      "automatic retry",
-      "LRU cache with ETag",
-      "Dust Storm fallback"
-    ]
+  "developer_resources": {
+    "agent_hub": "https://www.farmdash.one/agents",
+    "openapi_spec": "https://www.farmdash.one/agents/openapi.yaml",
+    "api_catalog": "https://www.farmdash.one/apis.json",
+    "mcp_manifest": "https://www.farmdash.one/.well-known/mcp.json",
+    "llms_txt": "https://www.farmdash.one/llms.txt"
   },
   "pricing": {
     "tiers": [
       {
         "name": "Scout",
         "price": "Free",
-        "rate_limit": "5 req/24h per IP",
+        "rate_limit": "30 req/24h per IP",
         "capabilities": [
           "quotes",
           "prices",
@@ -234,7 +242,7 @@
       }
     ],
     "x402_one_off_prices_usdc": {
-      "default_overage": "0.99",
+      "default_overage": "0.01",
       "market_data": "0.99",
       "full_trail_heat": "1.99",
       "wallet_portfolio": "3.99",
@@ -262,7 +270,7 @@
     "dead_mans_switch": "60s auto-cancel on agent disconnect"
   },
   "contact": {
-    "email": "farmdashone@proton.me",
+    "email": "michael@farmdash.one",
     "twitter": "@FarmDashone",
     "discord": "https://discord.gg/AR6hVaDj"
   }

@@ -1,0 +1,12 @@
+{
+ "url": "https://www.farmdash.one/agents/swap/openapi.json",
+ "requested_url": "https://www.farmdash.one/agents/swap/openapi.json",
+ "status": 200,
+ "content_type": "application/json; charset=utf-8",
+ "bytes": 15791,
+ "sha256": "29ec94d515b52e9a582d6395fcfbb18158c1f0f7cfbd874dfa06ba08c07ba25d",
+ "fetched_at": "2026-10-19",
+ "fetched_by": "APIEvangelist-Harvest/1.0 (+https://apievangelist.com)",
+ "match": "exact",
+ "note": "Re-fetched 2026-10-19 on FarmDash's correction (apis.io check d1c27b23). Listed in the provider's /apis.json, /sitemap-agents.xml and product-inventory.json (openApiDocuments)."
+}

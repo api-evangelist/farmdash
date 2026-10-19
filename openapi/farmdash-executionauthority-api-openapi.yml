@@ -1,13 +1,155 @@
 openapi: 3.2.0
 info:
-  title: Farmdash Execution Authority API
+  title: FarmDash Agent Execution Authority API
   version: 2.0.0
+  description: 'WARNING: Running trade executions and cancellations places real perpetual futures trades and alters active market exposure, carrying significant risk of financial loss. Immediate, explicit manual end-user confirmation and consent is strictly required immediately before placing any execution or cancellation request. Do not allow autonomous agents to auto-run trade execution or cancellation without manual user approval.
+
+
+    FarmDash is an intelligence and control layer for DeFi agents and serious airdrop farmers. This API covers swap transaction preparation (Signal Architect),
+
+    protocol discovery intelligence (Trail Heat), perpetual futures (Futures Strategist), portfolio
+
+    research, bounded autonomous sessions, x402 payment flows, and agent-readable opportunity intelligence.
+
+
+    FarmDash does not request seed phrases or raw wallet private keys. Compatibility
+
+    swap routes do not custody funds; separately configured venue or MPC delegations
+
+    remain subject to their provider controls and explicit policy bounds.
+
+
+    ## Authentication & Credential Lifecycle
+
+    | Tier | Price | Auth | Rate Limit | Key Prefix | Entitlements | Best for |
+
+    |------|-------|------|------------|------------|--------------|----------|
+
+    | Scout | Free | None | 30 req / 24 h per IP | `fd_scout_free` | Keyless public discovery and quotes | Keyless discovery and quotes |
+
+    | Pioneer | $39.99/mo USDC | `Authorization: Bearer <KEY>` | 1,500 req / day | `fd_pio_` | Premium research, full Trail Heat, wallet analytics, sybil audits | Serious farmers, full datasets, sybil audits, wallet analytics |
+
+    | Syndicate | $199/mo USDC | `Authorization: Bearer <KEY>` | 50,000 req / day | `fd_syn_` | All Pioneer features plus advanced control tooling, bounded autopilot, webhooks, unrestricted CORS | Teams, serious agents, high-volume API use, webhooks, unrestricted CORS, advanced control/session tooling |
+
+
+    ### Paid Entitlement & Key Issuance Sequence:
+
+    1. **Pay**: Transfer USDC ($39.99/mo for Pioneer, $199/mo for Syndicate) on Base, Arbitrum, Optimism, Polygon, Ethereum, or Linea to the FarmDash treasury.
+
+    2. **Verify**: Post transaction hash and wallet to `verify-payment` to record on-chain confirmation in `users` and `payment_events`.
+
+    3. **Sign Proof**: Sign an EIP-712 `ApiKeyRequest` with the paying wallet (domain: `FarmDash`, intent: `Issue FarmDash API key`, single-use `nonce`).
+
+    4. **Receive Credential**: Post the signed payload to `/api/v1/agent/api-key`. The credential tier is server-authoritative, derived exclusively from your active paid subscription (client input cannot downgrade or elevate your tier). The plaintext key is returned exactly once; FarmDash stores only a SHA-256 hash.
+
+    5. **Authenticate**: Send `Authorization: Bearer <KEY>` on all requests. Daily limits reset every 24 hours (`X-RateLimit-Remaining`). Keys expire with your 30-day subscription; expired keys return HTTP 402 Payment Required. Higher-tier Syndicate capabilities (`advanced_control`) remain blocked for Pioneer subscribers.
+
+
+    For SDK development without live data, use the deterministic sandbox on
+
+    the two endpoints that explicitly support it (`/v1/agent/protocols` and
+
+    `/v1/trail-heat`):
+
+    `?mock=true`, `X-FarmDash-Mock: true`, or `Authorization: Bearer fd_sandbox_mock`
+
+    Quote mock requests return typed `mock_not_supported` without contacting a live provider.
+
+
+    Swap execution requires a fresh successful preflight simulation plus an EIP-191 agent wallet signature.
+
+    Futures execution requires an EIP-712 Hyperliquid wallet signature.
+
+
+    ## Dust Storm Protocol
+
+    On upstream failure, FarmDash returns `ok:false` with a typed degraded state
+
+    and a `warnings` array containing `{ kind: "dust_storm", message: "..." }`.
+
+    Cached SDK responses may be returned as stale with explicit stale-data age.
+
+
+    ## x402 Payment Wall
+
+    When Scout limits are exceeded, FarmDash returns HTTP 402 with
+
+    `code: free_quota_exhausted`, `instruction: STOP_RETRYING`, the UTC reset time,
+
+    upgrade URL, and x402 payment instructions. Repeating the same unpaid request does
+
+    not restore access and continued automated retries may result in temporary or
+
+    permanent blocking. To unlock one additional request, send
+
+    `X-Payment-Proof: 0x<txHash>` (or the x402 `PAYMENT-SIGNATURE`) for the
+
+    route-specific USDC payment. The configured default overage is 0.01 USDC;
+
+    premium routes return their own amount.
+
+
+    ## Data Confidence
+
+    Agent-facing research responses include `data_quality` and `scoring_methodology`
+
+    where available. Trail Heat is a transparent heuristic, not a guaranteed yield,
+
+    allocation, or airdrop outcome.
+
+
+    ## Rate Limit Headers
+
+    All responses include:
+
+    - `X-RateLimit-Limit` — max requests for the current window
+
+    - `X-RateLimit-Remaining` — remaining requests
+
+    - `X-RateLimit-Reset` — UTC epoch seconds when the window resets
+
+    - `X-Request-ID` — unique request trace ID (echo it for support)
+
+
+    ## Versioned Signature Payload (v1)
+
+    `v1:FARMDASH_SWAP:{fromChainId}:{toChainId}:{fromToken}:{toToken}:{fromAmount}:{agentAddress}:{toAddress}:{nonce}`
+
+    Canonicalization is mandatory: lowercase every `0x`-prefixed field before joining, including
+
+    token contract addresses as well as agent/destination addresses. Sign the exact resulting UTF-8
+
+    string with EIP-191/personal_sign. A 428 simulation-gate response occurs before signature
+
+    verification and therefore does not prove a signature is valid.
+
+
+    ## Mandatory Swap Simulation Gate
+
+    Do not use discovery GET `/agents/quote` to create execution state. POST
+
+    `/v1/agent/quote-intent` with exact parameters, real wallet and idempotency key. Its top-level
+
+    `intentId` is a `qi_*` quote-cache/idempotency identity; simulate with the separate
+
+    `simulationRequirements.intent_id` (`fd_intent_*`). Then POST `/v1/simulate` with that
+
+    `fd_intent_*` and wallet before calling `/agents/swap`.
+
+    OpenAPI paths are relative to `https://www.farmdash.one/api`: `/agents/quote` means
+
+    `https://www.farmdash.one/api/agents/quote`.
+
+    For LI.FI native ETH routes, use the zero-address token sentinel rather than the WETH contract.
+
+    `/agents/swap` rejects missing, failed, expired, or mismatched simulations.
+
+    '
   contact:
     name: FarmDash Engineering
     url: https://www.farmdash.one/agents
   license:
     name: MIT
-  description: 'Operations tagged ExecutionAuthority across 2 of this provider''s published API definitions: farmdash-agent-api-openapi.yaml, farmdash-openapi.yaml. Each path carries the servers of the definition it was published in.'
 servers:
 - url: https://www.farmdash.one/api
   description: Production
@@ -15,12 +157,19 @@ tags:
 - name: ExecutionAuthority
 paths:
   /v1/agent/authority:
+    parameters:
+    - $ref: '#/components/parameters/X-FarmDash-Installation-ID'
+    - $ref: '#/components/parameters/X-FarmDash-Client'
+    - $ref: '#/components/parameters/X-FarmDash-Client-Version'
+    - $ref: '#/components/parameters/X-FarmDash-Skill-Version'
     get:
       operationId: getExecutionAuthority
       summary: Get current execution authority configuration and bounded delegation status
       description: 'Returns the dual execution-authority state (USER_SIGNED vs BOUNDED_AUTONOMOUS),
 
-        zero-custody confirmation, and active delegation status if configured.'
+        zero-custody confirmation, and active delegation status if configured.
+
+        '
       tags:
       - ExecutionAuthority
       security:
@@ -87,12 +236,16 @@ paths:
           $ref: '#/components/responses/PaymentRequired'
     post:
       operationId: manageExecutionAuthority
-      summary: Request delegation payload, register delegation, prepare autonomous swap…
+      summary: Manage independent spot delegation and owner-signed futures policies
       description: 'Dual execution authority management. Actions: get_authority, request_delegation,
 
-        register_delegation, prepare_autonomous_swap, confirm_autonomous_swap, revoke.
+        register_delegation, prepare_autonomous_swap, confirm_autonomous_swap, release_autonomous_reservation, revoke.
 
-        Zero key custody: calling agent local signer retains wallet authority.'
+        Futures actions request/register a policy or inspect/revoke exact session grants. Session tokens never create authority; registration requires the owner signature. Futures BOUNDED_AUTONOMOUS remains preparation_only.
+
+        Zero key custody: calling agent local signer retains wallet authority.
+
+        '
       tags:
       - ExecutionAuthority
       security:
@@ -115,7 +268,21 @@ paths:
                   - register_delegation
                   - prepare_autonomous_swap
                   - confirm_autonomous_swap
+                  - release_autonomous_reservation
+                  - release_reservation
                   - revoke
+                  - request_futures_policy
+                  - register_futures_policy
+                  - get_futures_authority
+                  - revoke_futures_policy
+                policy:
+                  $ref: '#/components/schemas/FuturesPolicy'
+                signature:
+                  type: string
+                  description: Owner EIP-712 signature for register_futures_policy
+                sessionToken:
+                  type: string
+                  description: Alternatively use X-FarmDash-Session-Token header
                 ownerAddress:
                   type: string
                 sessionId:
@@ -157,38 +324,195 @@ paths:
                     type: string
                   details:
                     type: object
-    servers:
-    - url: https://www.farmdash.one/api
-      description: Production
 components:
-  headers:
-    X-Request-ID:
-      description: Unique request trace ID for debugging and support
+  parameters:
+    X-ClawHub-Skill:
+      name: X-ClawHub-Skill
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9-]{1,128}$
+        example: farmdash-signal-architect
+      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+    X-FarmDash-Client-Version:
+      name: X-FarmDash-Client-Version
+      in: header
+      required: false
+      description: Optional analytics client version; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Client:
+      name: X-FarmDash-Client
+      in: header
+      required: false
+      description: Optional untrusted analytics client hint; never security evidence.
+      schema:
+        type: string
+        enum:
+        - mcp
+        - ts_agent_kit
+        - python_agent_kit
+        - public_client
+        - webapp
+    X-FarmDash-Skill-Version:
+      name: X-FarmDash-Skill-Version
+      in: header
+      required: false
+      description: Optional event-touch analytics skill version, alongside X-ClawHub-Skill; never security evidence.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9._+-]{1,64}$
+    X-FarmDash-Installation-ID:
+      name: X-FarmDash-Installation-ID
+      in: header
+      required: false
+      description: Optional analytics-only locally generated UUIDv4 installation hint. Stored only as a domain-separated salted hash. Not authentication, principal proof, quota, payment, wallet ownership, delegation or transaction authority. Omission changes no functionality.
       schema:
         type: string
         format: uuid
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
   schemas:
-    ErrorResponse:
+    FuturesPolicy:
       type: object
+      additionalProperties: false
+      description: 'Owner-signed FarmDash policy, separate from Hyperliquid delegation. USD limits are exact positive decimal strings. maxRiskPerTrade is conservative full-notional admission USD, not a realized loss guarantee. Unix-second validity. Policy order types map actual route semantics: IOC/market_ioc -> market, Gtc/Alo -> limit.'
       required:
-      - error
+      - ownerAddress
+      - agentAddress
+      - apiWalletAddress
+      - accountAddress
+      - vaultAddress
+      - network
+      - sessionId
+      - allowedMarkets
+      - allowedActions
+      - allowedOrderTypes
+      - allowedDirections
+      - maxOrderNotionalUsd
+      - maxAggregateExposureUsd
+      - maxSessionNewRiskNotionalUsd
+      - maxLeverage
+      - maxRiskPerTrade
+      - maxSessionLossUsd
+      - maxDailyLossUsd
+      - validAfter
+      - validUntil
+      - nonce
+      - policyVersion
       properties:
-        ok:
-          type: boolean
-          example: false
-        error:
+        ownerAddress:
           type: string
-        code:
+          pattern: ^0x[a-fA-F0-9]{40}$
+        agentAddress:
           type: string
-        message:
+          pattern: ^0x[a-fA-F0-9]{40}$
+        apiWalletAddress:
           type: string
-        retryable:
-          type: boolean
-        request_id:
+          pattern: ^0x[a-fA-F0-9]{40}$
+        accountAddress:
           type: string
-        details:
-          type: object
-          additionalProperties: true
+          pattern: ^0x[a-fA-F0-9]{40}$
+        vaultAddress:
+          type: string
+          nullable: true
+          pattern: ^0x[a-fA-F0-9]{40}$
+        network:
+          type: string
+          enum:
+          - mainnet
+          - testnet
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        allowedMarkets:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            pattern: ^[A-Z0-9]{1,16}$
+        allowedActions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - futures.open
+            - futures.reduce
+            - futures.close
+            - futures.cancel
+            - futures.protective_order
+        allowedOrderTypes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - market
+            - limit
+            - stop_loss
+            - take_profit
+            - cancel
+        allowedDirections:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - long
+            - short
+        maxOrderNotionalUsd:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxAggregateExposureUsd:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxSessionNewRiskNotionalUsd:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxRiskPerTrade:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxSessionLossUsd:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxDailyLossUsd:
+          type: string
+          pattern: ^(0|[1-9]\d{0,17})(\.\d{1,8})?$
+          description: Strictly positive USD limit; zero is invalid
+        maxLeverage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        validAfter:
+          type: integer
+          minimum: 0
+          description: Unix seconds
+        validUntil:
+          type: integer
+          minimum: 1
+          description: Unix seconds, greater than validAfter
+        nonce:
+          type: string
+          pattern: ^[1-9]\d{0,77}$
+          description: Single-use owner uint256 decimal nonce
+        policyVersion:
+          type: integer
+          enum:
+          - 1
     PaymentRequiredError:
       type: object
       properties:
@@ -261,17 +585,34 @@ components:
             chainId:
               type: integer
               example: 8453
-  parameters:
-    X-ClawHub-Skill:
-      name: X-ClawHub-Skill
-      in: header
-      required: false
-      schema:
-        type: string
-        pattern: ^[a-zA-Z0-9-]{1,128}$
-        example: farmdash-signal-architect
-      description: 'ClawHub skill attribution. An installed FarmDash skill sends its canonical skill slug (e.g. farmdash-signal-architect) on every FarmDash API request so anonymous Scout usage can be attributed to the skill that drove it. Optional and analytics-only: absence never blocks a request, and malformed values are ignored. This is a skill identity, never a wallet address, API key, or user ID.'
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
   responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     PaymentRequired:
       description: Free-tier limit exceeded — x402 payment required
       headers:
@@ -298,20 +639,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PaymentRequiredError'
-    BadRequest:
-      description: Invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
+  headers:
+    X-Request-ID:
+      description: Unique request trace ID for debugging and support
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Pioneer or Syndicate API key
-x-refined-from:
-- farmdash-agent-api-openapi.yaml
-- farmdash-openapi.yaml
 x-agent-use-cases:
 - id: bounded-autopilot
   name: Bounded Autopilot
@@ -375,3 +713,34 @@ x-agent-use-cases:
   - Research gate expires.
   - Strategy confidence, liquidity, jurisdiction, or guardrails do not support execution.
   - Daily loss or drawdown limit is reached.
+x-farmdash-capability-truth:
+  spot.USER_SIGNED:
+    status: operational
+    prerequisite: Healthy execution governor, quote provider, RPC and durable receipt store; customer signs and submits.
+  spot.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Owner-signed EVM grant, exact simulation/calldata binding, durable budget and customer-local signer authority.
+  futures.USER_SIGNED:
+    status: operational
+    prerequisite: Venue account ownership, local action signature, builder approval, risk/research gates and durable order control.
+  futures.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Authenticated owner-bound futures policy, authorized local API-wallet signature, durable nonce/budget/order controls.
+  solana.USER_SIGNED:
+    status: operational
+    prerequisite: Native Jupiter/RPC route, durable preparation and finality store; customer signs and broadcasts.
+  solana.BOUNDED_AUTONOMOUS:
+    status: operational
+    prerequisite: Native owner-signed Solana policy; local key must be an actual required transaction signer. Policy creates no on-chain authority.
+  ERC4337_SERVER_SUBMISSION:
+    status: preparation_only
+    prerequisite: Qualified tenant/account authorization and session-key policy enforcement on public forwarding, configured bundler, durable claims and verified receipt integration.
+  GENERIC_SERVER_INTENT_EXECUTION:
+    status: preparation_only
+    prerequisite: Trusted executable adapter, exact signed-transaction binding and canonical receipt verifier.
+  MEE:
+    status: preparation_only
+    prerequisite: Production coordinator and authoritative source/destination receipt verifier.
+  ACP:
+    status: deployment_prerequisite
+    prerequisite: AcpReadinessService paidWorkflowReady, evaluator/client identities, migrations, funding/finality workers and Base RPC.

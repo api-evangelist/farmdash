@@ -13,8 +13,8 @@ homepage: https://www.farmdash.one/agents
 deployment:
   mode: local-stdio
   endpoint: null
-  install: "git clone https://github.com/Parmasanandgarlic/farmdashbeta.git && cd farmdashbeta/mcp-server && npm ci && npm run build"
-  package: https://github.com/Parmasanandgarlic/farmdashbeta/tree/main/mcp-server
+  install: "git clone https://github.com/Parmasanandgarlic/farmdash-openclaw-skills.git && npm ci --prefix mcp-server && npm run build --prefix mcp-server"
+  package: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills/tree/main/mcp-server
   auth: api-key
   verified: probed
   note: >-
@@ -27,7 +27,19 @@ deployment:
     Parmasanandgarlic/farmdashbeta returned 404 on 2026-08-26 while the owner account
     Parmasanandgarlic returned 200 — so the repo is private, renamed or deleted. Net effect:
     a fully specified 84-tool MCP server that no third party can currently install or reach.
+x-refresh-2026-10-19: >-
+  Refreshed from the live manifest on FarmDash's correction (apis.io check d1c27b23). The manifest
+  at /.well-known/mcp.json now lists 94 tools (server farmdash-agent-os 5.0.0), matching
+  release_train.mcp_tool_count on /api/v1/agent/status and mcpToolCount in /product-inventory.json.
+  Transport is still stdio only. installation.status is now "public_source_available": the source
+  lives in the MIT-licensed github.com/Parmasanandgarlic/farmdash-openclaw-skills (mcp-server/, 200
+  on 2026-10-19), which the provider itself labels an older mirror without runtime inventory parity;
+  @farmdash/mcp-server remains "not_yet_published" on npm. The 2026-08-26 note below is kept as the
+  record of that probe; tool_categories below predate the four tools added since.
 install_evidence:
+- url: https://github.com/Parmasanandgarlic/farmdash-openclaw-skills
+  status: 200
+  checked: '2026-10-19'
 - url: https://registry.npmjs.org/@farmdash%2Fmcp-server
   status: 404
   checked: '2026-08-26'
@@ -56,7 +68,7 @@ env:
   FARMDASH_BASE_URL:
     required: false
     default: https://www.farmdash.one/api
-tools_count: 90
+tools_count: 94
 resources_count: 0
 tools_have_input_schemas: true
 tool_categories:

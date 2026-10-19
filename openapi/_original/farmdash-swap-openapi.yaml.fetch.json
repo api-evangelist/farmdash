@@ -1,0 +1,12 @@
+{
+ "url": "https://www.farmdash.one/agents/swap/openapi.yaml",
+ "requested_url": "https://www.farmdash.one/agents/swap/openapi.yaml",
+ "status": 200,
+ "content_type": "text/yaml; charset=utf-8",
+ "bytes": 33828,
+ "sha256": "fe596aded485d7ce998f32db2aeccc4c9eee7b3c15c3dbe51edc6c2532e076df",
+ "fetched_at": "2026-10-19",
+ "fetched_by": "APIEvangelist-Harvest/1.0 (+https://apievangelist.com)",
+ "match": "exact",
+ "note": "Re-fetched 2026-10-19 on FarmDash's correction (apis.io check d1c27b23). Listed in the provider's /apis.json, /sitemap-agents.xml and product-inventory.json (openApiDocuments)."
+}

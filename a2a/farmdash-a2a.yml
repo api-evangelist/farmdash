@@ -2,6 +2,15 @@ generated: '2026-08-26'
 method: probed
 source: https://www.farmdash.one/.well-known/agent.json
 card_file: a2a/farmdash-agent-card.json
+x-refresh-2026-10-19: >-
+  NOT AN A2A AGENT CARD. Re-fetched 2026-10-19 on FarmDash's correction (apis.io check d1c27b23):
+  the document at /.well-known/agent.json now declares manifest_type "farmdash-agent-capabilities/v1"
+  (version 4.4.0) and says it is "a compatibility capability manifest retained at the former A2A path;
+  FarmDash does not currently expose an A2A message transport". /api/v1/agent/status reports
+  release_train.a2a_transport_status "not_exposed", llms.txt says the same, and
+  /.well-known/agent-card.json is still 404. The apis.yml pointers to this file were renamed from
+  AgentCard to X-LegacyAgentManifest so the record no longer credits an A2A card the provider says it
+  does not publish. The 2026-08-26 summary below is kept as the record of that probe.
 discovery:
   path: /.well-known/agent.json
   canonical: false

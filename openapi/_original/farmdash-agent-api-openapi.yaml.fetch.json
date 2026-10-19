@@ -3,10 +3,10 @@
  "requested_url": "https://www.farmdash.one/agents/openapi.yaml",
  "status": 200,
  "content_type": "text/yaml; charset=utf-8",
- "bytes": 159245,
- "sha256": "ce4ca306ae18527cfc5f77dc348f974bade101def5e42c8a9c985e02e34f4dd6",
- "fetched_at": "2026-10-04",
+ "bytes": 258475,
+ "sha256": "96310281f58c38fd8df7c7a885588edbab607f8a342669b853d98bcae850a45b",
+ "fetched_at": "2026-10-19",
  "fetched_by": "APIEvangelist-Harvest/1.0 (+https://apievangelist.com)",
- "match": "equivalent",
- "note": "Re-fetched from the provider by verify-openapi-sources.py; the provider's current document describes the same operations (Jaccard 0.957), but the bytes differ, so the archive is an earlier or reformatted copy."
+ "match": "exact",
+ "note": "Re-fetched 2026-10-19 on FarmDash's correction (apis.io check d1c27b23). Listed in the provider's /apis.json, /sitemap-agents.xml and product-inventory.json (openApiDocuments)."
 }
