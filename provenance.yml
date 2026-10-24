@@ -36,9 +36,12 @@ artifacts:
   hosts/farmdash-hosts.yml:
     method: derived
     evidence: declared in the artifact
+  integrations/_index.yml:
+    method: generated
+    evidence: carries an API Evangelist house phrase
   integrations/farmdash-integration-edges.yml:
-    method: searched
-    evidence: declared in the artifact
+    method: unknown
+    evidence: no authorship recorded
   json-ld/farmdash-context.jsonld:
     method: unknown
     evidence: no authorship recorded
@@ -183,21 +186,9 @@ artifacts:
   mcp/farmdash-tool-crosswalk.yml:
     method: derived
     evidence: declared in the artifact
-  openapi/_original/farmdash-agent-api-openapi.yaml:
+  openapi/_original/farmdash-openapi.yml:
     method: harvested
-    evidence: fetched from https://www.farmdash.one/agents/openapi.yaml (sha256 96310281f58c, fetched
-      2026-10-19)
-  openapi/_original/farmdash-futures-openapi.yaml:
-    method: harvested
-    evidence: fetched from https://www.farmdash.one/agents/futures/openapi.yaml (sha256 9988ce5ce65f,
-      fetched 2026-10-19)
-  openapi/_original/farmdash-swap-openapi.json:
-    method: harvested
-    evidence: fetched from https://www.farmdash.one/agents/swap/openapi.json (sha256 29ec94d515b5, fetched
-      2026-10-19)
-  openapi/_original/farmdash-swap-openapi.yaml:
-    method: harvested
-    evidence: fetched from https://www.farmdash.one/agents/swap/openapi.yaml (sha256 fe596aded485, fetched
+    evidence: byte-identical to https://www.farmdash.one/agents/openapi.yaml (sha256 96310281f58c, fetched
       2026-10-19)
   openapi/farmdash-account-api-openapi.yml:
     method: derived
@@ -254,8 +245,8 @@ artifacts:
     method: derived
     evidence: paths are a subset of openapi/_original/ (split from the harvested spec)
   overlays/farmdash-agent-api-overlay.yaml:
-    method: generated
-    evidence: declared in the artifact
+    method: derived
+    evidence: an API Evangelist overlay (title) over the provider's contract
   packages/farmdash-packages.yml:
     method: unknown
     evidence: no authorship recorded
