@@ -72,7 +72,7 @@ FarmDash is a zero-custody intelligence and control layer for DeFi agents and ai
 
 Everything profiled for FarmDash Agent Hub is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/farmdash/](https://apis.io/providers/farmdash/)** — or go straight to one of the APIs or properties below.
 
-### APIs (16)
+### APIs (18)
 
 - [FarmDash Agent Hub Account API](https://apis.io/apis/farmdash/farmdash-account-api/) — Hyperliquid account state and risk management
 - [FarmDash Agent Hub Autopilot API](https://apis.io/apis/farmdash/farmdash-autopilot-api/) — Policy-bounded loop configuration and execution
@@ -90,6 +90,8 @@ Everything profiled for FarmDash Agent Hub is published on APIs.io rather than i
 - [FarmDash Agent Hub Strategy API](https://apis.io/apis/farmdash/farmdash-strategy-api/) — Strategy analysis and position sizing
 - [FarmDash Agent Hub Swap API](https://apis.io/apis/farmdash/farmdash-swap-api/) — Token swap quotes, execution, and confirmation
 - [FarmDash Agent Hub Wallet API](https://apis.io/apis/farmdash/farmdash-wallet-api/) — The Wallet API from FarmDash Agent Hub — 1 operation(s) for wallet.
+- [FarmDash Agent Hub Agent API](https://apis.io/apis/farmdash/farmdash-agent-api/) — The Agent API from FarmDash Agent Hub — 1 operation(s) for agent.
+- [FarmDash Agent Hub Payments API](https://apis.io/apis/farmdash/farmdash-payments-api/) — Payment kernel access rails — native-ETH payment intents, FarmDash prepaid credit, and the single-use execution-bootstrap grant. Describes settlement only;…
 
 ### Published properties
 
@@ -107,7 +109,7 @@ Which operations an agent can call, which act, and which need a human in the loo
 
 - [Farmdash Agentic Access](https://apis.io/agentic-access/farmdash/farmdash-agentic-access/)
 
-#### JSON Schema (6)
+#### JSON Schema (8)
 
 The data models the API reads and writes.
 
@@ -116,13 +118,15 @@ The data models the API reads and writes.
 - [ExecuteOrderResponse](https://apis.io/schemas/farmdash/farmdash-execute-order-response/)
 - [FirmQuoteResponse](https://apis.io/schemas/farmdash/farmdash-firm-quote-response/)
 - [MarketEstimateResponse](https://apis.io/schemas/farmdash/farmdash-market-estimate-response/)
+- [ReconcileOrderRequest](https://apis.io/schemas/farmdash/farmdash-reconcile-order-request/)
+- [ReconcileOrderResponse](https://apis.io/schemas/farmdash/farmdash-reconcile-order-response/)
 - [SwapRequest](https://apis.io/schemas/farmdash/farmdash-swap-request/)
 
 #### JSON-LD (1)
 
 Linked-data contexts for the provider's vocabulary.
 
-- [Moved to /providers/farmdash/](https://apis.io/jsonld/farmdash/farmdash-context/)
+- [Farmdash Context](https://apis.io/jsonld/farmdash/farmdash-context/)
 
 #### Overlays (1)
 
@@ -134,7 +138,7 @@ OpenAPI overlays, including conversational phrasing for each operation.
 
 Spectral rulesets for the provider's contracts.
 
-- [Moved to /providers/farmdash/](https://apis.io/rules/farmdash/farmdash-rules/)
+- [FarmDash Agent Hub API Rules](https://apis.io/rules/farmdash/farmdash-rules/)
 
 #### Security (2)
 
@@ -143,17 +147,24 @@ Authentication, trust centre, and vulnerability disclosure.
 - [Farmdash Authentication](https://apis.io/security/farmdash/farmdash-authentication/)
 - [Farmdash Domain Security](https://apis.io/security/farmdash/farmdash-domain-security/)
 
-#### Plans and pricing (1)
+#### Plans and pricing (2)
 
 Published plans, tiers and prices.
 
 - [Farmdash Plans Pricing](https://apis.io/plans/farmdash/farmdash-plans-pricing/)
+- [Farmdash Price Estimates](https://apis.io/plans/farmdash/farmdash-price-estimates/)
 
 #### Rate limits (1)
 
 Published request limits.
 
 - [Farmdash Rate Limits](https://apis.io/rate-limits/farmdash/farmdash-rate-limits/)
+
+#### FinOps (1)
+
+What the API costs to run, by operation.
+
+- [Farmdash Finops](https://apis.io/finops/farmdash/farmdash-finops/)
 
 ## Where to find this API
 
