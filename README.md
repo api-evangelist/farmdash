@@ -1,4 +1,4 @@
-# FarmDash Agent Hub
+# FarmDash.one
 
 <!-- API-EVANGELIST-PROVENANCE:BEGIN -->
 > ### About this repository
@@ -64,13 +64,13 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-FarmDash is a zero-custody intelligence and control layer for DeFi agents and airdrop farmers, combining Trail Heat opportunity scoring, Signal Architect swap routing, wallet and Sybil-risk intelligence, and Hyperliquid futures research across EVM, Solana, HyperEVM and StarkNet. It is one of the most thoroughly agent-instrumented providers in the catalog: a live OpenAPI 3.1.0 with 54 operations (75 across four published OpenAPI documents, the swap and futures specialist contracts restating operations of the primary one), a 94-tool MCP manifest carrying full input schemas, ten MIT-licensed OpenClaw skill contracts, a legacy agent capability manifest at the former A2A path (FarmDash exposes no A2A message transport), an ai-plugin manifest, llms.txt, ai.txt, a machine-readable agent report, and a runtime capability contract that the provider declares authoritative over tool discovery. Auth is tiered API keys (Scout free / Pioneer $39.99 / Syndicate $199, all USDC) with a verified live x402 machine-payment fallback settling on Base. Writes are gated by mandatory pre-execution simulation and user-held EIP-191/EIP-712 signatures — FarmDash never broadcasts and never holds keys.
+FarmDash is a zero-custody intelligence and control layer for DeFi agents and airdrop farmers, combining Trail Heat opportunity scoring, Signal Architect swap routing, wallet and Sybil-risk intelligence, and Hyperliquid futures research across EVM, Solana, HyperEVM and StarkNet. It is one of the most thoroughly agent-instrumented providers in the catalog: a live OpenAPI 3.1.0 with 54 operations (75 across four published OpenAPI documents, the swap and futures specialist contracts restating operations of the primary one), a 94-tool MCP manifest carrying full input schemas, ten MIT-licensed OpenClaw skill contracts, a legacy agent capability manifest at the former A2A path (FarmDash exposes no A2A message transport), an ai-plugin manifest, llms.txt, ai.txt, a machine-readable agent report, and a runtime capability contract that the provider declares authoritative over tool discovery. Auth is tiered API keys (Scout free / Pioneer $39.99 / Syndicate $199, all USDC) with a verified live x402 machine-payment fallback settling on Base. Writes are gated by mandatory pre-execution simulation and user-held EIP-191/EIP-712 signatures. FarmDash does not receive customer raw private keys. Execution modes per the provider's execution-truth.json: USER_SIGNED (default) and policy-scoped BOUNDED_AUTONOMOUS are operational for spot, futures and Solana; ERC-4337 server submission, generic server intent execution and MEE remain preparation-only, and ACP is deployment-prerequisite dependent. Payment, an API key, subscription or session state alone does not grant transaction authority.
 
 **Areas:** DeFi · DeFAI · AI Agents · MCP · OpenAPI · x402 · Blockchain · Cryptocurrency · airdrop tracking · Developer Tools · Agent Readiness · Machine Payments
 
-## FarmDash Agent Hub on APIs.io
+## FarmDash.one on APIs.io
 
-Everything profiled for FarmDash Agent Hub is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/farmdash/](https://apis.io/providers/farmdash/)** — or go straight to one of the APIs or properties below.
+Everything profiled for FarmDash.one is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/farmdash/](https://apis.io/providers/farmdash/)** — or go straight to one of the APIs or properties below.
 
 ### APIs (18)
 
@@ -107,17 +107,21 @@ Model Context Protocol servers that expose the API to agents.
 
 Which operations an agent can call, which act, and which need a human in the loop.
 
-- [Farmdash Agentic Access](https://apis.io/agentic-access/farmdash/farmdash-agentic-access/)
+- [FarmDash.one Agentic Access](https://apis.io/agentic-access/farmdash/farmdash-agentic-access/)
 
-#### JSON Schema (8)
+#### JSON Schema (12)
 
 The data models the API reads and writes.
 
 - [CancelOrderResponse](https://apis.io/schemas/farmdash/farmdash-cancel-order-response/)
 - [ConfirmRequest](https://apis.io/schemas/farmdash/farmdash-confirm-request/)
+- [ExecuteOrderRequest](https://apis.io/schemas/farmdash/farmdash-execute-order-request/)
 - [ExecuteOrderResponse](https://apis.io/schemas/farmdash/farmdash-execute-order-response/)
+- [ExecutionContinuation](https://apis.io/schemas/farmdash/farmdash-execution-continuation/)
 - [FirmQuoteResponse](https://apis.io/schemas/farmdash/farmdash-firm-quote-response/)
+- [FuturesPolicy](https://apis.io/schemas/farmdash/farmdash-futures-policy/)
 - [MarketEstimateResponse](https://apis.io/schemas/farmdash/farmdash-market-estimate-response/)
+- [PrepareOrderResponse](https://apis.io/schemas/farmdash/farmdash-prepare-order-response/)
 - [ReconcileOrderRequest](https://apis.io/schemas/farmdash/farmdash-reconcile-order-request/)
 - [ReconcileOrderResponse](https://apis.io/schemas/farmdash/farmdash-reconcile-order-response/)
 - [SwapRequest](https://apis.io/schemas/farmdash/farmdash-swap-request/)
@@ -132,39 +136,40 @@ Linked-data contexts for the provider's vocabulary.
 
 OpenAPI overlays, including conversational phrasing for each operation.
 
-- [Farmdash Agent Api Overlay](https://apis.io/overlays/farmdash/farmdash-agent-api-overlay/)
+- [FarmDash.one Agent Api Overlay](https://apis.io/overlays/farmdash/farmdash-agent-api-overlay/)
 
 #### Governance rules (1)
 
 Spectral rulesets for the provider's contracts.
 
-- [FarmDash Agent Hub API Rules](https://apis.io/rules/farmdash/farmdash-rules/)
+- [FarmDash.one API Rules](https://apis.io/rules/farmdash/farmdash-rules/)
 
-#### Security (2)
+#### Security (3)
 
 Authentication, trust centre, and vulnerability disclosure.
 
-- [Farmdash Authentication](https://apis.io/security/farmdash/farmdash-authentication/)
-- [Farmdash Domain Security](https://apis.io/security/farmdash/farmdash-domain-security/)
+- [FarmDash.one Authentication](https://apis.io/security/farmdash/farmdash-authentication/)
+- [FarmDash.one Domain Security](https://apis.io/security/farmdash/farmdash-domain-security/)
+- [FarmDash.one Vulnerability Disclosure](https://apis.io/security/farmdash/farmdash-vulnerability-disclosure/)
 
 #### Plans and pricing (2)
 
 Published plans, tiers and prices.
 
-- [Farmdash Plans Pricing](https://apis.io/plans/farmdash/farmdash-plans-pricing/)
-- [Farmdash Price Estimates](https://apis.io/plans/farmdash/farmdash-price-estimates/)
+- [FarmDash.one Plans Pricing](https://apis.io/plans/farmdash/farmdash-plans-pricing/)
+- [FarmDash.one Price Estimates](https://apis.io/plans/farmdash/farmdash-price-estimates/)
 
 #### Rate limits (1)
 
 Published request limits.
 
-- [Farmdash Rate Limits](https://apis.io/rate-limits/farmdash/farmdash-rate-limits/)
+- [FarmDash.one Rate Limits](https://apis.io/rate-limits/farmdash/farmdash-rate-limits/)
 
 #### FinOps (1)
 
 What the API costs to run, by operation.
 
-- [Farmdash Finops](https://apis.io/finops/farmdash/farmdash-finops/)
+- [FarmDash.one Finops](https://apis.io/finops/farmdash/farmdash-finops/)
 
 ## Where to find this API
 
@@ -229,7 +234,7 @@ The rubric is published at [github.com/api-evangelist/kin-score](https://github.
 
 API Evangelist profiles a company's public API surface the way a developer would find it: the website, developer portal and documentation, the specifications it publishes, its public repositories, and its pricing, status and changelog pages. From that it derives the properties above — contracts split per API, workflows, schemas, collections, governance rules, plans and rate limits — and scores them against the published [Kin Score rubric](https://github.com/api-evangelist/kin-score).
 
-The artifacts are published on [APIs.io](https://apis.io), not in this repository. This repository is the public record for FarmDash Agent Hub: the place to say something is wrong, missing or out of date, and to ask for a re-score or a removal.
+The artifacts are published on [APIs.io](https://apis.io), not in this repository. This repository is the public record for FarmDash.one: the place to say something is wrong, missing or out of date, and to ask for a re-score or a removal.
 
 ## Open an issue
 
